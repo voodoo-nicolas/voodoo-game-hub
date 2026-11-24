@@ -4,7 +4,7 @@ chore that used to be a hand-edit across several files.
 
     python tools/hub.py check                 validate everything, change nothing
     python tools/hub.py sync                  regenerate derived config from the sources of truth
-    python tools/hub.py new-game ID --title "Title" --icon "ðŸŽ²" --category "Cards"
+    python tools/hub.py new-game ID --title "Title" --icon "🎲" --category "Cards"
     python tools/hub.py bump-pack ID [ID...]  a game changed: publish it as a new version
     python tools/hub.py bump-app [patch|minor|major]
     python tools/hub.py test [ID...]          headless-boot the hub, account screen and games
@@ -54,10 +54,10 @@ VERSION_GD = ROOT / "scripts/common/version.gd"
 CONFIG_GD = ROOT / "scripts/common/config.gd"
 BRAND_GD = ROOT / "scripts/common/brand.gd"
 MEDIA = ROOT / "media"
-# A game's own media (STANDARDS Â§10 tier 3): games/<id>/, shipped in its pack.
+# A game's own media (STANDARDS §10 tier 3): games/<id>/, shipped in its pack.
 GAME_MEDIA = ROOT / "games"
 CREDITS = MEDIA / "CREDITS.json"
-# The shared music library (STANDARDS Â§10): written by tools/music_drop, which
+# The shared music library (STANDARDS §10): written by tools/music_drop, which
 # keeps each track's credit in it (the OGG files live on a GitHub release).
 MUSIC_LIST = MEDIA / "music" / "music.json"
 MUSIC_PACES = ("slow", "moderate", "fast")
@@ -149,7 +149,7 @@ def catalog_ids(m: dict) -> list[str]:
 
 
 def archived_ids(m: dict) -> set[str]:
-    """Games hidden from the hub (HUB_V2_PLAN Â§6): "archived": true on the
+    """Games hidden from the hub (HUB_V2_PLAN §6): "archived": true on the
     game or its category. They keep their presets, packs and saves."""
     return {g["id"] for c in m.get("categories", []) for g in c.get("games", [])
             if g.get("id") and (c.get("archived") is True or g.get("archived") is True)}
@@ -335,7 +335,7 @@ def sync_home_kits(ids: list[str]) -> None:
 
 # ---------------------------------------------------------------- sound library
 
-# The shared sound library (STANDARDS Â§10): media/common/sfx/<set>/<name>.ogg,
+# The shared sound library (STANDARDS §10): media/common/sfx/<set>/<name>.ogg,
 # filled by tools/sfx_import.py. Not in the APK: each game's pack carries the
 # files of the sound ids its scripts name, so they play on every app version.
 SFX_LIB = MEDIA / "common" / "sfx"
@@ -379,7 +379,7 @@ def game_sounds(gid: str) -> tuple[list[str], list[str]]:
 
 # ---------------------------------------------------------------- sprite library
 
-# The shared sprite library (STANDARDS Â§10): media/common/sprites/<set>/<name>.png
+# The shared sprite library (STANDARDS §10): media/common/sprites/<set>/<name>.png
 # or a numbered series <name>_0.png / _1.png..., filled by tools/sprite_import.py
 # (catalog docs/claude/sprite-library.md). Same deal as the sound library: not
 # in the APK; each game's pack carries the files of the sprite ids its scripts
@@ -546,7 +546,7 @@ def require_legal_clean() -> None:
 
 
 def lint_own_backgrounds(m: dict) -> list[str]:
-    """STANDARDS Â§9 (owner, 2026-10-07): arcade games keep their own
+    """STANDARDS §9 (owner, 2026-10-07): arcade games keep their own
     backgrounds, never the shared felt / leather -- the kit's OWN_BG_GAMES
     must list exactly the manifest's Arcade + Adventure categories."""
     found = re.search(r"const OWN_BG_GAMES := \[(.*?)\]", HOME_KIT.read_text(encoding="utf-8"), re.S)
@@ -566,7 +566,7 @@ def lint_own_backgrounds(m: dict) -> list[str]:
     return errors
 
 
-# STANDARDS Â§17 (owner, 2026-11-08): every catalog game offers helps (3 per game,
+# STANDARDS §17 (owner, 2026-11-08): every catalog game offers helps (3 per game,
 # one back 24 h after the last used) through the Landing kit's pool -- except these.
 NO_HELPS = {
     "voodoo_iq": "a scored test: a help would change what the score means",
@@ -592,7 +592,7 @@ NO_HELPS = {
 
 
 def lint_helps(m: dict) -> list[str]:
-    """STANDARDS Â§17: each catalog game uses the kit's helps pool, or is in NO_HELPS."""
+    """STANDARDS §17: each catalog game uses the kit's helps pool, or is in NO_HELPS."""
     errors = []
     for gid in catalog_ids(m):
         if gid in NO_HELPS:
@@ -600,12 +600,12 @@ def lint_helps(m: dict) -> list[str]:
         text = "".join(f.read_text(encoding="utf-8") for f in (ROOT / "scripts/games" / gid).glob("*.gd")
                        if f.name not in ("home_kit.gd", "sound_lib.gd", "sprite_lib.gd", "landing_styles.gd", "fx_lib.gd", "menu_styles.gd"))
         if '"helps":' not in text and "helps_left(" not in text:
-            errors.append(f"{gid}: no helps (STANDARDS Â§17) -- add cfg \"helps\" or list it in NO_HELPS with the reason")
+            errors.append(f"{gid}: no helps (STANDARDS §17) -- add cfg \"helps\" or list it in NO_HELPS with the reason")
     return errors
 
 
 def lint_credits() -> list[str]:
-    """STANDARDS Â§10: every file under media/ and games/ (a game's own media)
+    """STANDARDS §10: every file under media/ and games/ (a game's own media)
     has a media/CREDITS.json entry. An entry whose "file" ends in "/" covers
     every file in that folder (one licence for a whole sound set)."""
     if not MEDIA.is_dir():
@@ -624,7 +624,7 @@ def lint_credits() -> list[str]:
                 or rel.startswith("media/licenses/") or f == MUSIC_LIST):
             continue
         if rel not in listed and not any(rel.startswith(d) for d in folders):
-            errors.append(f"{rel}: no entry in media/CREDITS.json (STANDARDS Â§10)")
+            errors.append(f"{rel}: no entry in media/CREDITS.json (STANDARDS §10)")
     for rel in sorted(listed - {""}):
         if not ((ROOT / rel).is_dir() if rel.endswith("/") else (ROOT / rel).is_file()):
             errors.append(f"media/CREDITS.json lists {rel}, which doesn't exist")
@@ -632,7 +632,7 @@ def lint_credits() -> list[str]:
 
 
 def lint_music(m: dict) -> list[str]:
-    """STANDARDS Â§10: every track in media/music/music.json has its credit and
+    """STANDARDS §10: every track in media/music/music.json has its credit and
     licence proof (never NC / ND), and "play" names real games / categories.
     Run after `git pull`: Music Drop commits straight to GitHub."""
     if not MUSIC_LIST.is_file():
@@ -669,7 +669,7 @@ def lint_music(m: dict) -> list[str]:
         if not c.get("commercial_ok"):
             errors.append(f"{at}: commercial use not confirmed")
         if lic == "ai" and not (str(c.get("ai_tool", "")).strip() and str(c.get("ai_plan", "")).strip()):
-            errors.append(f"{at}: AI track without its tool and plan (HUB_V2_PLAN Â§5.6)")
+            errors.append(f"{at}: AI track without its tool and plan (HUB_V2_PLAN §5.6)")
         if lic in ("cc-by", "cc-by-3") and not str(c.get("url", "")).strip():
             errors.append(f"{at}: CC BY needs the link to the original")
         proof = str(c.get("proof", ""))
@@ -693,7 +693,7 @@ def lint_music(m: dict) -> list[str]:
 # else naming the app must use Brand.NAME (CLAUDE.md "Rename safety" -- ids
 # and paths keep "voodoo"; only visible text changed).
 VOODOO_TEXT_OK = {
-    "ðŸ’€ Voodoo: On", "ðŸ’€ Voodoo: Off",
+    "💀 Voodoo: On", "💀 Voodoo: Off",
     "Skulls, crossbones and voodoo dolls in Tic-Tac-Toe, Connect Four and Reversi.",
 }
 
@@ -716,7 +716,7 @@ def lint_hub_name() -> list[str]:
 
 
 # Achievement points (Viral XP) a game can pay out in all (owner, 2026-10-28;
-# STANDARDS Â§3b). The server's own cap stays 1500 as a safety net.
+# STANDARDS §3b). The server's own cap stays 1500 as a safety net.
 GAME_XP_MAX = 1000
 # Mirrors of scripts/common/achievements.gd: generic tiers per stat and XP per tier.
 XP_BY_AT = {1: 10, 3: 15, 5: 20, 10: 30, 50: 60, 100: 120, 150: 150}
@@ -801,7 +801,7 @@ def game_xp(gid: str) -> int:
 
 def lint_game_xp(m: dict) -> list[str]:
     return [f"{gid}: its achievements pay {xp} points in all; the most a game may offer is {GAME_XP_MAX}"
-            f" (STANDARDS Â§3b)" for gid in catalog_ids(m) if (xp := game_xp(gid)) > GAME_XP_MAX]
+            f" (STANDARDS §3b)" for gid in catalog_ids(m) if (xp := game_xp(gid)) > GAME_XP_MAX]
 
 
 def lint_web_threads() -> list[str]:
@@ -1180,7 +1180,7 @@ WEB_SITE = ROOT / "docs/play"  # GitHub Pages serves docs/ from master
 WEB_URL = "https://voodoo-nicolas.github.io/voodoo-game-hub/play/"
 WEB_FONTS = ROOT / "assets/web_fonts"
 # The BMP characters whose default look is emoji (Unicode's
-# Emoji_Presentation=Yes); every other BMP symbol (â–¶ â™  â˜… â†) is plain text.
+# Emoji_Presentation=Yes); every other BMP symbol (▶ ♠ ★ ←) is plain text.
 # Nearly everything from U+1F000 up is emoji.
 _EMOJI_BMP = [(0x231A, 0x231B), (0x23E9, 0x23EC), (0x23F0, 0x23F0), (0x23F3, 0x23F3), (0x25FD, 0x25FE),
               (0x2614, 0x2615), (0x2648, 0x2653), (0x267F, 0x267F), (0x2693, 0x2693), (0x26A1, 0x26A1),
@@ -1191,7 +1191,7 @@ _EMOJI_BMP = [(0x231A, 0x231B), (0x23E9, 0x23EC), (0x23F0, 0x23F0), (0x23F3, 0x2
               (0x2B1B, 0x2B1C), (0x2B50, 0x2B50), (0x2B55, 0x2B55)]
 _EMOJI_JOINERS = [0x200D, 0xFE0F, 0x20E3]  # zero-width joiner, emoji variation selector, keycap
 # Characters neither font has, drawn with a look-alike from the symbols font
-# (Android finds them in the phone's own fonts): â¤’ -> â¬†, fullwidth ï¼‹ ï¼ -> + âˆ’.
+# (Android finds them in the phone's own fonts): ⤒ -> ⬆, fullwidth ＋ － -> + −.
 _WEB_ALIASES = {0x2912: 0x2B06, 0xFF0B: 0x2B, 0xFF0D: 0x2212}
 
 
@@ -1338,7 +1338,7 @@ I18N_MASTER = ROOT / "tools/i18n/es.json"
 COMMON_STRINGS_GD = ROOT / "scripts/common/strings_es.gd"
 _LITERAL_RE = re.compile(r'"((?:[^"\\]|\\.)*)"')
 # Obviously-not-UI literals: paths, identifiers, theme keys, formats with no words.
-_NOT_TEXT_RE = re.compile(r'^(res://|user://|https?://|wss://|/|[a-z_0-9./:-]+$|[A-ZÃ‘]{2,}$|[A-Z][a-z]+[A-Z][A-Za-z]*$|[^A-Za-z]*$)')
+_NOT_TEXT_RE = re.compile(r'^(res://|user://|https?://|wss://|/|[a-z_0-9./:-]+$|[A-ZÑ]{2,}$|[A-Z][a-z]+[A-Z][A-Za-z]*$|[^A-Za-z]*$)')
 
 
 def _gd_unescape(lit: str) -> str:
@@ -1444,7 +1444,7 @@ def cmd_i18n(_args) -> None:
 
 # Text from shared scripts that appears inside game screens.
 COMMON_IN_GAMES = {
-    "Opponent disconnected â€” waiting...", "Your turn (%s)", "Opponent's turn (%s)", "You win!", "You lose!",
+    "Opponent disconnected — waiting...", "Your turn (%s)", "Opponent's turn (%s)", "You win!", "You lose!",
     # difficulty names built with .capitalize() from lowercase ids
     "Easy", "Medium", "Hard", "Expert",
 }
