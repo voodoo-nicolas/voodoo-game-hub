@@ -38,6 +38,7 @@ func setup(game_id: String, save_path: String, score: Callable, loaded: Callable
 	on_loaded = loaded
 
 func _ready() -> void:
+	add_to_group("cloud_save")   # static save code finds it (geometry_wars_campaign.gd)
 	_timer = Timer.new()
 	_timer.one_shot = true
 	_timer.wait_time = PUSH_DELAY

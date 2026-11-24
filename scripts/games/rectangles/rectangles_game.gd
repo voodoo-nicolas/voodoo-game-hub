@@ -23,6 +23,8 @@ const LEVELS_PATH := "res://games/rectangles/levels/classic_1.json"
 
 const SAVE_PATH := "user://rectangles_save.json"
 const PROGRESS_PATH := "user://rectangles_progress.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 const PREFS_PATH := "user://rectangles_prefs.json"
 const CLASSIC_LEVELS := 300
 const ZEN := [["🙂 Easy", 5, 0], ["😐 Normal", 6, 1], ["😈 Hard", 8, 2], ["🤯 Expert", 10, 3]]
@@ -78,6 +80,10 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	engine = Engine_.new()
 	_load_progress()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("rectangles", PROGRESS_PATH, _progress_score, _load_progress)
+		add_child(cloud)
 	var prefs = SaveUtil.read(PREFS_PATH)
 	if prefs is Dictionary:
 		factor_helper = bool(prefs.get("factor_helper", true))
@@ -180,7 +186,7 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	var modes: Array = [
-		{"text": "🗺 Classic", "sub": "300 levels · collect stars", "color": HomeKit.GOLD, "action": _start_classic},
+		{"text": "🗺 Classic", "sub": "Collect stars", "color": HomeKit.GOLD, "action": _start_classic},
 		{"text": "📅 Daily Challenge", "sub": "One 7 × 7 board a day, same for everyone", "color": HomeKit.PINK, "action": _start_daily},
 		{"text": "🗓 Weekly Challenge", "sub": "One big 10 × 10 board a week", "color": HomeKit.PURPLE, "action": _start_weekly},
 	]
@@ -682,6 +688,29 @@ func _load_progress() -> void:
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
+	if cloud:
+		cloud.saved()
+		cloud.report_completion(_cloud_cleared(), CLASSIC_LEVELS)
+
+## Cloud vs device (STANDARDS §18): the copy with more levels cleared (then stars) wins.
+func _progress_score(d: Dictionary) -> int:
+	var st = d.get("stars", {})
+	if not st is Dictionary:
+		return 0
+	var n := 0
+	var total := 0
+	for k in st:
+		if int(st[k]) > 0:
+			n += 1
+			total += int(st[k])
+	return n * 4 + total
+
+func _cloud_cleared() -> int:
+	var n := 0
+	for k in progress.get("stars", {}):
+		if int(progress.stars[k]) > 0:
+			n += 1
+	return n
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:

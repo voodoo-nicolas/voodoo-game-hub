@@ -11,7 +11,7 @@ const HOW := [
 	"Empty cells don't stop an arrow: it flies straight over them.",
 	"Clear every bubble and every arrow to win. You have 3 hearts per level: lose them all and you try the level again.",
 	"Stars: 3 for a level with no bump, 2 with one, 1 otherwise.",
-	"There are 320 levels. Boards grow, colours are added and the order you must fire in gets longer as you go.",
+	"Boards grow, colours are added and the order you must fire in gets longer as you go.",
 	"Turn on Color-blind shapes in the setup screen: every colour then gets its own mark.",
 	"⏸ pauses and keeps the board; Resume on the Landing carries on.",
 ]

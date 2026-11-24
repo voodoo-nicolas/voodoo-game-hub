@@ -20,6 +20,8 @@ const HELP := preload("res://scripts/games/pipe_flow/pipe_flow_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://pipe_flow_save.json"
 const PROGRESS_PATH := "user://pipe_flow_progress.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 
 const ZEN_NAMES := ["Easy", "Medium", "Hard", "Expert"]
 ## Which campaign levels a random board draws from, per difficulty.
@@ -93,6 +95,10 @@ func _ready() -> void:
 	rng.randomize()
 	engine = PipeEngine.new()
 	_load_progress()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("pipe_flow", PROGRESS_PATH, _progress_score, _load_progress)
+		add_child(cloud)
 	_build_ui()
 	_begin("campaign", 1, PipeEngine.seed_for(1))
 	started = false
@@ -186,7 +192,7 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	var modes: Array = [
-		{"text": "🗺 Campaign", "sub": "120 levels · collect stars", "color": HomeKit.GOLD, "action": _start_campaign},
+		{"text": "🗺 Campaign", "sub": "Collect stars", "color": HomeKit.GOLD, "action": _start_campaign},
 		{"text": "📋 Level Select", "sub": "Pick a level", "color": HomeKit.BUTTON, "action": _open_map.bind(true)},
 		{"text": "📅 Daily Challenge", "sub": "One board a day, same for everyone", "color": HomeKit.PINK, "action": _start_daily},
 		{"text": "⏱ Time Attack", "sub": "3 minutes: light as many boards as you can", "color": HomeKit.PURPLE, "action": _start_time},
@@ -538,7 +544,7 @@ func _show_solved_card(stars: int, msg: String) -> void:
 			if cur_level < PipeEngine.LEVEL_COUNT:
 				buttons.append({"text": tr("Next level"), "action": _start_level.bind(cur_level + 1)})
 			else:
-				msg += "\n" + tr("All 120 levels lit!")
+				msg += "\n" + tr("Every level lit!")
 			if stars < 3:
 				buttons.append({"text": tr("Try for 3 stars"), "action": _restart})
 			buttons.append({"text": tr("📋 Levels"), "action": _open_map.bind(false)})
@@ -625,6 +631,29 @@ func _load_progress() -> void:
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
+	if cloud:
+		cloud.saved()
+		cloud.report_completion(_cloud_cleared(), PipeEngine.LEVEL_COUNT)
+
+## Cloud vs device (STANDARDS §18): the copy with more levels cleared (then stars) wins.
+func _progress_score(d: Dictionary) -> int:
+	var st = d.get("stars", {})
+	if not st is Dictionary:
+		return 0
+	var n := 0
+	var total := 0
+	for k in st:
+		if int(st[k]) > 0:
+			n += 1
+			total += int(st[k])
+	return n * 4 + total
+
+func _cloud_cleared() -> int:
+	var n := 0
+	for k in progress.get("stars", {}):
+		if int(progress.stars[k]) > 0:
+			n += 1
+	return n
 
 func _cleared() -> int:
 	var n := 0

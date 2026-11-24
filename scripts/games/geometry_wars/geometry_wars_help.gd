@@ -6,7 +6,7 @@ extends RefCounted
 
 const ID := "geometry_wars"
 const TITLE := "Neon Blast"
-const GOAL := "Fly a horned voodoo skull through a swarm of neon spirits: break them with a storm of pins and score as much as you can -- or survive the Campaign's 40 levels and beat its bosses."
+const GOAL := "Fly a horned voodoo skull through a swarm of neon spirits: break them with a storm of pins and score as much as you can -- or survive the Campaign's levels and beat its bosses."
 const HOW := [
 	"Hold the phone sideways. The left stick flies your skull, and it faces the way you steer. The right stick aims and fires without turning it.",
 	"You fire bursts of three pins, ten bursts a second. The middle pin is faster and flies farther.",
@@ -21,7 +21,7 @@ const HOW := [
 	"Seals are rune bars with deadly orange ends. Fly through the middle to break them, taking everything nearby with them; several in a row make a combo. Pins bounce off them as golden pins worth 4x. Golden seals are worth far more but fade after 7 seconds.",
 	"Spiders hop about laying hex charms. Touch or shoot a charm and it blows up the enemies around it.",
 	"At first you can play Endless (3 lives, bombs, extra lives) and the Campaign. Each Campaign boss you beat opens another mode: Time Attack (3 minutes, endless lives), Unarmed (no pins, only seals), Stampede (walls of darts), Sanctuary (you can only shoot inside a sacred circle, and enemies can't enter one), Coffin (a tiny box) and Boss Rush.",
-	"Campaign: 40 levels in 6 worlds. The first two teach flying and bombs; from the third, survive the clock. When it runs out the level is cleared and the swarm keeps coming: carry on, because the stars are points -- the first for surviving, two more at the level's point targets. Tap 🏁 Finish to stop. Every sixth level has a boss: beat it, not just outlast it, to open its prize.",
+	"Campaign: levels across 6 worlds. The first two teach flying and bombs; from the third, survive the clock. When it runs out the level is cleared and the swarm keeps coming: carry on, because the stars are points -- the first for surviving, two more at the level's point targets. Tap 🏁 Finish to stop. Every sixth level has a boss: beat it, not just outlast it, to open its prize.",
 	"Bosses grow bigger and tougher as you go. The Hive Queen hides behind rings of plates; every part of the Serpent King can be shot; the Bone Scorpion's claws go first, then its stinger -- only while its tail is out after a strike (it stops, rattles and marks the spot in red first: move!) -- then its head. The Watcher's beam and shots stop at tombstones: hide behind one, then shoot its eye while it's open. The Warden's shield stays up until you break the four crystals in the corners of the map.",
 	"Familiars are spirit animals that fly with you: Raven, Moth, Bull, Owl, Bat and Wisp. The Raven joins when you beat the first boss; the others come as your Campaign stars add up. Pick one on the level map. A Cursed run plays the same levels with no familiar.",
 	"The points scored while a familiar flies with you go to that familiar: spend them on its upgrades -- armor, speed, power and soul pull. They are expensive. Enemies can knock a familiar out for a few seconds.",

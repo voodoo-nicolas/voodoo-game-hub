@@ -21,6 +21,8 @@ const VOODOO_PATH := "res://scripts/common/voodoo.gd"
 const HELP := preload("res://scripts/games/bug_chain/bug_chain_help.gd")
 const SAVE_PATH := "user://bug_chain_save.json"
 const PREFS_PATH := "user://bug_chain_prefs.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 const ART_DIR := "user://bug_chain_art/"
 const ART_VERSION := 1
 
@@ -85,6 +87,10 @@ func _ready() -> void:
 	engine = E.new()
 	var p = SaveUtil.read(PREFS_PATH)
 	prefs = p if p is Dictionary else {}
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("bug_chain", PREFS_PATH, _progress_score, _reload_prefs)
+		add_child(cloud)
 	diff = clampi(int(prefs.get("diff", 1)), 0, 2)
 	if ResourceLoader.exists(VOODOO_PATH):
 		voodoo_script = load(VOODOO_PATH)
@@ -187,7 +193,7 @@ func _build_ui() -> void:
 		"subtitle": "Fire bugs into the crawling chain. Three of a colour pop. Keep them out of the pit!",
 		"logo": _draw_home_logo,
 		"modes": [
-			{"text": "🌿 Campaign", "sub": "30 levels · 6 garden paths", "action": _new_campaign},
+			{"text": "🌿 Campaign", "sub": "6 garden paths", "action": _new_campaign},
 			{"text": "♾ Endless", "sub": "Wave after wave, faster and faster", "action": _new_endless},
 		],
 		"play": [
@@ -346,6 +352,22 @@ func _set_reached(n: int) -> void:
 	r[diff] = maxi(int(r[diff]), mini(n, E.CAMPAIGN_LEVELS))
 	prefs["reached"] = r
 	SaveUtil.write(PREFS_PATH, prefs)
+	if cloud:
+		cloud.saved()
+		cloud.report_completion(int(r[0]) + int(r[1]) + int(r[2]) - 3, 3 * E.CAMPAIGN_LEVELS)
+
+## Cloud vs device (STANDARDS §18): the copy with more campaign levels reached wins.
+func _progress_score(d: Dictionary) -> int:
+	var r = d.get("reached", [1, 1, 1])
+	var n := 0
+	if r is Array:
+		for v in r:
+			n += int(v)
+	return n
+
+func _reload_prefs() -> void:
+	var p = SaveUtil.read(PREFS_PATH)
+	prefs = p if p is Dictionary else {}
 
 func _update_labels() -> void:
 	score_label.text = _fmt(engine.score)
@@ -561,7 +583,7 @@ func _level_cleared() -> void:
 func _campaign_won() -> void:
 	over = true
 	SaveUtil.delete(SAVE_PATH)
-	var msg := tr("You cleared all 30 levels!") + "\n" + tr("Score: %s") % _fmt(engine.score)
+	var msg := tr("You cleared every level!") + "\n" + tr("Score: %s") % _fmt(engine.score)
 	if info:
 		info.add("Campaigns won")
 		if not result_sent:
@@ -630,7 +652,7 @@ func _open_level_select() -> void:
 	var parts: Array = home.card("📋 Level Select")
 	var body: VBoxContainer = parts[1]
 	var note := Label.new()
-	note.text = tr("%s: you have reached level %d of %d.") % [tr(DIFFS[diff]), _reached(), E.CAMPAIGN_LEVELS]
+	note.text = tr("%s: you have reached level %d.") % [tr(DIFFS[diff]), _reached()]
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.add_child(note)

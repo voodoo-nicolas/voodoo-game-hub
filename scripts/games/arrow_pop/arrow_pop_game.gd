@@ -21,6 +21,8 @@ const TITLE_FOR_HOME := HELP.TITLE
 const BG_TEX := "res://games/arrow_pop/bg_light.jpg"
 const SAVE_PATH := "user://arrow_pop_save.json"
 const PROGRESS_PATH := "user://arrow_pop_progress.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 
 const SPEED := 15.0  # cells per second
 const POP_TIME := 0.35
@@ -67,6 +69,10 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	engine = ApEngine.new()
 	_load_progress()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("arrow_pop", PROGRESS_PATH, _progress_score, _load_progress)
+		add_child(cloud)
 	_build_ui()
 	_deal(clampi(int(progress.level), 1, ApEngine.LEVEL_COUNT))
 	started = false
@@ -178,7 +184,7 @@ func _build_ui() -> void:
 		"accent": HomeKit.CYAN,
 		"subtitle": "Fire each arrow at its own colour. Never hit another colour.",
 		# "logo": _draw_home_logo,  # [2026-11-20] off: the landing art (landing.jpg) is the hero picture now
-		"modes": [{"text": "▶  Play", "sub": "320 levels", "key": "campaign", "color": Color("ff6b5e"), "action": _continue}],
+		"modes": [{"text": "▶  Play", "sub": "Bigger boards as you go", "key": "campaign", "color": Color("ff6b5e"), "action": _continue}],
 		"extra": _add_options,
 		"more": [["🗺 Levels", Color("ffe3b3"), _show_levels]],
 		"save_path": SAVE_PATH,
@@ -226,6 +232,18 @@ func _load_progress() -> void:
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
+	if cloud:
+		cloud.saved()
+		cloud.report_completion(int(progress.level) - 1, ApEngine.LEVEL_COUNT)
+
+## Cloud vs device (STANDARDS §18): the copy further along wins, then more stars.
+func _progress_score(d: Dictionary) -> int:
+	var total := 0
+	var b = d.get("best", {})
+	if b is Dictionary:
+		for k in b:
+			total += int(b[k])
+	return int(d.get("level", 1)) * 10000 + total
 
 func _total_stars() -> int:
 	var t := 0
