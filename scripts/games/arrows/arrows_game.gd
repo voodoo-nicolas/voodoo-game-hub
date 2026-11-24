@@ -178,12 +178,13 @@ func _build_ui() -> void:
 	root.add_child(feedback_label)
 
 	var row_margin := MarginContainer.new()
-	row_margin.add_theme_constant_override("margin_bottom", 30)
+	row_margin.add_theme_constant_override("margin_bottom", 20)
 	row_margin.add_theme_constant_override("margin_left", 12)
 	row_margin.add_theme_constant_override("margin_right", 12)
 	root.add_child(row_margin)
 	var actions := HBoxContainer.new()
-	actions.add_theme_constant_override("separation", 10)
+	actions.add_theme_constant_override("separation", 12)
+	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	row_margin.add_child(actions)
 	hint_btn = _button(tr("💡 Hint"), _on_hint)
 	actions.add_child(hint_btn)
@@ -314,9 +315,9 @@ func _side_card(title_text: String, buttons: Array) -> ColorRect:
 func _button(text: String, action: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(0, 72)
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.add_theme_font_size_override("font_size", 26)
+	b.custom_minimum_size = Vector2(140, 46)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	b.add_theme_font_size_override("font_size", 20)
 	b.pressed.connect(action)
 	my_buttons.append(b)
 	return b

@@ -74,7 +74,7 @@ var level := 1
 var playing := false
 var result_shown := false
 var progress: Dictionary = {"reached": 0, "stars": {}, "daily": {}, "cash": 0, "kit": {}}
-var prefs: Dictionary = {"level": 1, "effect": 0, "reticle": 0, "left": false, "bulletcam": 0}
+var prefs: Dictionary = {"level": 1, "effect": 0, "reticle": 0, "left": false, "bulletcam": 0, "invy": 0}
 var briefing := false               # the briefing card is up: the contract waits
 var brief_panel: Control
 var brief_title: Label
@@ -139,6 +139,17 @@ var pressing := false
 var drag_last := Vector2.ZERO
 var dragged := false
 var key_hold := false
+var tutorial := false         # the intro level is running
+var coaching := false         # a tutorial card is up: the world waits
+var tut_step := 0
+var tut_level := 1            # the real difficulty, put back when the tutorial ends
+var tut_fired := false
+var coach: Control
+var coach_card: PanelContainer
+var coach_text: Label
+var coach_next: Button
+var pad_hold := false      # gamepad: left trigger / B / X
+var pad_fire_down := false  # right trigger edge detector
 var mouse_hold := false
 var shot_sound: AudioStreamWAV = null
 var rain_loop: Node = null
@@ -204,6 +215,7 @@ func _build_ui() -> void:
 	reticle = _overlay_control(_draw_reticle)
 	hud = _overlay_control(_draw_hud)
 
+	_build_coach()
 	hint = HomeKit.label("", 26, Color(1, 1, 1, 0.92), true, true)
 	hint.add_theme_constant_override("outline_size", 8)
 	hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
@@ -336,6 +348,7 @@ func _build_ui() -> void:
 			{"text": "📅 Daily contract", "sub": "The same valley and targets for everyone today", "action": _start_daily},
 		],
 		"play": [
+			{"text": "🎓 Tutorial", "sub": "A quick intro: the scope, every HUD gauge and the controls", "action": _start_tutorial},
 			{"text": "🗺 Contracts", "sub": "30 contracts in 6 places", "action": _open_contracts, "card": true},
 			{"text": "🛠 Armory", "sub": "Spend your pay on rifle upgrades", "action": _open_armory, "card": true},
 		],
@@ -618,6 +631,11 @@ func _process(delta: float) -> void:
 		_apply_camera()
 		_draw_overlays()
 		return
+	if coaching:
+		coach.queue_redraw()
+		_apply_camera()
+		_draw_overlays()
+		return
 	if briefing:
 		# The contract waits under the briefing card; the camera drifts over the valley.
 		cam = Vector2(E.W * 0.5 + sin(anim_t * 0.08) * 200.0, E.H * 0.6)
@@ -632,6 +650,7 @@ func _process(delta: float) -> void:
 	_sync_targets()
 	_sort_trucks()
 	_body_sounds()
+	_pad_aim(delta)
 	zoom = lerpf(zoom, zoom_target, minf(1.0, delta * 12.0))
 	recoil = move_toward(recoil, 0.0, delta * 9.0)
 	shake = maxf(0.0, shake - delta * 4.0)
@@ -643,7 +662,10 @@ func _process(delta: float) -> void:
 	_step_effects(delta)
 	_apply_camera()
 	_draw_overlays()
-	if engine.over and not result_shown and effects.is_empty() and bcam.is_empty():
+	if tutorial and tut_fired and bcam.is_empty() and (not engine.over or effects.is_empty()):
+		tut_fired = false
+		_coach_show(_tut_steps().size() - 1)
+	if engine.over and not result_shown and effects.is_empty() and bcam.is_empty() and not tutorial:
 		_show_result()
 
 ## Bullet cam: the world runs at 1/8 speed while the camera rides the bullet in
@@ -1268,12 +1290,18 @@ func _add_game_options(body: VBoxContainer) -> void:
 	body.add_child(home.choice_row(["Red", "Green"], int(prefs.get("reticle", 0)), _pick_pref.bind("reticle")))
 	body.add_child(home.section("Bullet cam"))
 	body.add_child(home.choice_row(["On", "Off"], int(prefs.get("bulletcam", 0)), _pick_pref.bind("bulletcam")))
+	body.add_child(home.section("Look up / down (drag, stick, keys)"))
+	body.add_child(home.choice_row(["Normal", "Inverted"], int(prefs.get("invy", 0)), _pick_pref.bind("invy")))
 	body.add_child(home.section("Hold button and zoom"))
 	body.add_child(home.choice_row(["Right hand", "Left hand"], 1 if prefs.get("left", false) else 0, _pick_hand))
 
 func _pick_pref(i: int, key: String) -> void:
 	prefs[key] = i
 	SaveUtil.write(PREFS_PATH, prefs)
+
+## Look-Y option: Normal (drag the world, push the stick to look that way) or Inverted.
+func _ysign() -> float:
+	return -1.0 if int(prefs.get("invy", 0)) == 1 else 1.0
 
 func _pick_hand(i: int) -> void:
 	prefs["left"] = i == 1
@@ -1442,6 +1470,9 @@ func _draw_smoke(origin: Vector2) -> void:
 # ---------- flow ----------
 
 func _start_next_contract() -> void:
+	if not progress.get("tut_done", false) and int(progress.reached) == 0:
+		_start_tutorial()
+		return
 	_start_contract(mini(int(progress.reached), E.CONTRACTS.size() - 1))
 
 func _start_contract(i: int) -> void:
@@ -1484,6 +1515,8 @@ func _next_contract() -> void:
 	_start_contract(mini(engine.contract + 1, E.CONTRACTS.size() - 1))
 
 func _begin() -> void:
+	if not tutorial:
+		level = int(prefs.get("level", 1))
 	end_dialog.visible = false
 	results_chip.visible = false
 	result_shown = false
@@ -1502,7 +1535,10 @@ func _begin() -> void:
 	_apply_camera()
 	if info and info.has_method("start_clock"):
 		info.start_clock()
-	_briefing()
+	if tutorial:
+		_coach_show(0)
+	else:
+		_briefing()
 	_music("play", "calm")
 
 const TOD_NAMES := {"dawn": "Dawn", "day": "Day", "dusk": "Dusk", "night": "Night"}
@@ -1554,6 +1590,7 @@ func _on_pause() -> void:
 	home.pause()
 
 func _go_home() -> void:
+	_tut_end()
 	home.go_home()
 
 func _see_valley() -> void:
@@ -1704,6 +1741,8 @@ func _fire() -> void:
 			"z0": zoom, "zs": maxf(ZOOM_MIN, zoom * 0.55), "z1": clampf(0.42 * size.y / (1.8 * E.upm(float(r.d)) * _base_scale()), zoom, 60.0), "cam0": cam, "hold": -1.0}
 	get_tree().create_timer(0.45, false).timeout.connect(_bolt_sound)
 	_vibrate(45)
+	if tutorial:
+		tut_fired = true
 	tracers.append({"from": aim + Vector2(0, 30.0 * E.MIL), "to": r.impact, "t": 0.0, "tof": float(r.tof)})
 	if r.kind == "miss" and float(r.d) > 0.0:
 		get_tree().create_timer(float(r.tof), false).timeout.connect(_add_effect.bind("puff", r.impact, float(r.d), 0.9))
@@ -1902,6 +1941,12 @@ func _set_zoom(z: float) -> void:
 func _input(event: InputEvent) -> void:
 	if not playing or engine.over or get_tree().paused:
 		return
+	if coaching:
+		if (event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_A) \
+				or (event is InputEventKey and event.pressed and event.keycode in [KEY_ENTER, KEY_SPACE, KEY_KP_ENTER]):
+			get_viewport().set_input_as_handled()
+			_coach_next()
+		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			fingers[event.index] = event.position
@@ -1923,16 +1968,66 @@ func _input(event: InputEvent) -> void:
 			zoom = zoom_target
 	elif event is InputEventMagnifyGesture:
 		_set_zoom(zoom_target * event.factor)
+	elif event is InputEventJoypadButton:
+		_pad_button(event)
+	elif event is InputEventJoypadMotion:
+		_pad_axis(event)
 	elif event is InputEventKey:
 		if event.keycode in [KEY_SPACE, KEY_SHIFT]:
 			key_hold = event.pressed
-			engine.hold_breath(key_hold or mouse_hold or hold_btn.button_pressed)
+			engine.hold_breath(key_hold or mouse_hold or pad_hold or hold_btn.button_pressed)
 		elif event.pressed and event.keycode in [KEY_ENTER, KEY_F]:
 			_fire()
 		elif event.pressed and event.keycode in [KEY_EQUAL, KEY_KP_ADD]:
 			_set_zoom(zoom_target * 1.25)
 		elif event.pressed and event.keycode in [KEY_MINUS, KEY_KP_SUBTRACT]:
 			_set_zoom(zoom_target / 1.25)
+
+## PC controller layout (gamepad + keyboard). Sticks / arrows / WASD aim (slower the
+## more you zoom), RT or A fires, LT / B / X holds breath, bumpers (or D-pad up/down) zoom.
+const PAD_DEAD := 0.2
+const PAD_SPEED := 700.0  # screen px per second at full deflection
+
+func _pad_aim(delta: float) -> void:
+	var v := Vector2.ZERO
+	for dev in Input.get_connected_joypads():
+		for pair in [[JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y], [JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y]]:
+			var a := Vector2(Input.get_joy_axis(dev, pair[0]), Input.get_joy_axis(dev, pair[1]))
+			if a.length() > PAD_DEAD:
+				v += a * ((a.length() - PAD_DEAD) / (1.0 - PAD_DEAD))
+	var kx := int(Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT)) - int(Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT))
+	var ky := int(Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN)) - int(Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP))
+	v += Vector2(kx, ky)
+	if v == Vector2.ZERO or briefing or coaching or not bcam.is_empty():
+		return
+	v = v.limit_length(1.0)
+	v.y *= _ysign()
+	cam += v * PAD_SPEED * delta / _scale()
+
+func _pad_button(e: InputEventJoypadButton) -> void:
+	match e.button_index:
+		JOY_BUTTON_A:
+			if e.pressed:
+				_on_tap(size * 0.5)
+		JOY_BUTTON_B, JOY_BUTTON_X:
+			pad_hold = e.pressed
+			engine.hold_breath(key_hold or mouse_hold or pad_hold or hold_btn.button_pressed)
+		JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_DPAD_UP:
+			if e.pressed:
+				_set_zoom(zoom_target * 1.25)
+		JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_DPAD_DOWN:
+			if e.pressed:
+				_set_zoom(zoom_target / 1.25)
+
+func _pad_axis(e: InputEventJoypadMotion) -> void:
+	if e.axis == JOY_AXIS_TRIGGER_RIGHT:
+		var down := e.axis_value > 0.5
+		if down and not pad_fire_down:
+			_on_tap(size * 0.5)
+		pad_fire_down = down
+	elif e.axis == JOY_AXIS_TRIGGER_LEFT:
+		pad_hold = e.axis_value > 0.3
+		engine.hold_breath(key_hold or mouse_hold or pad_hold or hold_btn.button_pressed)
 
 func _end_multi() -> void:
 	if fingers.is_empty():
@@ -1952,7 +2047,7 @@ func _unhandled_input(event: InputEvent) -> void:
 					_set_zoom(zoom_target / 1.15)
 			MOUSE_BUTTON_RIGHT:
 				mouse_hold = event.pressed
-				engine.hold_breath(key_hold or mouse_hold or hold_btn.button_pressed)
+				engine.hold_breath(key_hold or mouse_hold or pad_hold or hold_btn.button_pressed)
 			MOUSE_BUTTON_LEFT:
 				if event.pressed:
 					pressing = true
@@ -1973,7 +2068,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if not dragged and event.position.distance_to(press_pos) > TAP_PX:
 			dragged = true
 		if dragged:
-			cam -= delta / _scale()
+			cam -= Vector2(delta.x, delta.y * _ysign()) / _scale()
 
 func _on_tap(p: Vector2) -> void:
 	if not bcam.is_empty():
@@ -1984,7 +2079,7 @@ func _on_tap(p: Vector2) -> void:
 		_handle_events()
 		_sync_targets()
 		return
-	if briefing:
+	if briefing or coaching:
 		return
 	if zoom_target < ZOOM_SCOPE:
 		# Naked eye: look through the scope where the tap was.
@@ -2076,3 +2171,147 @@ func _load_progress() -> void:
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
+
+
+# ---------- tutorial (the intro level) ----------
+# Easy contract 1 with a coach card per HUD element: a spotlight on the thing, a few
+# words, Next. The last step is one practice shot. Nothing is paid or recorded.
+
+func _start_tutorial() -> void:
+	SaveUtil.delete(SAVE_PATH)
+	tutorial = true
+	tut_level = level
+	level = 0
+	engine.reset("contract", 0, 0)
+	_begin()
+
+func _tut_end() -> void:
+	if not tutorial:
+		return
+	tutorial = false
+	coaching = false
+	tut_fired = false
+	if coach:
+		coach.visible = false
+	level = int(prefs.get("level", tut_level))
+
+func _tut_steps() -> Array:
+	var s := size
+	var left: bool = prefs.get("left", false)
+	var gx := s.x - 78.0 if left else 78.0
+	var rx := 150.0 if not left else s.x - 330.0
+	return [
+		{"t": "Welcome to Red Mist. This is a quick tour of the screen. Tap Next (or press Enter / the A button) to go on.", "r": Rect2()},
+		{"t": "Top left: the job, what is left to do, and your score. The bar under it is the ALARM: shots and near misses fill it, and when it is full the officer runs.", "r": Rect2(16, 24, 460, 82)},
+		{"t": "Top right: the WIND arrow and speed (it points where the wind blows to), and the RANGE to whatever is under the reticle once you look through the scope.", "r": Rect2(s.x - 400, 24, 384, 84)},
+		{"t": "The green ring (bottom corner) is your BREATH. The white dot goes round with each breath; the green part is the pause after breathing out. Fire there: the aim goes still and the ring on the reticle turns green. The heart number is your pulse: it climbs with every shot and makes the aim shake more.", "r": Rect2(gx - 60, s.y - 138, 120, 120)},
+		{"t": "HOLD BREATH freezes the breathing for about 3 seconds of steady aim, then the shakes start, and at 6 seconds you gasp. On PC: hold Space or the right mouse button. On a controller: hold the left trigger, B or X.", "r": Rect2(hold_btn.position, hold_btn.size)},
+		{"t": "ROUNDS: the cartridges are the rounds in the magazine; the number after the + is what is left in your pack. After the last round in the magazine you reload.", "r": Rect2(rx - 10, s.y - 84, E.MAG * 18 + 96, 64)},
+		{"t": "The ZOOM bar looks through the scope. Slide it up, pinch, or use the mouse wheel, + / -, the bumpers or D-pad up / down. Zoomed out you look around the valley; zoomed in, a tap fires.", "r": Rect2(zoom_slider.position - Vector2(10, 34), zoom_slider.size + Vector2(20, 44))},
+		{"t": "PAUSE stops the game; Resume on the Landing carries on the same contract.", "r": Rect2(pause_btn.position - Vector2(8, 8), pause_btn.size + Vector2(16, 16))},
+		{"t": "CONTROLS\nTouch: drag to look, pinch to zoom, tap to fire.\nMouse: drag or the arrow keys / WASD to look, wheel to zoom, left click or Enter to fire, right click or Space to hold breath.\nController: sticks look, RT or A fires, LT / B / X holds breath, LB / RB zoom out / in, D-pad up / down zoom.\nOptions can flip the look up / down direction.", "r": Rect2()},
+		{"t": "Your turn. Zoom in on the guard in the valley, breathe out, and when the ring goes green take ONE shot. Then we are done.", "r": Rect2()},
+		{"t": "Good shooting. Easy mode has no drop or wind; Normal and Hard add them. Tap Finish to go back, then start your first contract.", "r": Rect2()},
+	]
+
+func _build_coach() -> void:
+	coach = Control.new()
+	coach.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	coach.mouse_filter = Control.MOUSE_FILTER_STOP
+	coach.visible = false
+	coach.draw.connect(_draw_coach)
+	add_child(coach)
+	coach_card = PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.05, 0.04, 0.05, 0.94)
+	sb.set_corner_radius_all(16)
+	sb.set_border_width_all(2)
+	sb.border_color = Color(ACCENT, 0.8)
+	sb.set_content_margin_all(18)
+	coach_card.add_theme_stylebox_override("panel", sb)
+	coach.add_child(coach_card)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	coach_card.add_child(box)
+	coach_text = HomeKit.label("", 22, Color(0.96, 0.96, 0.98), false, true)
+	coach_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	coach_text.custom_minimum_size = Vector2(520, 0)
+	box.add_child(coach_text)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	box.add_child(row)
+	var skip := HomeKit.neon_button(tr("Skip tutorial"), HomeKit.BUTTON, 20, 52)
+	skip.pressed.connect(_coach_skip)
+	skip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(skip)
+	coach_next = HomeKit.neon_button(tr("Next"), HomeKit.GO, 22, 52)
+	coach_next.pressed.connect(_coach_next)
+	coach_next.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(coach_next)
+
+func _coach_show(i: int) -> void:
+	var steps := _tut_steps()
+	tut_step = clampi(i, 0, steps.size() - 1)
+	var last := tut_step == steps.size() - 1
+	var practice := tut_step == steps.size() - 2
+	coach_text.text = _tr_lines(String(steps[tut_step].t))
+	coach_next.text = tr("Finish") if last else (tr("Start practice") if practice else tr("Next"))
+	coaching = true
+	coach.visible = true
+	move_child(coach, -1)
+	engine.hold_breath(false)
+	coach.queue_redraw()
+	coach_card.reset_size()
+	await get_tree().process_frame
+	if not coach.visible:
+		return
+	# Park the card on the side away from the spotlight.
+	var r: Rect2 = steps[tut_step].r
+	var cs := coach_card.size
+	var y := size.y * 0.5 - cs.y * 0.5
+	if r.size != Vector2.ZERO:
+		y = size.y - cs.y - 30.0 if r.position.y + r.size.y * 0.5 < size.y * 0.5 else 30.0
+	coach_card.position = Vector2((size.x - cs.x) * 0.5, clampf(y, 10.0, maxf(10.0, size.y - cs.y - 10.0)))
+
+func _tr_lines(t: String) -> String:
+	var out := []
+	for l in t.split("\n"):
+		out.append(tr(l))
+	return "\n".join(out)
+
+func _coach_next() -> void:
+	var steps := _tut_steps()
+	if tut_step >= steps.size() - 1:
+		progress["tut_done"] = true
+		_save_progress()
+		_go_home()
+		return
+	if tut_step == steps.size() - 2:
+		# Practice: hand the world back until the shot is fired.
+		coaching = false
+		coach.visible = false
+		_set_zoom(4.0)
+		_hint(tr("Look through the scope, breathe out, then fire."), 5.0)
+		return
+	_coach_show(tut_step + 1)
+
+func _coach_skip() -> void:
+	progress["tut_done"] = true
+	_save_progress()
+	_go_home()
+
+func _draw_coach() -> void:
+	var s := size
+	var steps := _tut_steps()
+	var r: Rect2 = steps[clampi(tut_step, 0, steps.size() - 1)].r
+	var dim := Color(0, 0, 0, 0.62)
+	if r.size == Vector2.ZERO:
+		coach.draw_rect(Rect2(Vector2.ZERO, s), dim)
+		return
+	# Dim everything except the spotlight.
+	coach.draw_rect(Rect2(0, 0, s.x, r.position.y), dim)
+	coach.draw_rect(Rect2(0, r.end.y, s.x, s.y - r.end.y), dim)
+	coach.draw_rect(Rect2(0, r.position.y, r.position.x, r.size.y), dim)
+	coach.draw_rect(Rect2(r.end.x, r.position.y, s.x - r.end.x, r.size.y), dim)
+	var pulse := 0.6 + 0.4 * sin(anim_t * 5.0)
+	coach.draw_rect(r, Color(1.0, 0.85, 0.3, pulse), false, 3.0)

@@ -25,6 +25,8 @@ const HOW := [
 	"🛠 Armory: won contracts pay cash (a third of the score, half the first time you win one; survival pays too). Spend it on the rifle: a scope that zooms further, a bipod for a steadier aim, a faster bolt, a suppressor that keeps the alarm down. Three upgrades each.",
 	"Bullet cam: headshots, shots of 500 m or more, the officer and the shot that finishes a contract follow the bullet in slow motion. Tap to skip; turn it off in ⚙ Options.",
 	"⏸ pauses; Resume on the Landing carries on the same contract.",
+	"🎓 Tutorial: a quick intro level that explains every gauge and button on the screen, then lets you take one practice shot. It starts by itself the first time; replay it from the Landing.",
+	"PC: arrow keys or WASD (or dragging) look around; mouse wheel, + and - zoom; left click or Enter fires; right click or Space holds your breath. Controller: sticks look, RT or A fires, LT, B or X holds breath, LB and RB zoom, D-pad up and down zoom. ⚙ Options can invert the look up / down direction.",
 ]
 const TIPS := [
 	"Breathe out, wait for the green ring, then tap.",
