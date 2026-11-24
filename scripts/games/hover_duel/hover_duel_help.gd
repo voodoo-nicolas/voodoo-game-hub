@@ -7,6 +7,7 @@ const TITLE := "Thrust - Zero-G Duels"
 const GOAL := "Knock the other hovercraft's armour down to zero before it does the same to you."
 const HOW := [
 	"Hold the phone sideways. Push the stick the way you want to go: your hovercraft turns that way and speeds up. Let go and it drifts.",
+	"⌨ On a computer the keys steer from the pilot's seat: W thrusts forward, A / D turn left / right, S brakes (arrows work too). Space or K fires, L missile, J mine, Shift or B boost.",
 	"Fire shoots straight ahead, as fast as your guns reload. 🚀 Missile chases the other craft round corners. 💣 Mine drops behind you and blows up anyone who touches it after a second, you too.",
 	"Water is slippery and fast; ice too. Grass grips. Climbing a hill slows you down a little; the ground never stops your shots, only grey cliffs do.",
 	"Shots and missiles fly over hills, rivers and lava. Grey cliffs stop everything, and ramming them at speed hurts. Blasts leave burnt marks on the ground.",

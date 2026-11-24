@@ -234,6 +234,7 @@ const STRINGS := {
 		"vs Computer (Normal), random land": "vs Computadora (Normal), tierra al azar",
 		"← Hub": "← Inicio",
 		"↺  Restart": "↺  Reiniciar",
+		"⌨ On a computer the keys steer from the pilot's seat: W thrusts forward, A / D turn left / right, S brakes (arrows work too). Space or K fires, L missile, J mine, Shift or B boost.": "⌨ En un ordenador las teclas manejan desde el asiento del piloto: W acelera hacia delante, A / D giran a la izquierda / derecha, S frena (las flechas también sirven). Espacio o K dispara, L misil, J mina, Mayús o B turbo.",
 		"⏸ pauses; Resume on the Home screen carries on the same battle.": "⏸ pausa; Continuar en la pantalla de inicio sigue la misma batalla.",
 		"▶  Resume": "▶  Continuar",
 		"⚙ Options": "⚙ Opciones",

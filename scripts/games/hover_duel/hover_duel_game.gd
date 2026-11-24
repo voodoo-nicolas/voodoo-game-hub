@@ -665,7 +665,10 @@ func _gather_inputs() -> Array:
 		out[0].fire = Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_K)
 		out[0].boost = Input.is_key_pressed(KEY_SHIFT) or Input.is_key_pressed(KEY_B)
 	if _uses_pad():
-		var v: Vector2 = touch_pad.get_vector("move")
+		# The Pad also binds WASD to its stick (pad_move_*), which would turn W into
+		# "fly north". While a drive key is held, the keys steer ship-relative.
+		var keys_held := k1 != Vector2.ZERO or k2 != Vector2.ZERO
+		var v: Vector2 = Vector2.ZERO if keys_held else touch_pad.get_vector("move")
 		if v.length() > 0.05:
 			out[0].move = v
 			out[0].erase("turn")
