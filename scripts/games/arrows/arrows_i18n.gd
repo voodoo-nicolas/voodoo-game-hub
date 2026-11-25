@@ -36,6 +36,7 @@ const STRINGS := {
 		"Clear the Daily 7 days in a row": "Despeja el Diario 7 días seguidos",
 		"Clear the board. Tap an arrow only when its way out is free.": "Despeja el tablero. Toca una flecha solo cuando su salida esté libre.",
 		"Clear the board: tap the arrows one by one so each slides out without hitting another.": "Despeja el tablero: toca las flechas una a una para que cada una salga sin chocar con otra.",
+		"Cleared!": "¡Despejado!",
 		"Clearing the arrows is a topological sort: each arrow must leave after every arrow in its way, the same idea computers use to order tasks that depend on each other.": "Despejar las flechas es un orden topológico: cada flecha sale después de todas las que tiene delante, la misma idea que usan los ordenadores para ordenar tareas que dependen unas de otras.",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Daily streak": "Racha diaria",

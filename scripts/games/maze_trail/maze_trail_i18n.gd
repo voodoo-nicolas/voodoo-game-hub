@@ -19,7 +19,7 @@ const STRINGS := {
 		"Choose how to play": "Elige cómo jugar",
 		"Classic": "Clásico",
 		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
-		"Collect stars": "Consigue estrellas",
+		"Collect stars": "Junta estrellas",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Daily streak: %d": "Racha diaria: %d",
 		"Drag along the path to walk. Swipe to run.": "Arrastra por el camino para caminar. Desliza rápido para correr.",
