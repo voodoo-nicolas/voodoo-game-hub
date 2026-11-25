@@ -10,6 +10,8 @@ signal tapped(id: int, head: int)
 signal tapped_empty
 
 const LIFT := 0.004
+## Per-face darkening (+x, -x, +y, -y, +z, -z): fixed shading so the faces read apart from any angle.
+const FACE_SHADE := [0.07, 0.13, 0.0, 0.2, 0.04, 0.1]
 const TAP_SLOP := 14.0
 const LINE_W := 0.075     # ribbon half-width in cells (was 0.13: owner wanted thinner so the tip reads)
 const SLIDE_SPEED := 11.0 # cells per second for the snake move
@@ -183,12 +185,12 @@ func _build_shape() -> void:
 				continue
 			var q := _face_quad(Vector3(v), nd)
 			st.set_normal(Vector3(E.DIRS[nd]))
+			var fc: Color = col("shape").darkened(FACE_SHADE[nd])
 			for i in [0, 1, 2, 0, 2, 3]:
+				st.set_color(fc)
 				st.add_vertex(q[i])
-	var m := StandardMaterial3D.new()
-	m.albedo_color = col("shape")
-	m.roughness = 1.0
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var m := _flat_mat()
+	m.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	shape_node.mesh = st.commit()
 	shape_node.material_override = m
 
@@ -225,6 +227,28 @@ func _build_deco() -> void:
 		_quad(st, mid - along * 0.5 + na * 0.002, mid + along * 0.5 + na * 0.002, -nb * bw, c)
 		_quad(st, mid - along * 0.5 + nb * 0.002, mid + along * 0.5 + nb * 0.002, -na * bw, c)
 	var s := 1.0 / engine.n
+	var gc: Color = col("edge")
+	gc.a = 0.45
+	var gw := minf(0.006, s * 0.02)
+	for v in engine.voxels:  # faint cell grid so paths read cell by cell
+		for nd in 6:
+			if engine.voxels.has(v + E.DIRS[nd]):
+				continue
+			var nv := Vector3(E.DIRS[nd])
+			var ax := E.axis(nd)
+			var c0 := Vector3(v) + Vector3(0.5, 0.5, 0.5) + nv * 0.5 + nv * 0.001
+			for g in range(1, engine.n):
+				var o := -0.5 + g * s
+				for pair in [[(ax + 1) % 3, (ax + 2) % 3], [(ax + 2) % 3, (ax + 1) % 3]]:
+					var a := Vector3.ZERO
+					var b := Vector3.ZERO
+					var sd := Vector3.ZERO
+					a[pair[0]] = o
+					b[pair[0]] = o
+					a[pair[1]] = -0.5
+					b[pair[1]] = 0.5
+					sd[pair[0]] = gw
+					_quad(st, c0 + a, c0 + b, sd, gc, true)
 	for k in engine.stops:
 		var nv := Vector3(E.DIRS[E.key_normal(k)])
 		var ctr: Vector3 = engine.cell_center(k, LIFT * 0.6)
@@ -265,7 +289,7 @@ func _arrow_mesh(a: Dictionary, over = null) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var cl: Array = a.cells
-	var w := LINE_W / engine.n
+	var w := _line_w()
 	var base: Color = _arrow_color(a)
 	if highlight.has(int(a.id)):
 		base = highlight[int(a.id)]
@@ -295,6 +319,29 @@ func _arrow_mesh(a: Dictionary, over = null) -> ArrayMesh:
 		_head(st, int(h.at), int(h.dir), c2)
 	return st.commit()
 
+## Line half-width / head size in world units: scale with the cell, but capped so big-cell
+## levels (level 1) don't get chunky arrows.
+func _line_w() -> float:
+	return minf(LINE_W / engine.n, 0.024)
+
+func _head_s() -> float:
+	return minf(1.0 / engine.n, 0.36)
+
+## A round disc on the face (bends and tail ends look like a smooth line).
+func _dot(st: SurfaceTool, ctr: Vector3, nrm: Vector3, r: float, c: Color) -> void:
+	var ax := 0 if absf(nrm.x) > 0.5 else (1 if absf(nrm.y) > 0.5 else 2)
+	var u := Vector3.ZERO
+	var v := Vector3.ZERO
+	u[(ax + 1) % 3] = r
+	v[(ax + 2) % 3] = r
+	var segs := 10
+	for i in segs:
+		var a0 := TAU * i / segs
+		var a1 := TAU * (i + 1) / segs
+		for p in [ctr, ctr + u * cos(a0) + v * sin(a0), ctr + u * cos(a1) + v * sin(a1)]:
+			st.set_color(c)
+			st.add_vertex(p)
+
 func _arrow_color(a: Dictionary) -> Color:
 	if a.kind == E.KIND_FORK:
 		return col("fork")
@@ -319,21 +366,15 @@ func _strip(st: SurfaceTool, p: Vector3, q: Vector3, nrm: Vector3, w: float, c: 
 		st.set_color(c)
 		st.add_vertex(v[i])
 
-## A small square at a cell centre so bends look solid.
+## A round dot at a cell centre so bends and the tail end look smooth.
 func _joint(st: SurfaceTool, k: int, w: float, c: Color) -> void:
-	var ctr: Vector3 = engine.cell_center(k, LIFT)
-	var ax := E.axis(E.key_normal(k))
-	var u := Vector3.ZERO
-	var v := Vector3.ZERO
-	u[(ax + 1) % 3] = w
-	v[(ax + 2) % 3] = w
-	_quad(st, ctr - u, ctr + u, v, c, true)
+	_dot(st, engine.cell_center(k, LIFT), Vector3(E.DIRS[E.key_normal(k)]), w, c)
 
 func _head(st: SurfaceTool, k: int, d: int, c: Color) -> void:
 	_head_at(st, engine.cell_center(k, LIFT * 1.5), Vector3(E.DIRS[d]), Vector3(E.DIRS[E.key_normal(k)]), c)
 
 func _head_at(st: SurfaceTool, ctr: Vector3, f: Vector3, nrm: Vector3, c: Color, alpha: float = 1.0) -> void:
-	var s := 1.0 / engine.n
+	var s := _head_s()
 	var side := f.cross(nrm)
 	var tip := ctr + f * s * 0.46
 	var back := ctr - f * s * 0.04
@@ -468,7 +509,7 @@ func _slide_at(sl: Dictionary, d: float) -> Array:
 func _slide_mesh(sl: Dictionary, alpha: float) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var w := LINE_W / engine.n
+	var w := _line_w()
 	var d0: float = sl.t
 	var d1: float = float(sl.t) + float(sl.len)
 	var a0 := _slide_at(sl, d0)
@@ -486,14 +527,10 @@ func _slide_mesh(sl: Dictionary, alpha: float) -> ArrayMesh:
 		var c := _slide_col(sl, (float(chain[i - 1][2]) + float(chain[i][2])) * 0.5 - d0, span)
 		c.a *= alpha
 		_strip(st, p, q, chain[i - 1][1], w, c)
-		if i < chain.size() - 1:  # square joint so bends stay solid
-			var nv: Vector3 = chain[i][1]
-			var ax := 0 if absf(nv.x) > 0.5 else (1 if absf(nv.y) > 0.5 else 2)
-			var u := Vector3.ZERO
-			var v := Vector3.ZERO
-			u[(ax + 1) % 3] = w
-			v[(ax + 2) % 3] = w
-			_quad(st, q - u, q + u, v, c, true)
+		if i == 1:  # round tail end
+			_dot(st, p, chain[0][1], w, c)
+		if i < chain.size() - 1:  # round joint so bends stay smooth
+			_dot(st, q, chain[i][1], w, c)
 	var f: Vector3 = a1[2]
 	if f != Vector3.ZERO:
 		_head_at(st, a1[0] + Vector3(a1[1]) * LIFT * 0.5, f, a1[1], _slide_col(sl, span, span), alpha)
@@ -516,7 +553,7 @@ func bump(id: int, dir: int, path: Array) -> void:
 		tw.tween_property(mi, "position", Vector3.ZERO, 0.12)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var w := 0.09 / engine.n
+	var w := _line_w() * 0.8
 	var head := int(engine.arrow_by_id(id).get("heads", [{"at": -1}])[0].at) if not engine.arrow_by_id(id).is_empty() else -1
 	var prev := head
 	for k in path:
