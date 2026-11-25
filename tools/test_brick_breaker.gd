@@ -166,3 +166,53 @@ func _run() -> void:
 	for k in BBEngine.POWERS:
 		r.apply_power(k)  # every kind applies without error
 	ok(true, "all powers apply")
+
+	# --- walls: numbers, steel, diagonals, wide field ---
+	var w := BBEngine.new()
+	w.field = Vector2(1200, 1000)
+	w.reset()
+	ok(w.cols() == 20 and w.bricks.size() >= 120, "wide field: 20 columns, bigger wall (%d)" % w.bricks.size())
+	var steel_lvls := 0
+	var cut_lvls := 0
+	var tough := 0
+	for lv in range(1, 13):
+		w.level = lv
+		w._build_level()
+		if w.bricks.any(func(b): return b.steel):
+			steel_lvls += 1
+		if w.bricks.any(func(b): return b.cut >= 0):
+			cut_lvls += 1
+		for b in w.bricks:
+			if b.hp > 2:
+				tough += 1
+		ok(w.breakable_left() > 0, "level %d has bricks to break" % lv)
+	ok(steel_lvls >= 8 and cut_lvls >= 8 and tough > 50, "steel %d / diagonal %d levels, %d tough bricks" % [steel_lvls, cut_lvls, tough])
+	# steel never breaks and does not block clearing
+	w.level = 5
+	w._build_level()
+	var st = w.bricks.filter(func(b): return b.steel)[0]
+	w._damage(st, 99)
+	ok(w.bricks.has(st), "steel shrugs off damage")
+	for b in w.bricks.duplicate():
+		w._damage(b, 99)
+	ok(w.breakable_left() == 0 and w.bricks.size() > 0, "only steel left")
+	w.stuck = false
+	w.balls = [{"p": Vector2(600, 800), "v": Vector2(0, -300)}]
+	ok(w.step(0.016) == "cleared" and w.level == 6, "only steel left = cleared")
+	# a slanted side turns the ball sideways
+	var d := BBEngine.new()
+	d.reset()
+	d.bricks = []
+	d._add_brick(Vector2i(4, 10), 5, false, 3, false)   # bottom-left corner cut off
+	var br = d.bricks[0]
+	var c: Vector2 = br.rect.get_center()
+	d.stuck = false
+	d.balls = [{"p": Vector2(c.x - 8, br.rect.end.y + 14), "v": Vector2(0, -400)}]
+	for i in 10:
+		d._move_ball(d.balls[0], 1.0 / 120.0)
+	ok(d.balls[0].v.x < -100 and br.hp < 5, "diagonal deflects sideways (%s)" % d.balls[0].v)
+	# hp numbers count down
+	var h := br.hp as int
+	d._damage(br, 1)
+	ok(br.hp == h - 1, "a hit takes one off the number")
+

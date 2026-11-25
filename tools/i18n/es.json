@@ -13392,5 +13392,10 @@
  "⚡  Reloaded": "⚡  Recargado",
  "FIREBALL": "BOLA DE FUEGO",
  "EXPLOSIVE": "EXPLOSIVA",
- "LASERS": "LÁSERES"
+ "LASERS": "LÁSERES",
+ "The number on a brick is how many more hits it needs.": "El número de un ladrillo es cuántos golpes más necesita.",
+ "Grey steel bricks never break: they guard the others, so find the gap and get behind them.": "Los ladrillos grises de acero nunca se rompen: protegen a los demás, así que busca el hueco y métete detrás.",
+ "Bricks cut on a slant send the ball off at an angle.": "Los ladrillos cortados en diagonal desvían la pelota en ángulo.",
+ "Green ▲ capsules help you. Red ▼ capsules with stripes hurt: dodge the →← (tiny paddle) and » (speed up).": "Las cápsulas verdes ▲ te ayudan. Las rojas ▼ con rayas te perjudican: esquiva la →← (paleta diminuta) y la » (más velocidad).",
+ "On a wide screen the wall is wider too.": "En una pantalla ancha, el muro también es más ancho."
 }
