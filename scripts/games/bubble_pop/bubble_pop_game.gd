@@ -43,7 +43,17 @@ var aiming := false
 var flying := false
 var fly_pos := Vector2.ZERO  # in radii
 var fly_vel := Vector2.ZERO
-var bits: Array = []  # falling / bursting bubbles: [pos, vel, colour, life]
+var bits: Array = []  # falling / bursting bubbles: [pos, vel, colour, life, kind]
+## Look-only state (no effect on play): clock, trail, shake, score punch.
+var t := 0.0
+var trail: Array = []  # recent flying positions, in radii
+var shake := 0.0
+var flash := 0.0  # whole-field flash after a ceiling drop / clear
+## Side walls, in bubble radii, drawn outside the 2*COLS-wide field.
+const WALL := 0.55
+## Field height needed from the ceiling to just under the shooter ring.
+const V_UNITS := 25.8
+static var _tex_cache: Dictionary = {}
 
 var board: Control
 var score_label: Label
@@ -70,11 +80,11 @@ func _build_ui() -> void:
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.add_theme_constant_override("separation", 8)
+	root.add_theme_constant_override("separation", 2)
 	add_child(root)
 
 	var top := MarginContainer.new()
-	top.add_theme_constant_override("margin_top", 20)
+	top.add_theme_constant_override("margin_top", 12)
 	top.add_theme_constant_override("margin_left", 16)
 	top.add_theme_constant_override("margin_right", 16)
 	root.add_child(top)
@@ -101,7 +111,7 @@ func _build_ui() -> void:
 	bar.add_child(restart_btn)
 
 	info_label = Label.new()
-	info_label.add_theme_font_size_override("font_size", 22)
+	info_label.add_theme_font_size_override("font_size", 20)
 	info_label.add_theme_color_override("font_color", HomeKit.DIM)
 	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(info_label)
@@ -114,7 +124,9 @@ func _build_ui() -> void:
 	board.resized.connect(board.queue_redraw)
 	var bm := MarginContainer.new()
 	bm.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	bm.add_theme_constant_override("margin_bottom", 18)
+	bm.add_theme_constant_override("margin_bottom", 6)
+	bm.add_theme_constant_override("margin_left", 4)
+	bm.add_theme_constant_override("margin_right", 4)
 	bm.add_child(board)
 	root.add_child(bm)
 
@@ -197,17 +209,21 @@ func _update_labels() -> void:
 # ---------- geometry (everything in bubble radii, scaled by R) ----------
 
 func _radius() -> float:
-	return minf(board.size.x / (2.0 * BubbleEngine.COLS), board.size.y / 27.0)
+	return maxf(1.0, minf(board.size.x / (2.0 * (BubbleEngine.COLS + WALL)), board.size.y / V_UNITS))
 
 func _origin() -> Vector2:
 	var r := _radius()
-	return Vector2((board.size.x - r * 2.0 * BubbleEngine.COLS) / 2.0, 0.0)
+	return Vector2((board.size.x - r * 2.0 * BubbleEngine.COLS) / 2.0, r * 0.25)
 
+## The shooter sits at the foot of the board: on tall phones the field
+## stretches down (more room to aim) while the grid and lose line stay put.
 func _shooter() -> Vector2:
-	return Vector2(BubbleEngine.COLS, 1.0 + (BubbleEngine.ROWS - 1) * sqrt(3.0) + 0.6)
+	var base := 1.0 + (BubbleEngine.ROWS - 1) * sqrt(3.0) + 0.6
+	var room := (board.size.y - _origin().y) / _radius() - 1.75
+	return Vector2(BubbleEngine.COLS, maxf(base, room))
 
 func _next_spot() -> Vector2:
-	return _shooter() + Vector2(4.2, 0.3)
+	return _shooter() + Vector2(4.4, 0.2)
 
 func _to_units(p: Vector2) -> Vector2:
 	return (p - _origin()) / _radius()
@@ -248,11 +264,17 @@ func _set_aim(u: Vector2) -> void:
 
 func _fire() -> void:
 	flying = true
+	trail.clear()
 	fly_pos = _shooter()
 	fly_vel = aim * SPEED
 	_sfx("shoot")
 
 func _process(delta: float) -> void:
+	t += delta
+	shake = maxf(0.0, shake - delta * 2.5)
+	flash = maxf(0.0, flash - delta * 1.8)
+	if not (home and home.visible):
+		board.queue_redraw()  # idle shimmer; every draw is a cheap texture blit
 	if flying:
 		var steps := int(ceil(SPEED * delta / 0.25))
 		for i in steps:
@@ -262,7 +284,8 @@ func _process(delta: float) -> void:
 	if not bits.is_empty():
 		for b in bits:
 			b[0] += b[1] * delta
-			b[1].y += 40.0 * delta
+			if b[4] <= 1 or b[4] == 5:
+				b[1].y += 40.0 * delta
 			b[3] -= delta
 		bits = bits.filter(func(b): return b[3] > 0.0)
 		board.queue_redraw()
@@ -270,13 +293,18 @@ func _process(delta: float) -> void:
 ## Moves the flying bubble one small step; true once it has stuck.
 func _step(dt: float) -> bool:
 	fly_pos += fly_vel * dt
+	trail.push_front(fly_pos)
+	if trail.size() > 10:
+		trail.pop_back()
 	var w := 2.0 * BubbleEngine.COLS
 	if fly_pos.x < 1.0:
 		fly_pos.x = 2.0 - fly_pos.x
 		fly_vel.x = absf(fly_vel.x)
+		_wall_hit(fly_pos)
 	elif fly_pos.x > w - 1.0:
 		fly_pos.x = 2.0 * (w - 1.0) - fly_pos.x
 		fly_vel.x = -absf(fly_vel.x)
+		_wall_hit(fly_pos)
 	if fly_pos.y <= 1.0 or _touching(fly_pos):
 		_land()
 		return true
@@ -306,6 +334,7 @@ func _land() -> void:
 	if res.popped.is_empty():
 		_sfx("hit")
 		misses += 1
+		bits.append([engine.center(best[0], best[1]), Vector2.ZERO, cur, 0.35, 3])
 	else:
 		_sfx("pickup" if res.dropped.is_empty() else "explode")
 		misses = 0
@@ -314,15 +343,23 @@ func _land() -> void:
 		for p in res.dropped:
 			_burst(engine.center(p[0], p[1]), p[2], true)
 		best_shot = maxi(best_shot, res.popped.size() + res.dropped.size())
+		var n: int = res.popped.size() + res.dropped.size()
+		shake = minf(0.6, 0.12 + n * 0.03)
+		_punch_score()
+		if res.points > 0:
+			bits.append([engine.center(best[0], best[1]), Vector2(0, -2.5), cur, 1.0, 4, "+%d" % res.points])
 	if engine.count() == 0:
 		engine.score += CLEAR_BONUS
 		_sfx("powerup")
+		flash = 1.0
 		for i in BubbleEngine.START_ROWS:
 			engine.push_row(rng)
 	if misses >= PUSH_EVERY[level]:
 		misses = 0
 		engine.push_row(rng)
 		_sfx("whoosh")
+		shake = 0.5
+		flash = 0.5
 	cur = nxt
 	nxt = _pick_color()
 	if not engine.colors_present().has(cur) and not engine.colors_present().is_empty():
@@ -334,7 +371,21 @@ func _land() -> void:
 func _burst(at: Vector2, color: int, falling: bool) -> void:
 	var v := Vector2(rng.randf_range(-3.0, 3.0), rng.randf_range(-2.0, 1.0)) if falling \
 		else Vector2(rng.randf_range(-6.0, 6.0), rng.randf_range(-8.0, -2.0))
-	bits.append([at, v, color, 1.4 if falling else 0.5])
+	bits.append([at, v, color, 1.4 if falling else 0.5, 1 if falling else 0])
+	if not falling:
+		bits.append([at, Vector2.ZERO, color, 0.4, 2])  # shock ring
+		for i in 5:  # sparks
+			var a := rng.randf() * TAU
+			bits.append([at, Vector2.from_angle(a) * rng.randf_range(5.0, 11.0), color, rng.randf_range(0.3, 0.55), 5])
+
+func _wall_hit(at: Vector2) -> void:
+	bits.append([at, Vector2.ZERO, cur, 0.3, 6])
+
+func _punch_score() -> void:
+	score_label.pivot_offset = score_label.size / 2.0
+	var tw := score_label.create_tween()
+	tw.tween_property(score_label, "scale", Vector2(1.25, 1.25), 0.08)
+	tw.tween_property(score_label, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _game_over() -> void:
 	over = true
@@ -351,51 +402,217 @@ func _game_over() -> void:
 
 # ---------- drawing ----------
 
+## Look textures, made once per run: a glossy bubble per colour, a soft glow
+## and a wall strip. Each bubble then costs one texture blit instead of four
+## circle draws (Godot 4.7 draw_circle is ~100 µs each).
+static func _bubble_tex(col: Color) -> Texture2D:
+	var key := "b" + col.to_html()
+	if _tex_cache.has(key):
+		return _tex_cache[key]
+	var n := 96
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	var c := n / 2.0
+	var hl := Vector2(c - n * 0.17, c - n * 0.19)
+	for y in n:
+		for x in n:
+			var p := Vector2(x + 0.5, y + 0.5)
+			var d := p.distance_to(Vector2(c, c)) / (n * 0.5)  # 0 centre .. 1 edge
+			if d > 1.0:
+				continue
+			var body := col.lightened(0.15).lerp(col.darkened(0.5), smoothstep(0.25, 1.0, d))
+			var shade := clampf((p.y - c) / n + 0.5, 0.0, 1.0)  # darker toward the bottom
+			body = body.darkened(shade * 0.25)
+			var rim := smoothstep(0.72, 0.9, d) * (1.0 - smoothstep(0.93, 1.0, d))
+			body = body.lerp(col.lightened(0.25), rim * 0.9)
+			var h := 1.0 - clampf(p.distance_to(hl) / (n * 0.26), 0.0, 1.0)
+			body = body.lerp(Color.WHITE, pow(h, 2.2) * 0.8)
+			var under := 1.0 - clampf(absf(d - 0.66) / 0.08, 0.0, 1.0)
+			if p.y > c + n * 0.18:
+				body = body.lerp(col.lightened(0.5), under * 0.35)  # bounce light
+			body.a = 1.0 - smoothstep(0.96, 1.0, d)
+			img.set_pixel(x, y, body)
+	var tex := ImageTexture.create_from_image(img)
+	_tex_cache[key] = tex
+	return tex
+
+static func _glow_tex() -> Texture2D:
+	if _tex_cache.has("glow"):
+		return _tex_cache["glow"]
+	var n := 64
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	for y in n:
+		for x in n:
+			var d := Vector2(x + 0.5 - n / 2.0, y + 0.5 - n / 2.0).length() / (n / 2.0)
+			img.set_pixel(x, y, Color(1, 1, 1, pow(clampf(1.0 - d, 0.0, 1.0), 2.2)))
+	var tex := ImageTexture.create_from_image(img)
+	_tex_cache["glow"] = tex
+	return tex
+
+static func _ring_tex() -> Texture2D:
+	if _tex_cache.has("ring"):
+		return _tex_cache["ring"]
+	var n := 96
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	for y in n:
+		for x in n:
+			var d := Vector2(x + 0.5 - n / 2.0, y + 0.5 - n / 2.0).length() / (n / 2.0)
+			img.set_pixel(x, y, Color(1, 1, 1, pow(clampf(1.0 - absf(d - 0.85) / 0.13, 0.0, 1.0), 1.5)))
+	var tex := ImageTexture.create_from_image(img)
+	_tex_cache["ring"] = tex
+	return tex
+
+## Wall strip: a lit glass pillar (left-to-right shading), tiled vertically.
+static func _wall_tex() -> Texture2D:
+	if _tex_cache.has("wall"):
+		return _tex_cache["wall"]
+	var w := 24
+	var h := 64
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var base := Color("2a0b52")
+	for y in h:
+		for x in w:
+			var u := (x + 0.5) / w
+			var col := base.lerp(HomeKit.PURPLE, 0.35 + 0.4 * sin(u * PI))
+			col = col.lerp(Color.WHITE, pow(1.0 - absf(u - 0.3) / 0.3, 4.0) * 0.35 if absf(u - 0.3) < 0.3 else 0.0)
+			if y % 32 < 2:
+				col = col.darkened(0.35)  # panel seams
+			img.set_pixel(x, y, col)
+	var tex := ImageTexture.create_from_image(img)
+	_tex_cache["wall"] = tex
+	return tex
+
+func _glow(at: Vector2, r: float, col: Color) -> void:
+	board.draw_texture_rect(_glow_tex(), Rect2(at - Vector2(r, r), Vector2(r, r) * 2.0), false, col)
+
 func _draw_board() -> void:
 	if engine.grid.is_empty():
 		return
 	var R := _radius()
 	var o := _origin()
+	if shake > 0.0:
+		o += Vector2(sin(t * 61.0), cos(t * 47.0)) * shake * R * 0.25
 	var w := R * 2.0 * BubbleEngine.COLS
+	var shooter := _shooter()
+	var floor_y := o.y + (shooter.y + 1.6) * R
 	var line_y: float = o.y + (engine.center(BubbleEngine.LOSE_ROW, 0).y - 1.0) * R
-	board.draw_rect(Rect2(o, Vector2(w, line_y - o.y)), Color(0.02, 0.03, 0.08, 0.6))
+	var field := Rect2(o, Vector2(w, floor_y - o.y))
+	# Playfield: deep glass panel, lighter at the top, faint honeycomb behind.
+	board.draw_rect(field, Color(0.03, 0.02, 0.09, 0.82))
+	board.draw_rect(Rect2(o, Vector2(w, R * 6.0)), Color(HomeKit.PURPLE, 0.08))
+	board.draw_rect(Rect2(o, Vector2(w, R * 2.0)), Color(HomeKit.PURPLE, 0.08))
+	for i in 4:  # slow drifting light motes behind the bubbles
+		var mx := o.x + w * fposmod(0.17 + i * 0.29 + sin(t * 0.13 + i) * 0.05, 1.0)
+		var my := floor_y - fposmod(t * R * (0.6 + i * 0.25) + i * 211.0, floor_y - o.y)
+		_glow(Vector2(mx, my), R * (2.5 + i), Color(PALETTE[i], 0.07))
+	# Danger zone under the lose line, pulsing harder when bubbles get close.
+	var low := 0
+	for r in BubbleEngine.ROWS:
+		if engine.grid[r].any(func(v): return v != BubbleEngine.EMPTY):
+			low = r
+	var danger := clampf(float(low - (BubbleEngine.LOSE_ROW - 4)) / 3.0, 0.0, 1.0)
+	var pulse := 0.5 + 0.5 * sin(t * (3.0 + danger * 5.0))
+	board.draw_rect(Rect2(Vector2(o.x, line_y), Vector2(w, floor_y - line_y)), Color(HomeKit.PINK, 0.04 + 0.1 * danger * pulse))
+	# Side walls: lit pillars the shots bounce off.
+	var ww := WALL * R
+	var wall := _wall_tex()
+	for side in [o.x - ww, o.x + w]:
+		board.draw_texture_rect(wall, Rect2(Vector2(side, o.y - R * 0.25), Vector2(ww, floor_y - o.y + R * 0.25)), true)
+		HomeKit.glow_line(board, Vector2(side + (ww if side < o.x else 0.0), o.y), Vector2(side + (ww if side < o.x else 0.0), floor_y), Color(HomeKit.CYAN, 0.55), 1.5)
+	# Ceiling bar and floor.
+	board.draw_texture_rect(wall, Rect2(Vector2(o.x - ww, o.y - R * 0.25), Vector2(w + ww * 2.0, R * 0.25)), true)
 	HomeKit.glow_line(board, o, o + Vector2(w, 0), HomeKit.PURPLE, 2.0)
-	HomeKit.glow_line(board, o + Vector2(0, line_y), o + Vector2(w, line_y), Color(HomeKit.PINK, 0.6), 1.5)
+	HomeKit.glow_line(board, Vector2(o.x, floor_y), Vector2(o.x + w, floor_y), Color(HomeKit.PURPLE, 0.6), 1.5)
+	# Lose line: dashed, brighter as danger grows.
+	var lc := Color(HomeKit.PINK, 0.45 + 0.5 * danger * pulse)
+	var dash := R * 0.6
+	var x := o.x
+	var segs := PackedVector2Array()
+	while x < o.x + w:
+		segs.append(Vector2(x, line_y))
+		segs.append(Vector2(minf(x + dash, o.x + w), line_y))
+		x += dash * 1.8
+	board.draw_multiline(segs, lc, 2.0)
+	if danger > 0.0:
+		board.draw_rect(Rect2(Vector2(o.x, line_y - R * 0.4), Vector2(w, R * 0.8)), Color(HomeKit.PINK, 0.08 * danger * pulse))
+	# Bubbles.
 	for r in BubbleEngine.ROWS:
 		for c in engine.row_len(r):
 			var v: int = engine.grid[r][c]
 			if v != BubbleEngine.EMPTY:
-				_bubble(o + engine.center(r, c) * R, R, v)
+				var p: Vector2 = o + engine.center(r, c) * R
+				p.y += sin(t * 1.6 + c * 0.7 + r * 1.1) * R * 0.03  # tiny idle sway
+				_bubble(p, R, v)
+	# Effects.
 	for b in bits:
-		_bubble(o + b[0] * R, R * clampf(b[3] * 2.0, 0.2, 1.0), b[2], clampf(b[3] * 2.0, 0.0, 1.0))
+		var at: Vector2 = o + b[0] * R
+		var col: Color = PALETTE[int(b[2]) % PALETTE.size()]
+		match int(b[4]):
+			0:  # popping: swells and fades
+				var k := clampf(b[3] / 0.5, 0.0, 1.0)
+				_glow(at, R * 2.2, Color(col, 0.5 * k))
+				_bubble(at, R * (1.0 + (1.0 - k) * 0.5), b[2], k)
+			1:  # falling: tumbles away
+				_bubble(at, R * clampf(b[3], 0.5, 1.0), b[2], clampf(b[3] * 1.5, 0.0, 1.0))
+			2:  # shock ring
+				var k: float = 1.0 - b[3] / 0.4
+				var rr: float = R * (1.0 + k * 1.8)
+				board.draw_texture_rect(_ring_tex(), Rect2(at - Vector2(rr, rr), Vector2(rr, rr) * 2.0), false, Color(col.lightened(0.3), 1.0 - k))
+			3:  # thud when a shot sticks without popping
+				var k: float = 1.0 - b[3] / 0.35
+				var rr: float = R * (1.0 + k * 0.6)
+				board.draw_texture_rect(_ring_tex(), Rect2(at - Vector2(rr, rr), Vector2(rr, rr) * 2.0), false, Color(1, 1, 1, 0.5 * (1.0 - k)))
+			4:  # floating "+points"
+				var a := clampf(b[3] * 1.5, 0.0, 1.0)
+				HomeKit.glow_text(board, at, b[5], int(R * 0.9), Color(HomeKit.GOLD.lightened(0.3), a))
+			5:  # spark
+				_glow(at, R * 0.45, Color(col.lightened(0.5), clampf(b[3] * 2.5, 0.0, 1.0)))
+			6:  # wall spark
+				var k: float = b[3] / 0.3
+				_glow(at + Vector2(-1.0 if b[0].x < BubbleEngine.COLS else 1.0, 0) * R, R * 1.6, Color(HomeKit.CYAN, 0.7 * k))
+	if flash > 0.0:
+		board.draw_rect(field, Color(1, 1, 1, 0.12 * flash))
 	if over:
 		return
-	# Aim guide: dots along the path, bouncing off the walls.
-	var shooter := _shooter()
+	# Aim guide: dots along the path, bouncing off the walls, shrinking with distance.
 	if not flying:
 		var p := shooter
 		var v := aim
-		for i in 60:
+		var pts: Array = []
+		for i in 80:
 			p += v * 0.7
 			if p.x < 1.0 or p.x > 2.0 * BubbleEngine.COLS - 1.0:
 				v.x = -v.x
 				p.x = clampf(p.x, 1.0, 2.0 * BubbleEngine.COLS - 1.0)
 			if p.y <= 1.0 or _touching(p):
 				break
-			if i % 2 == 0:
-				board.draw_circle(o + p * R, R * 0.12, Color(PALETTE[cur], 0.55))
-	HomeKit.glow_circle(board, o + shooter * R, R * 1.45, Color(HomeKit.PURPLE, 0.8), 2.0)
-	_bubble(o + (fly_pos if flying else shooter) * R, R, cur)
+			pts.append(p)
+		var phase := fposmod(t * 4.0, 2.0)
+		for i in pts.size():
+			if (i + int(phase)) % 2 == 0:
+				var fade := 1.0 - float(i) / maxf(1.0, pts.size()) * 0.7
+				_glow(o + pts[i] * R, R * 0.32 * fade, Color(PALETTE[cur].lightened(0.3), 0.9 * fade))
+		if not pts.is_empty():  # ghost of where it will land
+			board.draw_texture_rect(_ring_tex(), Rect2(o + pts[-1] * R - Vector2(R, R), Vector2(R, R) * 2.0), false, Color(PALETTE[cur], 0.35 + 0.2 * sin(t * 6.0)))
+	# Launcher: glowing ring with a pointer along the aim.
+	var sp := o + shooter * R
+	_glow(sp, R * 2.6, Color(PALETTE[cur], 0.22 + 0.05 * sin(t * 3.0)))
+	HomeKit.glow_circle(board, sp, R * 1.45, Color(HomeKit.PURPLE, 0.85), 2.0)
+	if not flying:
+		HomeKit.glow_line(board, sp + aim * R * 1.55, sp + aim * R * 2.25, Color(PALETTE[cur], 0.9), 2.5)
+	# Trail behind the flying shot.
+	for i in trail.size():
+		var k := 1.0 - float(i) / trail.size()
+		_glow(o + trail[i] * R, R * (0.9 * k + 0.2), Color(PALETTE[cur], 0.35 * k))
+	if flying:
+		_glow(o + fly_pos * R, R * 1.8, Color(PALETTE[cur], 0.35))
+	_bubble(o + (fly_pos if flying else shooter + Vector2(0, sin(t * 2.4) * 0.05)) * R, R, cur)
 	_bubble(o + _next_spot() * R, R * 0.75, nxt)
-	var font := ThemeDB.fallback_font
-	board.draw_string(font, o + (_next_spot() + Vector2(-1.6, 1.9)) * R, tr("Next"), HORIZONTAL_ALIGNMENT_CENTER, R * 3.2, int(R * 0.6), HomeKit.DIM)
+	var font := board.get_theme_default_font()
+	board.draw_string(font, o + (_next_spot() + Vector2(-1.6, -1.15)) * R, tr("Next"), HORIZONTAL_ALIGNMENT_CENTER, R * 3.2, int(R * 0.6), HomeKit.DIM)
 
 func _bubble(at: Vector2, r: float, color: int, alpha: float = 1.0) -> void:
 	var col: Color = PALETTE[color % PALETTE.size()]
-	board.draw_circle(at, r * 0.94, Color(col.darkened(0.6), alpha))
-	board.draw_circle(at, r * 0.7, Color(col, 0.35 * alpha))
-	board.draw_arc(at, r * 0.9, 0, TAU, 28, Color(col, alpha), maxf(2.0, r * 0.12), true)
-	board.draw_circle(at + Vector2(-r * 0.32, -r * 0.34), r * 0.18, Color(1, 1, 1, 0.75 * alpha))
+	board.draw_texture_rect(_bubble_tex(col), Rect2(at - Vector2(r, r) * 0.96, Vector2(r, r) * 1.92), false, Color(1, 1, 1, alpha))
 
 func _draw_home_logo(c: Control) -> void:
 	var r := minf(c.size.y / 5.6, 28.0)
