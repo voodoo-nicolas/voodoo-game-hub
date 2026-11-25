@@ -15,6 +15,8 @@ const UI = preload("res://scripts/common/ui.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const BEST_PATH := "user://brick_breaker_best.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 const ROW_COLORS := [Color(0.95, 0.35, 0.35), Color(0.98, 0.6, 0.2), Color(0.98, 0.85, 0.25), Color(0.4, 0.85, 0.4),
 	Color(0.3, 0.75, 0.95), Color(0.45, 0.45, 0.95), Color(0.75, 0.45, 0.95)]
 
@@ -63,10 +65,11 @@ func _ready() -> void:
 	preload("res://scripts/games/brick_breaker/brick_breaker_i18n.gd").install(self)
 	Orientation.lock_portrait()
 	engine = BBEngine.new()
-	var data = SaveUtil.read(BEST_PATH)
-	if data != null:
-		best = int(data.get("best", 0))
-		best_reloaded = int(data.get("best_reloaded", 0))
+	_load_best()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("brick_breaker", BEST_PATH, _progress_score, _load_best, _merge_best)
+		add_child(cloud)
 	grid_d.resize(GRID_COLS * GRID_ROWS)
 	grid_v.resize(GRID_COLS * GRID_ROWS)
 	for i in 90:
@@ -231,6 +234,8 @@ func _process(delta: float) -> void:
 			elif not reloaded and engine.score > best:
 				best = engine.score
 			SaveUtil.write(BEST_PATH, {"best": best, "best_reloaded": best_reloaded})
+			if cloud:
+				cloud.saved()
 			if info:
 				info.add("Games played")
 				if reloaded:
@@ -575,3 +580,22 @@ func _draw_reloaded() -> void:
 		board.draw_string(font, mid, banner, HORIZONTAL_ALIGNMENT_CENTER, fs.x, 48, Color.from_hsv(fmod(t * 0.8, 1.0), 0.6, 1.0))
 	elif running and engine.stuck:
 		board.draw_string(font, mid, tr("Tap to launch"), HORIZONTAL_ALIGNMENT_CENTER, fs.x, 34, Color(1, 1, 1, 0.7))
+
+# ---------- cloud (STANDARDS §18) ----------
+
+func _load_best() -> void:
+	var data = SaveUtil.read(BEST_PATH)
+	if data != null:
+		best = int(data.get("best", 0))
+		best_reloaded = int(data.get("best_reloaded", 0))
+
+func _progress_score(_d: Dictionary) -> int:
+	return 0   # unused: bests merge key by key
+
+## Device + cloud bests: each mode keeps the higher score.
+func _merge_best(local: Dictionary, cloud_d: Dictionary) -> Dictionary:
+	var out := local.duplicate()
+	for k in ["best", "best_reloaded"]:
+		if int(cloud_d.get(k, 0)) > int(out.get(k, 0)):
+			out[k] = cloud_d[k]
+	return out

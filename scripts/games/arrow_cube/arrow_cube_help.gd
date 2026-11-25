@@ -16,7 +16,7 @@ const HOW := [
 	"↶ Undo takes back a move (not a heart). It matters with stops: a parked arrow can block others.",
 	"Helps: 👁 Safe lights up every arrow that can leave now. ✂ Remove takes away any arrow you pick.",
 	"Stars: 3 with no bump and no help, 2 with one, 1 otherwise. No timer: take your time.",
-	"500 levels; the shapes grow and change as you go. After level 500, Endless makes new shapes forever.",
+	"The shapes grow and change as you go. When the levels run out, Endless makes new shapes forever.",
 ]
 const TIPS := [
 	"Turn the shape all the way round before you tap: the free arrow is often on the back.",
@@ -32,7 +32,7 @@ const ACHIEVEMENTS := [
 	{"id": "lvl10", "icon": "🧊", "title": "First Turns", "desc": "Clear 10 levels", "key": "Levels cleared", "at": 10},
 	{"id": "lvl50", "icon": "🔄", "title": "All Sides", "desc": "Clear 50 levels", "key": "Levels cleared", "at": 50},
 	{"id": "lvl150", "icon": "📐", "title": "Shape Shifter", "desc": "Clear 150 levels", "key": "Levels cleared", "at": 150},
-	{"id": "lvl500", "icon": "👑", "title": "Every Face", "desc": "Clear all 500 levels", "key": "Levels cleared", "at": 500},
+	{"id": "lvl500", "icon": "👑", "title": "Every Face", "desc": "Clear every level", "key": "Levels cleared", "at": 500},
 	{"id": "star100", "icon": "⭐", "title": "Star Stacker", "desc": "Earn 100 stars", "key": "Total stars", "at": 100},
 	{"id": "perfect50", "icon": "💎", "title": "Clean Lines", "desc": "Clear 50 levels with 3 stars", "key": "3-star levels", "at": 50},
 	{"id": "arrows2000", "icon": "➶", "title": "Quiver Empty", "desc": "Clear 2000 arrows", "key": "Arrows cleared", "at": 2000},
