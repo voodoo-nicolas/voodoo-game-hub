@@ -277,7 +277,7 @@
     "maze_trail": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/maze_trail.pck", "scene": "res://scenes/games/maze_trail/maze_trail.tscn", "updated": "2026-11-24"},
     "tilt_maze": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tilt_maze.pck", "scene": "res://scenes/games/tilt_maze/tilt_maze.tscn", "updated": "2026-11-24"},
     "wilson": {"version": 22, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wilson.pck", "scene": "res://scenes/games/wilson/wilson.tscn", "updated": "2026-11-21"},
-    "bug_chain": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bug_chain.pck", "scene": "res://scenes/games/bug_chain/bug_chain.tscn", "updated": "2026-11-24"},
+    "bug_chain": {"version": 5, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bug_chain.pck", "scene": "res://scenes/games/bug_chain/bug_chain.tscn", "updated": "2026-11-24"},
     "rectangles": {"version": 4, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/rectangles.pck", "scene": "res://scenes/games/rectangles/rectangles.tscn", "updated": "2026-11-24"},
     "tarot": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/tarot.pck", "scene": "res://scenes/games/tarot/tarot.tscn", "updated": "2026-11-24"},
     "bridge_master": {"version": 10, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bridge_master.pck", "scene": "res://scenes/games/bridge_master/bridge_master.tscn", "updated": "2026-11-24"},
