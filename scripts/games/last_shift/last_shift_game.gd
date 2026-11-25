@@ -90,10 +90,70 @@ func _build_ui() -> void:
 		"quick_with_save": false,
 	})
 	add_child(home)
+	_dress_landing()
 	if info:
 		add_child(info)
 	# Must stay the last child so its tab sits above any dialog (the kit frees it).
 	add_child(SettingsDrawer.new())
+
+## v0.7 Landing polish, done here so the shared kit stays untouched (its buttons keep the standard
+## blue): a smoky dark gradient behind the menu column so the buttons and small print read over the
+## busy fire art, embers rising from the burning lot, and a warm glow on the title.
+func _dress_landing() -> void:
+	var scroll := _first_of(home, "ScrollContainer")
+	if scroll == null:
+		return
+	var screen: Node = scroll.get_parent()
+	var shade := ColorRect.new()
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sh := Shader.new()
+	sh.code = """
+shader_type canvas_item;
+void fragment() {
+	float x = UV.x;
+	float a = (1.0 - smoothstep(0.08, 0.5, x)) * 0.78;     // dark under the menu column
+	a += smoothstep(0.55, 1.0, UV.y) * 0.25;               // and a little at the bottom
+	COLOR = vec4(0.03, 0.02, 0.025, clamp(a, 0.0, 0.85));
+}
+"""
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	shade.material = m
+	screen.add_child(shade)
+	screen.move_child(shade, scroll.get_index())
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# embers: a Node2D holder kept at the bottom edge of the screen
+	var holder := Control.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	screen.add_child(holder)
+	screen.move_child(holder, scroll.get_index())
+	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var em: CPUParticles2D = load("res://scripts/games/last_shift/last_shift_fx.gd").embers(Vector2(1280, 720))
+	holder.add_child(em)
+	var place := func() -> void:
+		em.position = Vector2(holder.size.x * 0.62, holder.size.y + 8.0)
+		em.emission_rect_extents = Vector2(holder.size.x * 0.45, 10)
+	holder.resized.connect(place)
+	place.call()
+	# title glow
+	var title: Label = home.get("_title_label")
+	if title != null:
+		title.add_theme_color_override("font_color", Color("ffd08a"))
+		title.add_theme_color_override("font_outline_color", Color(0.55, 0.16, 0.02, 0.9))
+		title.add_theme_constant_override("outline_size", 10)
+		title.add_theme_color_override("font_shadow_color", Color(1.0, 0.45, 0.08, 0.45))
+		title.add_theme_constant_override("shadow_outline_size", 22)
+		title.add_theme_constant_override("shadow_offset_x", 0)
+		title.add_theme_constant_override("shadow_offset_y", 0)
+
+func _first_of(n: Node, cls: String) -> Node:
+	for c in n.get_children():
+		if c.is_class(cls):
+			return c
+		var f := _first_of(c, cls)
+		if f != null:
+			return f
+	return null
 
 ## "Normal · 12:40" under ▶ Resume: the saved night's difficulty and time.
 func _resume_text() -> String:
