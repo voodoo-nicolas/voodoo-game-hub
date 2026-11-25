@@ -77,6 +77,19 @@ var burst: Dictionary = {}  # bulb cell -> seconds since it lit (flash ring)
 var sparks: Array = []  # {"p", "v", "life", "col"}
 var progress: Dictionary = {}
 
+## Look pass (2026-11-25): live circuit backdrop, board plate, HUD bar, cheap disc textures.
+var bg_t: float = 0.0  # backdrop clock, runs even behind Home
+var intro_t: float = 1.0  # seconds since the board appeared (pop-in)
+var pop: Dictionary = {}  # cell -> seconds left of the tap squash
+var traces: Array = []  # backdrop circuit traces, points in 0..1
+var trace_lines := PackedVector2Array()
+var motes: Array = []  # {"x", "y", "s", "r"}
+var tex_disc: Texture2D
+var tex_glow: Texture2D
+var tex_vignette: Texture2D
+var hud_bar: Control
+var flash: ColorRect
+
 var board: Control
 var art_bg: Control
 var title_label: Label
@@ -112,6 +125,7 @@ func _notification(what: int) -> void:
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = HomeKit.neon_theme()
+	_make_art()
 	bg = HomeKit.backdrop()
 	add_child(bg)
 	art_bg = Control.new()
@@ -163,10 +177,40 @@ func _build_ui() -> void:
 	restart_btn.pressed.connect(_restart)
 	bar.add_child(restart_btn)
 
+	# HUD: the status line on a glass panel with a bulbs-lit progress bar.
+	var hud_m := MarginContainer.new()
+	hud_m.add_theme_constant_override("margin_left", 24)
+	hud_m.add_theme_constant_override("margin_right", 24)
+	root.add_child(hud_m)
+	var hud := PanelContainer.new()
+	var hsb := StyleBoxFlat.new()
+	hsb.bg_color = Color(0.03, 0.04, 0.12, 0.72)
+	hsb.set_corner_radius_all(16)
+	hsb.set_border_width_all(2)
+	hsb.border_color = Color(0.55, 0.5, 1.0, 0.35)
+	hsb.shadow_color = Color(0, 0, 0, 0.35)
+	hsb.shadow_size = 8
+	hsb.shadow_offset = Vector2(0, 3)
+	hsb.content_margin_top = 6
+	hsb.content_margin_bottom = 8
+	hsb.content_margin_left = 14
+	hsb.content_margin_right = 14
+	hud.add_theme_stylebox_override("panel", hsb)
+	hud_m.add_child(hud)
+	var hud_box := VBoxContainer.new()
+	hud_box.add_theme_constant_override("separation", 4)
+	hud.add_child(hud_box)
 	status_label = Label.new()
 	status_label.add_theme_font_size_override("font_size", 26)
+	status_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
+	status_label.add_theme_constant_override("outline_size", 4)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	root.add_child(status_label)
+	hud_box.add_child(status_label)
+	hud_bar = Control.new()
+	hud_bar.custom_minimum_size = Vector2(0, 10)
+	hud_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud_bar.draw.connect(_draw_hud_bar)
+	hud_box.add_child(hud_bar)
 
 	board = Control.new()
 	board.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -188,6 +232,12 @@ func _build_ui() -> void:
 	hm.add_theme_constant_override("margin_right", 24)
 	hm.add_child(tip_label)
 	root.add_child(hm)
+
+	flash = ColorRect.new()
+	flash.color = Color(1, 1, 1, 0)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(flash)
+	flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
@@ -284,6 +334,8 @@ func _begin(m: String, lvl: int, seed_value: int, keep_clock: bool = false) -> v
 	sparks.clear()
 	hint_cell = -1
 	win_t = -1.0
+	intro_t = 0.0
+	pop.clear()
 	_close_end()
 	_close_map()
 	_sync_state()
@@ -312,6 +364,13 @@ func _sync_state() -> void:
 		_:
 			title_label.text = tr(ZEN_NAMES[zen_diff])
 			tip_label.text = tr(CHAPTER_TIPS[PipeEngine.chapter_of(cur_level)])
+	# Title pops in with each new board.
+	title_label.pivot_offset = title_label.size / 2.0
+	title_label.scale = Vector2(1.18, 1.18)
+	title_label.modulate.a = 0.3
+	var tw := title_label.create_tween().set_parallel()
+	tw.tween_property(title_label, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(title_label, "modulate:a", 1.0, 0.25)
 
 ## Re-reads the board after a change: sounds and sparks for bulbs that just lit
 ## or shorted, the status line, and the win check.
@@ -337,6 +396,8 @@ func _update(announce: bool = true) -> void:
 	undo_btn.disabled = undo.is_empty() or solved
 	_status()
 	board.queue_redraw()
+	if hud_bar:
+		hud_bar.queue_redraw()
 	if announce and not solved and engine.is_won():
 		_on_solved()
 
@@ -356,6 +417,23 @@ static func _today() -> int:
 
 func _process(delta: float) -> void:
 	var redraw := false
+	bg_t += delta
+	if art_bg and is_visible_in_tree():
+		art_bg.queue_redraw()
+	if intro_t < 1.0:
+		intro_t += delta
+		redraw = true
+	if not pop.is_empty():
+		for c in pop.keys():
+			pop[c] -= delta
+			if pop[c] <= 0.0:
+				pop.erase(c)
+		redraw = true
+	if mode == "time" and started and not over and time_left < 15.0:
+		var p: float = 0.5 + 0.5 * sin(bg_t * 8.0)
+		status_label.modulate = Color.WHITE.lerp(Color(1.0, 0.45, 0.5), p)
+	else:
+		status_label.modulate = Color.WHITE
 	if started:
 		flow_t += delta
 		redraw = true
@@ -392,6 +470,7 @@ func _process(delta: float) -> void:
 		for s in sparks:
 			s.p += s.v * delta
 			s.v *= 0.94
+			s.v.y += s.get("g", 0.0) * delta
 			s.life -= delta
 		sparks = sparks.filter(func(s): return s.life > 0.0)
 		redraw = true
@@ -424,6 +503,7 @@ func _on_board_input(event: InputEvent) -> void:
 	engine.rotate(cell)
 	undo.append(cell)
 	spin[cell] = spin.get(cell, 0.0) - PI / 2.0
+	pop[cell] = 0.18
 	hint_cell = -1
 	_play("turn", -4.0, rng.randf_range(0.92, 1.08))
 	_update()
@@ -465,6 +545,7 @@ func _on_solved() -> void:
 			greens += 1
 		if engine.kind[c] == PipeEngine.BULB:
 			_spark_burst(c, _bulb_colour(c), 10)
+	_win_fx()
 	var note := ""
 	if info:
 		info.add("Puzzles solved")
@@ -588,14 +669,30 @@ func _show_card(title_text: String, stars_text: String, msg: String, buttons: Ar
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(t)
 	if stars_text != "":
-		var s := Label.new()
-		s.text = stars_text
-		s.add_theme_font_size_override("font_size", 84)
-		s.add_theme_color_override("font_color", CUR[2])
-		s.add_theme_color_override("font_outline_color", Color(CUR[2], 0.5))
-		s.add_theme_constant_override("outline_size", 10)
-		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		box.add_child(s)
+		# Stars pop in one by one.
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 6)
+		box.add_child(row)
+		for k in stars_text.length():
+			var s := Label.new()
+			s.text = stars_text[k]
+			s.custom_minimum_size = Vector2(96, 104)
+			s.pivot_offset = Vector2(48, 52)
+			s.add_theme_font_size_override("font_size", 84)
+			var on: bool = stars_text[k] == "★"
+			s.add_theme_color_override("font_color", CUR[2] if on else Color(1, 1, 1, 0.3))
+			s.add_theme_color_override("font_outline_color", Color(CUR[2], 0.5 if on else 0.0))
+			s.add_theme_constant_override("outline_size", 10)
+			s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			s.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			s.scale = Vector2.ZERO
+			row.add_child(s)
+			var st := s.create_tween()
+			st.tween_interval(0.25 + 0.18 * k)
+			st.tween_property(s, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			if on:
+				st.tween_callback(_play.bind("zap", -10.0, 1.0 + 0.15 * k))
 	var m := Label.new()
 	m.text = msg
 	m.add_theme_font_size_override("font_size", 28)
@@ -611,6 +708,17 @@ func _show_card(title_text: String, stars_text: String, msg: String, buttons: Ar
 		b.add_theme_font_size_override("font_size", 26)
 		b.pressed.connect(_card_button.bind(spec.action))
 		box.add_child(b)
+	# Card slides up and fades in; the dim layer fades too.
+	end_card.modulate.a = 0.0
+	panel.scale = Vector2(0.85, 0.85)
+	var ct := end_card.create_tween().set_parallel()
+	ct.tween_property(end_card, "modulate:a", 1.0, 0.25)
+	ct.tween_method(_card_scale.bind(panel), 0.85, 1.0, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func _card_scale(v: float, panel: Control) -> void:
+	if is_instance_valid(panel):
+		panel.pivot_offset = panel.size / 2.0
+		panel.scale = Vector2(v, v)
 
 func _card_button(action: Callable) -> void:
 	if action.is_valid():
@@ -797,6 +905,103 @@ func _spark_burst(cell: int, col: Color, count: int) -> void:
 		sparks.append({"p": centre, "v": Vector2(cos(a), sin(a)) * rng.randf_range(80.0, 260.0),
 			"life": rng.randf_range(0.3, 0.7), "col": col.lerp(Color.WHITE, rng.randf() * 0.6)})
 
+## Solved: a soft white flash and confetti falling over the board.
+func _win_fx() -> void:
+	if flash:
+		flash.color.a = 0.28
+		var t := flash.create_tween()
+		t.tween_property(flash, "color:a", 0.0, 0.5)
+	var g := _geom()
+	var span := Vector2(g.cell * engine.w, g.cell * engine.h)
+	var cols: Array = [CUR[1], CUR[2], CUR[3], Color("ff5fa8"), Color.WHITE]
+	for i in 48:
+		var p: Vector2 = g.origin + Vector2(rng.randf() * span.x, rng.randf_range(-0.1, 0.3) * span.y)
+		sparks.append({"p": p, "v": Vector2(rng.randf_range(-90, 90), rng.randf_range(-320, -60)),
+			"life": rng.randf_range(1.0, 1.8), "col": cols[i % cols.size()], "g": 520.0, "sq": true})
+
+# ---------- look pass art ----------
+
+static func _radial(stops: Array, w: int = 64, h: int = 64) -> GradientTexture2D:
+	var gr := Gradient.new()
+	var offs := PackedFloat32Array()
+	var cols := PackedColorArray()
+	for s in stops:
+		offs.append(s[0])
+		cols.append(s[1])
+	gr.offsets = offs
+	gr.colors = cols
+	var t := GradientTexture2D.new()
+	t.gradient = gr
+	t.fill = GradientTexture2D.FILL_RADIAL
+	t.fill_from = Vector2(0.5, 0.5)
+	t.fill_to = Vector2(1.0, 0.5)
+	t.width = w
+	t.height = h
+	return t
+
+## Disc / glow / vignette textures (one draw_texture_rect is ~100x cheaper than draw_circle)
+## and the backdrop's circuit traces + floating motes.
+func _make_art() -> void:
+	tex_disc = _radial([[0.0, Color.WHITE], [0.86, Color.WHITE], [1.0, Color(1, 1, 1, 0)]])
+	tex_glow = _radial([[0.0, Color(1, 1, 1, 1)], [0.3, Color(1, 1, 1, 0.5)], [1.0, Color(1, 1, 1, 0)]])
+	tex_vignette = _radial([[0.0, Color(0, 0, 0, 0)], [0.55, Color(0, 0, 0, 0)], [1.0, Color(0, 0, 0, 0.6)]], 128, 128)
+	var r := RandomNumberGenerator.new()
+	r.seed = 4242
+	for k in 16:
+		var p := Vector2(r.randf(), r.randf())
+		var pts: Array = [p]
+		var horiz := r.randf() < 0.5
+		for step in r.randi_range(3, 6):
+			var d: float = r.randf_range(0.05, 0.18) * (1.0 if r.randf() < 0.5 else -1.0)
+			if r.randf() < 0.25:
+				p += Vector2(d, absf(d) * signf(r.randf() - 0.5)) * 0.7
+			elif horiz:
+				p += Vector2(d, 0)
+			else:
+				p += Vector2(0, d)
+			horiz = not horiz
+			pts.append(p)
+		traces.append(pts)
+		for j in pts.size() - 1:
+			trace_lines.append(pts[j])
+			trace_lines.append(pts[j + 1])
+	for k in 26:
+		motes.append({"x": r.randf(), "y": r.randf(), "s": r.randf_range(0.006, 0.02), "r": r.randf_range(3.0, 9.0)})
+
+func _dot(ci: CanvasItem, p: Vector2, rad: float, col: Color) -> void:
+	ci.draw_texture_rect(tex_disc, Rect2(p - Vector2(rad, rad), Vector2(rad, rad) * 2.0), false, col)
+
+func _bloom(ci: CanvasItem, p: Vector2, rad: float, col: Color) -> void:
+	ci.draw_texture_rect(tex_glow, Rect2(p - Vector2(rad, rad), Vector2(rad, rad) * 2.0), false, col)
+
+static func _along(pts: Array, t: float) -> Vector2:
+	var total := 0.0
+	for j in pts.size() - 1:
+		total += (pts[j + 1] - pts[j]).length()
+	var want: float = t * total
+	for j in pts.size() - 1:
+		var l: float = (pts[j + 1] - pts[j]).length()
+		if want <= l and l > 0.0:
+			return pts[j].lerp(pts[j + 1], want / l)
+		want -= l
+	return pts[pts.size() - 1]
+
+## Bulbs lit, as a glowing bar under the status line.
+func _draw_hud_bar() -> void:
+	var s := hud_bar.size
+	var rr := Rect2(Vector2(0, 2), Vector2(s.x, s.y - 4))
+	hud_bar.draw_rect(rr, Color(1, 1, 1, 0.08))
+	if engine == null or engine.bulb_total <= 0:
+		return
+	var f: float = clampf(float(engine.lit_bulbs) / engine.bulb_total, 0.0, 1.0)
+	if f <= 0.0:
+		return
+	var col: Color = CUR[3] if f >= 1.0 else CUR[2]
+	var fill := Rect2(rr.position, Vector2(rr.size.x * f, rr.size.y))
+	hud_bar.draw_rect(fill.grow(2), Color(col, 0.25))
+	hud_bar.draw_rect(fill, col)
+	hud_bar.draw_rect(Rect2(fill.position, Vector2(fill.size.x, fill.size.y * 0.4)), Color(1, 1, 1, 0.35))
+
 # ---------- drawing ----------
 
 func _geom() -> Dictionary:
@@ -830,20 +1035,52 @@ func _is_classic() -> bool:
 	return skin == "classic"
 
 func _draw_backdrop() -> void:
-	if not _is_classic():
-		return
 	var s := art_bg.size
-	var top := Color("0f0a33")
-	var bottom := Color("3a1f8c")
-	var pts := PackedVector2Array([Vector2(0, 0), Vector2(s.x, 0), Vector2(s.x, s.y), Vector2(0, s.y)])
-	art_bg.draw_polygon(pts, PackedColorArray([top, top, bottom, bottom]))
-	# Faint bolts in the dark, like wallpaper.
-	var bolt := PackedVector2Array([Vector2(0.55, 0.0), Vector2(0.18, 0.5), Vector2(0.47, 0.5), Vector2(0.3, 1.0), Vector2(0.82, 0.38), Vector2(0.52, 0.38)])
-	for spec in [[Vector2(s.x * 0.84, s.y * 0.28), s.y * 0.2], [Vector2(s.x * 0.12, s.y * 0.82), s.y * 0.15]]:
-		var poly := PackedVector2Array()
-		for p in bolt:
-			poly.append(spec[0] + (p - Vector2(0.5, 0.5)) * spec[1])
-		art_bg.draw_colored_polygon(poly, Color(1, 1, 1, 0.035))
+	var classic := _is_classic()
+	if classic:
+		# Slowly breathing gradient.
+		var br: float = 0.5 + 0.5 * sin(bg_t * 0.35)
+		var top := Color("0f0a33")
+		var bottom := Color("3a1f8c").lerp(Color("2a2a9c"), br * 0.5)
+		var pts := PackedVector2Array([Vector2(0, 0), Vector2(s.x, 0), Vector2(s.x, s.y), Vector2(0, s.y)])
+		art_bg.draw_polygon(pts, PackedColorArray([top, top, bottom, bottom]))
+		# Faint bolts in the dark, like wallpaper.
+		var bolt := PackedVector2Array([Vector2(0.55, 0.0), Vector2(0.18, 0.5), Vector2(0.47, 0.5), Vector2(0.3, 1.0), Vector2(0.82, 0.38), Vector2(0.52, 0.38)])
+		for spec in [[Vector2(s.x * 0.84, s.y * 0.28), s.y * 0.2], [Vector2(s.x * 0.12, s.y * 0.82), s.y * 0.15]]:
+			var poly := PackedVector2Array()
+			for p in bolt:
+				poly.append(spec[0] + (p - Vector2(0.5, 0.5)) * spec[1])
+			art_bg.draw_colored_polygon(poly, Color(1, 1, 1, 0.035))
+	# Big soft light pools drifting behind the board (depth).
+	var pool_a: Color = Color(CUR[1], 0.10) if classic else Color(HomeKit.PURPLE, 0.12)
+	var pool_b: Color = Color(CUR[2], 0.06) if classic else Color(HomeKit.PINK, 0.08)
+	_bloom(art_bg, Vector2(s.x * (0.25 + 0.08 * sin(bg_t * 0.13)), s.y * 0.35), s.x * 0.75, pool_a)
+	_bloom(art_bg, Vector2(s.x * (0.8 + 0.06 * cos(bg_t * 0.11)), s.y * 0.72), s.x * 0.6, pool_b)
+	# Circuit traces (one batched multiline) with current pulses running along them.
+	var sc := PackedVector2Array()
+	sc.resize(trace_lines.size())
+	for j in trace_lines.size():
+		sc[j] = trace_lines[j] * s
+	var line_col: Color = Color(0.6, 0.65, 1.0, 0.14) if classic else Color(HomeKit.PURPLE, 0.14)
+	art_bg.draw_multiline(sc, line_col, 2.0)
+	var pad: float = s.x * 0.007
+	for k in traces.size():
+		var pts: Array = traces[k]
+		art_bg.draw_texture_rect(tex_disc, Rect2(pts[0] * s - Vector2(pad, pad), Vector2(pad, pad) * 2.0), false, line_col * Color(1, 1, 1, 2.0))
+		if k % 2 == 0:
+			var tt: float = fposmod(bg_t * 0.09 + k * 0.37, 1.0)
+			var pc: Color = (CUR[1] if k % 4 == 0 else CUR[2]) if classic else (HomeKit.PINK if k % 4 == 0 else HomeKit.CYAN)
+			var fade: float = sin(tt * PI)
+			_bloom(art_bg, _along(pts, tt) * s, s.x * 0.03, Color(pc, 0.55 * fade))
+			_dot(art_bg, _along(pts, tt) * s, s.x * 0.005, Color(Color.WHITE, 0.8 * fade))
+	# Floating motes, rising slowly.
+	for m in motes:
+		var y: float = fposmod(m.y - bg_t * m.s, 1.0)
+		var x: float = m.x + 0.015 * sin(bg_t * 0.7 + m.r)
+		var a: float = 0.18 * sin(y * PI)
+		_bloom(art_bg, Vector2(x, y) * s, m.r, Color(1, 1, 1, a) if classic else Color(HomeKit.CYAN, a))
+	# Vignette pulls the eye to the board.
+	art_bg.draw_texture_rect(tex_vignette, Rect2(Vector2(-s.x * 0.15, -s.y * 0.1), s * Vector2(1.3, 1.2)), false)
 
 func _cache_styles(cell: float) -> void:
 	if is_equal_approx(_sb_cell, cell):
@@ -883,6 +1120,35 @@ func _draw_board() -> void:
 	var n: int = engine.w * engine.h
 	_cache_styles(cell)
 	var frame := Rect2(origin, Vector2(cell * engine.w, cell * engine.h))
+	# Board pops in: a small scale-up around its centre.
+	if intro_t < 0.45:
+		var e: float = ease(clampf(intro_t / 0.45, 0.0, 1.0), -2.0)
+		var k: float = 0.9 + 0.1 * e
+		var mid: Vector2 = frame.get_center()
+		board.draw_set_transform(mid * (1.0 - k), 0.0, Vector2(k, k))
+	# The plate the tiles sit in: drop shadow, bevelled frame and four screws.
+	var plate := frame.grow(cell * 0.14)
+	if not _sb.has("plate"):
+		var ps := StyleBoxFlat.new()
+		ps.set_corner_radius_all(int(cell * 0.22))
+		ps.anti_aliasing = true
+		ps.set_border_width_all(3)
+		if _is_classic():
+			ps.bg_color = Color("0d1446")
+			ps.border_color = Color("5c6ad8")
+		else:
+			ps.bg_color = Color(0.02, 0.02, 0.06)
+			ps.border_color = Color(HomeKit.PURPLE, 0.6)
+		ps.shadow_color = Color(0, 0, 0, 0.55)
+		ps.shadow_size = int(cell * 0.3)
+		ps.shadow_offset = Vector2(0, cell * 0.1)
+		_sb["plate"] = ps
+	board.draw_style_box(_sb.plate, plate)
+	board.draw_rect(Rect2(plate.position + Vector2(cell * 0.25, 3), Vector2(plate.size.x - cell * 0.5, 2)), Color(1, 1, 1, 0.18))
+	for cc in [plate.position, Vector2(plate.end.x, plate.position.y), plate.end, Vector2(plate.position.x, plate.end.y)]:
+		var sp: Vector2 = cc + (frame.get_center() - cc).normalized() * cell * 0.1
+		_dot(board, sp, cell * 0.035, Color(0.7, 0.72, 0.8, 0.8))
+		board.draw_line(sp - Vector2(cell * 0.022, 0), sp + Vector2(cell * 0.022, 0), Color(0, 0, 0, 0.6), 1.5)
 	if _is_classic():
 		HomeKit.glow_rect(board, frame.grow(4), Color("7a4dff", 0.6), 3.0)
 	else:
@@ -902,6 +1168,8 @@ func _draw_board() -> void:
 		var wob := 0.0
 		if shake.has(i):
 			wob = sin(shake[i] * 60.0) * cell * 0.03
+		if pop.has(i):
+			r = r.grow(-cell * 0.06 * sin(pop[i] / 0.18 * PI))
 		board.draw_style_box(_sb.lip, Rect2(r.position + Vector2(wob, cell * 0.05), r.size))
 		board.draw_style_box(sb, Rect2(r.position + Vector2(wob, 0.0), r.size))
 		if _is_classic() and engine.kind[i] != PipeEngine.EMPTY:
@@ -926,11 +1194,18 @@ func _draw_board() -> void:
 			_draw_turn_ring(centre, cell)
 	for s in sparks:
 		var a: float = clampf(s.life * 2.2, 0.0, 1.0)
-		board.draw_circle(s.p, cell * 0.03 + 2.0 * a, Color(s.col, a))
+		if s.has("sq"):
+			var sz: float = cell * 0.07
+			var wv: float = absf(sin(s.life * 9.0))
+			board.draw_rect(Rect2(s.p - Vector2(sz * wv, sz * 0.6) / 2.0, Vector2(sz * wv + 1.0, sz * 0.6)), Color(s.col, a))
+		else:
+			_bloom(board, s.p, cell * 0.09 + 3.0 * a, Color(s.col, a * 0.5))
+			_dot(board, s.p, cell * 0.025 + 1.5 * a, Color(s.col.lerp(Color.WHITE, 0.5), a))
 	if hint_cell >= 0 and hint_t > 0.0:
 		var hp: Vector2 = origin + Vector2(hint_cell % engine.w, hint_cell / engine.w) * cell
 		var pulse: float = 0.5 + 0.5 * sin(hint_t * 10.0)
 		HomeKit.glow_rect(board, Rect2(hp, Vector2(cell, cell)).grow(-gap), Color(1, 1, 1, 0.5 + 0.5 * pulse), 3.0, 0.08 * pulse)
+	board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 ## One cell's wire arms. pass 0 = glow under everything, 1 = casing, 2 = core,
 ## open ends and the pulses of current.
@@ -975,16 +1250,15 @@ func _draw_wire(ci: CanvasItem, i: int, centre: Vector2, cell: float, pass_no: i
 					_draw_pulses(ci, i, k, centre, dir, half, wc)
 				if open:
 					var tip: Vector2 = centre + dir * half * 0.94
-					ci.draw_circle(tip, wc * 0.34, Color("c97c3a") if _is_classic() else Color(HomeKit.PINK, 0.9))
+					_dot(ci, tip, wc * 0.34, Color("c97c3a") if _is_classic() else Color(HomeKit.PINK, 0.9))
 					if powered and not solved and fposmod(flow_t * 3.0 + i, 1.0) < 0.55:
-						ci.draw_circle(tip + dir * wc * 0.3, wc * 0.3, Color(1, 1, 0.85, 0.75))
+						_bloom(ci, tip + dir * wc * 0.3, wc * 0.7, Color(1, 1, 0.85, 0.9))
 	if pass_no == 0 and powered:
-		ci.draw_circle(centre, wc * 0.95, Color(col, 0.13))
-		ci.draw_circle(centre, wc * 0.68, Color(col, 0.2))
+		_bloom(ci, centre, wc * 1.3, Color(col, 0.4))
 	elif pass_no == 1:
-		ci.draw_circle(centre, wc * 0.52, dark)
+		_dot(ci, centre, wc * 0.52, dark)
 	elif pass_no == 2:
-		ci.draw_circle(centre, wc * 0.26, col)
+		_dot(ci, centre, wc * 0.26, col)
 
 func _draw_pulses(ci: CanvasItem, i: int, k: int, centre: Vector2, dir: Vector2, half: float, wc: float) -> void:
 	var nb: int = engine.neighbour(i, k)
@@ -999,7 +1273,7 @@ func _draw_pulses(ci: CanvasItem, i: int, k: int, centre: Vector2, dir: Vector2,
 		var t: float = fposmod(flow_t * 0.9 + j * 0.5 + (engine.depth[i] % 4) * 0.13, 1.0)
 		if inward:
 			t = 1.0 - t
-		ci.draw_circle(centre + dir * half * t, wc * 0.2, Color(1, 1, 1, 0.75 * sin(t * PI)))
+		_dot(ci, centre + dir * half * t, wc * 0.2, Color(1, 1, 1, 0.8 * sin(t * PI)))
 
 func _first_source() -> int:
 	for c in engine.w * engine.h:
@@ -1012,8 +1286,7 @@ func _draw_battery(ci: CanvasItem, centre: Vector2, cell: float, colour: int, li
 	var col: Color = CUR[colour]
 	if live:
 		var pulse: float = 0.5 + 0.5 * sin(t * 3.0)
-		for g in [[0.5, 0.07], [0.38, 0.12]]:
-			ci.draw_circle(centre, cell * g[0] * (0.95 + 0.05 * pulse), Color(col, g[1]))
+		_bloom(ci, centre, cell * 0.6 * (0.95 + 0.05 * pulse), Color(col, 0.35))
 	var bw: float = cell * 0.34
 	var bh: float = cell * 0.44
 	var body := Rect2(centre - Vector2(bw, bh) / 2.0 + Vector2(0, cell * 0.04), Vector2(bw, bh))
@@ -1044,8 +1317,7 @@ func _draw_bulb(ci: CanvasItem, i: int, centre: Vector2, cell: float) -> void:
 		var big: float = 1.0 + (0.5 * sin(burst[i] / 0.8 * PI) if burst.has(i) else 0.0)
 		if win_t >= 0.0:
 			big += 0.25 * sin(win_t * 6.0)
-		for gl in [[3.0, 0.07], [2.2, 0.12], [1.5, 0.22]]:
-			ci.draw_circle(glass, r * gl[0] * big * (0.94 + 0.06 * pulse), Color(col, gl[1]))
+		_bloom(ci, glass, r * 3.4 * big * (0.94 + 0.06 * pulse), Color(col, 0.55))
 		for ray in 8:
 			var a: float = TAU * ray / 8.0 + flow_t * 0.6
 			var d: Vector2 = Vector2(cos(a), sin(a))
