@@ -12,8 +12,9 @@ const HOW := [
 	"Never join blue and yellow by accident: a wire touching both batteries carries green current, and blue or yellow bulbs on it stay dark.",
 	"A green bulb needs exactly that: blue and yellow current joined in one wire.",
 	"A ring around a battery or bulb means you can turn it too. Loose wire ends and spare pieces are decoys.",
-	"Campaign: chapter after chapter, 3 stars a level. Fewer taps and no hints earn more stars.",
-	"Daily Challenge: one board a day, the same for everyone. Time Attack: 3 minutes, each board harder than the last.",
+	"Campaign: chapter after chapter, 3 stars a level. Fewer taps and no hints earn more stars. The later chapters are big boards where every piece turns.",
+	"Daily Challenge: one big board a day, the same for everyone. Time Attack: 3 minutes, each board harder than the last.",
+	"Workshop: stars, full chapters, daily boards and 7-day streaks earn ⚡ bolts. Spend them on board themes; some also need a goal first.",
 	"💡 shows a piece that is wrong (3 stars need no hints). ↶ takes back your last turn.",
 ]
 const TIPS := [

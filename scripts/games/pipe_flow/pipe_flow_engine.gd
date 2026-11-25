@@ -30,7 +30,7 @@ const BLUE := 1
 const YELLOW := 2
 const GREEN := 3  # blue + yellow
 
-const LEVEL_COUNT := 120
+const LEVEL_COUNT := 240  # 120 more, harder (2026-11-25); the first 120 boards are unchanged
 const CHAPTER_SIZE := 10
 
 ## Chapters of 10 levels. Sizes and bulb counts ease up from the first level of
@@ -51,6 +51,20 @@ const CHAPTERS := [
 	{"name": "High Voltage", "w": [7, 8], "h": [8, 9], "nets": [[3, 2, 3], [1, 3, 3], [2, 3, 3]], "decoy": 0.55, "lock": 0.05, "loops": 0.35, "free": 0.5},
 	{"name": "Blackout", "w": [7, 8], "h": [8, 10], "nets": [[3, 3, 3], [1, 3, 4], [2, 3, 4]], "decoy": 0.6, "lock": 0.0, "loops": 0.4, "free": 0.6},
 	{"name": "Grid Master", "w": [8, 8], "h": [10, 10], "nets": [[3, 3, 4], [1, 3, 4], [2, 3, 4]], "decoy": 0.6, "lock": 0.0, "loops": 0.4, "free": 0.7},
+	# Part two (levels 121-240, 2026-11-25): built by _tree_nets (fill = share of the board the
+	# networks cover). Bigger boards, longer winding wires, more bulbs, everything turns.
+	{"name": "Power Station", "w": [8, 8], "h": [10, 10], "nets": [[3, 3, 4], [1, 3, 4], [2, 3, 4]], "decoy": 0.6, "lock": 0.0, "loops": 0.4, "free": 0.75, "fill": 0.7},
+	{"name": "Substation", "w": [8, 9], "h": [10, 11], "nets": [[3, 3, 4], [1, 3, 4], [2, 3, 4]], "decoy": 0.65, "lock": 0.0, "loops": 0.45, "free": 0.8, "fill": 0.72},
+	{"name": "Short Circuit", "w": [9, 9], "h": [11, 11], "nets": [[3, 4, 4], [1, 4, 5], [2, 4, 5]], "decoy": 0.7, "lock": 0.0, "loops": 0.5, "free": 0.8, "fill": 0.75},
+	{"name": "Tangle", "w": [9, 9], "h": [11, 12], "nets": [[3, 4, 5], [1, 4, 5], [2, 4, 5]], "decoy": 0.7, "lock": 0.0, "loops": 0.55, "free": 0.85, "fill": 0.78},
+	{"name": "Twin Greens", "w": [9, 9], "h": [11, 12], "nets": [[3, 3, 4], [3, 3, 4], [1, 3, 4], [2, 3, 4]], "decoy": 0.75, "lock": 0.0, "loops": 0.5, "free": 0.85, "fill": 0.8},
+	{"name": "Storm Front", "w": [9, 9], "h": [12, 12], "nets": [[3, 4, 5], [1, 5, 5], [2, 5, 5]], "decoy": 0.75, "lock": 0.0, "loops": 0.6, "free": 0.9, "fill": 0.8},
+	{"name": "Lightning Rod", "w": [9, 9], "h": [12, 12], "nets": [[3, 4, 4], [3, 3, 4], [1, 4, 4], [2, 4, 4]], "decoy": 0.8, "lock": 0.0, "loops": 0.6, "free": 0.9, "fill": 0.82},
+	{"name": "Dark Grid", "w": [9, 9], "h": [12, 12], "nets": [[3, 5, 5], [1, 5, 6], [2, 5, 6]], "decoy": 0.8, "lock": 0.0, "loops": 0.65, "free": 0.95, "fill": 0.84},
+	{"name": "Feedback", "w": [9, 9], "h": [12, 12], "nets": [[3, 4, 5], [3, 4, 4], [1, 4, 4], [2, 4, 4]], "decoy": 0.85, "lock": 0.0, "loops": 0.7, "free": 1.0, "fill": 0.85},
+	{"name": "Meltdown", "w": [9, 9], "h": [12, 12], "nets": [[3, 5, 6], [1, 5, 6], [2, 5, 6]], "decoy": 0.85, "lock": 0.0, "loops": 0.7, "free": 1.0, "fill": 0.86},
+	{"name": "Supercharge", "w": [9, 9], "h": [12, 12], "nets": [[3, 4, 5], [3, 4, 5], [1, 4, 5], [2, 4, 5]], "decoy": 0.9, "lock": 0.0, "loops": 0.75, "free": 1.0, "fill": 0.88},
+	{"name": "Infinite Grid", "w": [9, 9], "h": [12, 12], "nets": [[3, 5, 6], [3, 5, 5], [1, 5, 6], [2, 5, 6]], "decoy": 0.9, "lock": 0.0, "loops": 0.8, "free": 1.0, "fill": 0.9},
 ]
 
 var w: int = 3
@@ -93,6 +107,7 @@ static func params_for(lvl: int) -> Dictionary:
 		"h": int(roundf(lerpf(ch.h[0], ch.h[1], t))),
 		"nets": nets,
 		"decoy": ch.decoy, "lock": ch.lock, "loops": ch.loops, "free": ch.free,
+		"fill": ch.get("fill", 0.0),
 	}
 
 static func seed_for(lvl: int) -> int:
@@ -147,45 +162,11 @@ func _try(p: Dictionary, rng: RandomNumberGenerator) -> bool:
 	if terminals * 2 > n:
 		return false
 
-	# Batteries and bulbs first, anywhere free.
-	var free_cells: Array = range(n)
-	_shuffle(free_cells, rng)
-	var nets_cells: Array = []  # per network: {"srcs": [...], "bulbs": [...]}
-	for ni in p.nets.size():
-		var net: Array = p.nets[ni]
-		var info := {"srcs": [], "bulbs": []}
-		var src_colours: Array = [BLUE, YELLOW] if net[0] == GREEN else [net[0]]
-		for sc in src_colours:
-			var c: int = free_cells.pop_back()
-			kind[c] = SOURCE
-			color[c] = sc
-			_owner[c] = ni
-			info.srcs.append(c)
-		for b in int(net[1]):
-			var c2: int = free_cells.pop_back()
-			kind[c2] = BULB
-			color[c2] = net[0]
-			_owner[c2] = ni
-			info.bulbs.append(c2)
-		nets_cells.append(info)
-
-	# Wire each network: sources first (so a mixed network is joined), then bulbs.
-	for ni in nets_cells.size():
-		var info: Dictionary = nets_cells[ni]
-		var root: int = info.srcs[0]
-		var tree := {root: true}
-		var todo: Array = info.srcs.slice(1) + info.bulbs
-		for t in todo:
-			var path := _route(t, ni, tree, root, rng)
-			if path.is_empty():
-				return false
-			for k in path.size() - 1:
-				_link(path[k], path[k + 1])
-			for k in path.size():
-				tree[path[k]] = true
-				if k > 0 and k < path.size() - 1:
-					kind[path[k]] = WIRE
-					_owner[path[k]] = ni
+	if float(p.get("fill", 0.0)) > 0.0:
+		if not _tree_nets(p, rng):
+			return false
+	elif not _route_nets(p, rng):
+		return false
 
 	# Extra wire between neighbours of the same network: circles.
 	var loops: float = p.loops
@@ -262,6 +243,133 @@ func _try(p: Dictionary, rng: RandomNumberGenerator) -> bool:
 	mask = scrambled
 	analyze()
 	return ok
+
+## Levels 1-120: batteries and bulbs anywhere free, then wires routed between them.
+func _route_nets(p: Dictionary, rng: RandomNumberGenerator) -> bool:
+	var n := w * h
+	# Batteries and bulbs first, anywhere free.
+	var free_cells: Array = range(n)
+	_shuffle(free_cells, rng)
+	var nets_cells: Array = []  # per network: {"srcs": [...], "bulbs": [...]}
+	for ni in p.nets.size():
+		var net: Array = p.nets[ni]
+		var info := {"srcs": [], "bulbs": []}
+		var src_colours: Array = [BLUE, YELLOW] if net[0] == GREEN else [net[0]]
+		for sc in src_colours:
+			var c: int = free_cells.pop_back()
+			kind[c] = SOURCE
+			color[c] = sc
+			_owner[c] = ni
+			info.srcs.append(c)
+		for b in int(net[1]):
+			var c2: int = free_cells.pop_back()
+			kind[c2] = BULB
+			color[c2] = net[0]
+			_owner[c2] = ni
+			info.bulbs.append(c2)
+		nets_cells.append(info)
+
+	# Wire each network: sources first (so a mixed network is joined), then bulbs.
+	for ni in nets_cells.size():
+		var info: Dictionary = nets_cells[ni]
+		var root: int = info.srcs[0]
+		var tree := {root: true}
+		var todo: Array = info.srcs.slice(1) + info.bulbs
+		for t in todo:
+			var path := _route(t, ni, tree, root, rng)
+			if path.is_empty():
+				return false
+			for k in path.size() - 1:
+				_link(path[k], path[k + 1])
+			for k in path.size():
+				tree[path[k]] = true
+				if k > 0 and k < path.size() - 1:
+					kind[path[k]] = WIRE
+					_owner[path[k]] = ni
+	return true
+
+## Levels 121+: every network grows as one random tree from its own seed cell, all at once,
+## until the networks cover `fill` of the board. Branch tips are trimmed until each network has
+## exactly as many tips as it has batteries + bulbs; the tips become those. Fast (no routing),
+## and the wires wind across the whole board.
+func _tree_nets(p: Dictionary, rng: RandomNumberGenerator) -> bool:
+	var n := w * h
+	var nets: Array = p.nets
+	var k := nets.size()
+	var cells: Array = range(n)
+	_shuffle(cells, rng)
+	var fronts: Array = []
+	for ni in k:
+		_owner[cells[ni]] = ni
+		fronts.append([cells[ni]])
+	var size: Array = _filled(k, 1)
+	var goal: int = int(n * float(p.fill))
+	var filled := k
+	var stuck := 0
+	var r := 0
+	while filled < goal and stuck < k:
+		r = (r + 1) % k
+		var grown := false
+		var fr: Array = fronts[r]
+		while not fr.is_empty():
+			var fi: int = rng.randi_range(0, fr.size() - 1)
+			var u: int = fr[fi]
+			var opts: Array = []
+			for d in 4:
+				var v := neighbour(u, d)
+				if v >= 0 and _owner[v] == -1:
+					opts.append(v)
+			if opts.is_empty():
+				fr.remove_at(fi)
+				continue
+			var v2: int = opts[rng.randi_range(0, opts.size() - 1)]
+			_owner[v2] = r
+			_link(u, v2)
+			fr.append(v2)
+			size[r] += 1
+			filled += 1
+			grown = true
+			break
+		stuck = 0 if grown else stuck + 1
+	for ni in k:
+		var net: Array = nets[ni]
+		var want: int = (2 if net[0] == GREEN else 1) + int(net[1])
+		var tips := _tips(ni)
+		while tips.size() > want:
+			var t: int = tips[rng.randi_range(0, tips.size() - 1)]
+			for d in 4:
+				if solution[t] & DIRS[d][0]:
+					var nb2 := neighbour(t, d)
+					solution[nb2] &= ~DIRS[d][3]
+					if solution[nb2] == 0:
+						_owner[nb2] = -1
+			solution[t] = 0
+			_owner[t] = -1
+			tips = _tips(ni)
+		if tips.size() < want:
+			return false
+		_shuffle(tips, rng)
+		var src_colours: Array = [BLUE, YELLOW] if net[0] == GREEN else [net[0]]
+		for c in n:
+			if _owner[c] == ni:
+				kind[c] = WIRE
+		for j in tips.size():
+			var c2: int = tips[j]
+			if j < src_colours.size():
+				kind[c2] = SOURCE
+				color[c2] = src_colours[j]
+			else:
+				kind[c2] = BULB
+				color[c2] = net[0]
+	return true
+
+## Cells of network `ni` with exactly one opening.
+func _tips(ni: int) -> Array:
+	var out: Array = []
+	for c in w * h:
+		if _owner[c] == ni and solution[c] in [N, E, S, W]:
+			out.append(c)
+	return out
 
 func _filled(n: int, v: Variant) -> Array:
 	var a: Array = []

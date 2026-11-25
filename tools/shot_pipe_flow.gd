@@ -43,4 +43,13 @@ func _initialize() -> void:
 	g._start_time()
 	g.time_left = 8.0
 	await _shot("06_time", 30)
+	g._begin("campaign", 200, g.PipeEngine.seed_for(200))
+	await _shot("07_level200", 40)
+	g.progress["owned"] = ["pcb"]  # in memory only: nothing here saves progress
+	g.progress["theme"] = "pcb"
+	g._sb_cell = -1.0
+	await _shot("08_theme_pcb", 20)
+	g.progress["daily_done"] = 12
+	g._open_shop()
+	await _shot("09_workshop", 20)
 	quit()

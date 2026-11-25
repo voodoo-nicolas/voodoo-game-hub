@@ -2,8 +2,9 @@ extends Control
 
 ## Wire Up (game id `pipe_flow`): turn the wire pieces until every bulb is lit.
 ## Blue and yellow batteries; a bulb lights only with its own colour, and a
-## green bulb needs blue and yellow joined. Modes: a 120-level campaign (stars),
-## a daily board, random boards by difficulty, and a 3-minute time attack.
+## green bulb needs blue and yellow joined. Modes: a 240-level campaign (stars),
+## a daily board, random boards by difficulty, a 3-minute time attack, and the Workshop
+## (board themes bought with bolts earned in play; no real money).
 ## All art is drawn in code; the sounds come from pipe_flow_sfx.gd.
 
 ## Landing menu style: S9 Arcade Marquee (docs/MENU_STYLES.md).
@@ -23,11 +24,33 @@ const PROGRESS_PATH := "user://pipe_flow_progress.json"
 const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
 var cloud: Node = null
 
-const ZEN_NAMES := ["Easy", "Medium", "Hard", "Expert"]
+const ZEN_NAMES := ["Easy", "Medium", "Hard", "Expert", "Master"]
 ## Which campaign levels a random board draws from, per difficulty.
-const ZEN_RANGE := [[2, 16], [20, 48], [52, 88], [92, 120]]
-const DAILY_BASE := 45
+const ZEN_RANGE := [[2, 16], [20, 48], [52, 88], [92, 120], [130, 240]]
+## Daily board: settings of one of the part-two levels (121-240), harder than before (2026-11-25; was 45-94).
+const DAILY_BASE := 121
+const DAILY_SPAN := 120
 const TIME_ATTACK_SECONDS := 180.0
+## Workshop (2026-11-25): board themes bought with ⚡ bolts. Bolts are earned, never sold:
+## 10 per campaign star, 50 per full chapter, 30 per daily board, 100 per 7-day streak.
+## Some themes also need a goal first. Themes change the Classic look only (Voodoo keeps neon).
+## tiles = [tile a, tile b, locked tile, empty tile, tile lip, plate, plate edge].
+const BOLTS_STAR := 10
+const BOLTS_CHAPTER := 50
+const BOLTS_DAILY := 30
+const BOLTS_STREAK7 := 100
+const THEMES := [
+	{"id": "classic", "name": "Blueprint", "price": 0, "need": "", "tiles": ["2f6de6", "2a62d8", "30539c", "264fb8", "1a3a9c", "0d1446", "5c6ad8"]},
+	{"id": "copper", "name": "Copper Works", "price": 150, "need": "", "tiles": ["b8693a", "a85f33", "7d5a46", "8f4f2c", "5e3018", "24140c", "d08a52"]},
+	{"id": "pcb", "name": "Circuit Board", "price": 300, "need": "", "tiles": ["1f8a52", "1b7c49", "2e6a4c", "17683e", "0d4227", "06210f", "4fd18a"]},
+	{"id": "midnight", "name": "Midnight", "price": 300, "need": "", "tiles": ["2b2f45", "262a3e", "3a3550", "20233a", "12142a", "07080f", "6a70a8"]},
+	{"id": "sunrise", "name": "Daybreak", "price": 500, "need": "daily:10", "tiles": ["e0785a", "d46c52", "a8667a", "c2604e", "8a3a3a", "2a1020", "ffb27a"]},
+	{"id": "amber", "name": "Amber Lab", "price": 600, "need": "streak:7", "tiles": ["c99a2e", "bb8e29", "8c7a4a", "a87d22", "6b4d12", "251a06", "ffd36a"]},
+	{"id": "gold", "name": "Gold Standard", "price": 800, "need": "levels:120", "tiles": ["d4b04a", "c7a442", "a08a52", "b8943a", "7a5e1c", "2a2008", "fff0a0"]},
+	{"id": "plasma", "name": "Plasma", "price": 1500, "need": "levels:240", "tiles": ["7a3ce0", "6e34d2", "5c4a9a", "6430c0", "3a1680", "12062e", "d27aff"]},
+]
+var shop_layer: Control
+
 const TURN_SPEED := 14.0  # radians per second for the quarter-turn animation
 
 ## The colour of current: blue, yellow, and green for the two mixed.
@@ -47,6 +70,19 @@ const CHAPTER_TIPS := [
 	"Big boards: work out from the batteries.",
 	"Nothing is locked any more.",
 	"The last chapter. Light them all.",
+	# Part two (levels 121-240).
+	"Part two: bigger boards, and every piece can turn.",
+	"Follow the long wires: they wind across the whole board.",
+	"Dead wire everywhere. Trust the batteries, not the clutter.",
+	"Find the bulbs in corners first: they have only one way in.",
+	"Two green networks: keep each pair of batteries together.",
+	"A bulb at the edge of the board can only face inwards.",
+	"Two greens, a blue and a yellow. Keep them apart.",
+	"More bulbs per battery. Branch early.",
+	"Every tile turns. Lock in the edges, then work inwards.",
+	"Long wires, many bulbs. Patience.",
+	"Four networks, packed tight.",
+	"The very last chapter. The whole grid is live.",
 ]
 
 var info = null  # GameInfo; null on apps without it, so guard every use
@@ -244,12 +280,13 @@ func _build_ui() -> void:
 	var modes: Array = [
 		{"text": "🗺 Campaign", "sub": "Collect stars", "color": HomeKit.GOLD, "action": _start_campaign},
 		{"text": "📋 Level Select", "sub": "Pick a level", "color": HomeKit.BUTTON, "action": _open_map.bind(true)},
+		{"text": "🛒 Workshop", "sub": "Spend bolts on board themes", "color": HomeKit.LIME, "action": _open_shop},
 		{"text": "📅 Daily Challenge", "sub": "One board a day, same for everyone", "color": HomeKit.PINK, "action": _start_daily},
 		{"text": "⏱ Time Attack", "sub": "3 minutes: light as many boards as you can", "color": HomeKit.PURPLE, "action": _start_time},
 	]
 	for i in ZEN_NAMES.size():
 		modes.append({"text": ZEN_NAMES[i], "sub": "Random board", "row": "zen", "key": "zen" + str(i),
-			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK, HomeKit.GOLD][i], "action": _start_zen.bind(i)})
+			"color": [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK, HomeKit.GOLD, HomeKit.PURPLE][i], "action": _start_zen.bind(i)})
 	home = HomeKit.new({
 		# Menu style (docs/MENU_STYLES.md): S9 Arcade Marquee, own title font + colours.
 		"landing": "marquee",
@@ -291,7 +328,7 @@ func _start_level(lvl: int) -> void:
 func _start_daily() -> void:
 	SaveUtil.delete(SAVE_PATH)
 	var day := _today()
-	_begin("daily", DAILY_BASE + day % 50, day * 7919 + 13)
+	_begin("daily", DAILY_BASE + day % DAILY_SPAN, day * 7919 + 13)
 
 func _start_zen(diff: int) -> void:
 	SaveUtil.delete(SAVE_PATH)
@@ -338,6 +375,7 @@ func _begin(m: String, lvl: int, seed_value: int, keep_clock: bool = false) -> v
 	pop.clear()
 	_close_end()
 	_close_map()
+	_close_shop()
 	_sync_state()
 	_update(false)
 
@@ -570,6 +608,10 @@ func _on_solved() -> void:
 				else:
 					progress.daily_streak = 1
 				progress.daily_day = day
+				progress.daily_done = int(progress.get("daily_done", 0)) + 1
+				progress.best_streak = maxi(int(progress.get("best_streak", 0)), int(progress.daily_streak))
+				if int(progress.daily_streak) % 7 == 0:
+					progress.streak7 = int(progress.get("streak7", 0)) + 1
 				_save_progress()
 				note = tr("Daily streak: %d") % int(progress.daily_streak)
 				if info:
@@ -1097,11 +1139,12 @@ func _cache_styles(cell: float) -> void:
 		s.anti_aliasing = true
 		return s
 	if _is_classic():
-		_sb["lip"] = make.call(Color("1a3a9c"), Color("1a3a9c"), 0)
-		_sb["a"] = make.call(Color("2f6de6"), Color("5b93ff"), 2)
-		_sb["b"] = make.call(Color("2a62d8"), Color("5088f5"), 2)
-		_sb["fixed"] = make.call(Color("30539c"), Color("4a70bd"), 2)
-		_sb["empty"] = make.call(Color("264fb8"), Color("3a68d6"), 2)
+		var tc: Array = _theme().tiles
+		_sb["lip"] = make.call(Color(tc[4]), Color(tc[4]), 0)
+		_sb["a"] = make.call(Color(tc[0]), Color(tc[0]).lightened(0.25), 2)
+		_sb["b"] = make.call(Color(tc[1]), Color(tc[1]).lightened(0.25), 2)
+		_sb["fixed"] = make.call(Color(tc[2]), Color(tc[2]).lightened(0.2), 2)
+		_sb["empty"] = make.call(Color(tc[3]), Color(tc[3]).lightened(0.15), 2)
 	else:
 		_sb["lip"] = make.call(Color(0.02, 0.02, 0.06), Color(0, 0, 0, 0), 0)
 		_sb["a"] = make.call(Color(0.06, 0.07, 0.15), Color(HomeKit.PURPLE, 0.55), 2)
@@ -1134,8 +1177,8 @@ func _draw_board() -> void:
 		ps.anti_aliasing = true
 		ps.set_border_width_all(3)
 		if _is_classic():
-			ps.bg_color = Color("0d1446")
-			ps.border_color = Color("5c6ad8")
+			ps.bg_color = Color(_theme().tiles[5])
+			ps.border_color = Color(_theme().tiles[6])
 		else:
 			ps.bg_color = Color(0.02, 0.02, 0.06)
 			ps.border_color = Color(HomeKit.PURPLE, 0.6)
@@ -1396,6 +1439,227 @@ func _draw_home_logo(c: Control) -> void:
 	c.draw_rect(body, Color(col, 0.95))
 	c.draw_rect(Rect2(body.position + Vector2(k * 0.08, -k * 0.1), Vector2(k * 0.24, k * 0.1)), Color("c9c3bd"))
 	HomeKit.glow_rect(c, body, col, 2.0)
+
+# ---------- Workshop: board themes bought with earned bolts ----------
+
+func _theme() -> Dictionary:
+	var id: String = str(progress.get("theme", "classic"))
+	for t in THEMES:
+		if t.id == id:
+			return t
+	return THEMES[0]
+
+func _owned(id: String) -> bool:
+	return id == "classic" or (progress.get("owned", []) as Array).has(id)
+
+func _full_chapters() -> int:
+	var n := 0
+	for ch in PipeEngine.CHAPTERS.size():
+		var all := true
+		for i in PipeEngine.CHAPTER_SIZE:
+			if int(progress.stars.get(str(ch * PipeEngine.CHAPTER_SIZE + i + 1), 0)) == 0:
+				all = false
+				break
+		if all:
+			n += 1
+	return n
+
+## Bolts earned so far, worked out from progress (so cloud progress carries them too).
+func _bolts_earned() -> int:
+	var n: int = _total_stars() * BOLTS_STAR + _full_chapters() * BOLTS_CHAPTER
+	n += int(progress.get("daily_done", 0)) * BOLTS_DAILY + int(progress.get("streak7", 0)) * BOLTS_STREAK7
+	return n
+
+func _bolts() -> int:
+	return maxi(_bolts_earned() - int(progress.get("spent", 0)), 0)
+
+## "" when the theme's goal is met, else the goal as text.
+func _need_text(t: Dictionary) -> String:
+	var need: String = t.need
+	if need == "":
+		return ""
+	var parts := need.split(":")
+	var v := int(parts[1])
+	match parts[0]:
+		"levels":
+			if _cleared() >= v:
+				return ""
+			return tr("Clear %d campaign levels") % v + " (%d/%d)" % [_cleared(), v]
+		"daily":
+			if int(progress.get("daily_done", 0)) >= v:
+				return ""
+			return tr("Solve %d daily boards") % v + " (%d/%d)" % [int(progress.get("daily_done", 0)), v]
+		"streak":
+			if int(progress.get("best_streak", 0)) >= v:
+				return ""
+			return tr("Reach a %d-day daily streak") % v + " (%d/%d)" % [int(progress.get("best_streak", 0)), v]
+	return ""
+
+func _open_shop() -> void:
+	_close_end()
+	_close_shop()
+	shop_layer = ColorRect.new()
+	(shop_layer as ColorRect).color = Color(0.03, 0.04, 0.1, 0.97)
+	shop_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(shop_layer)
+	shop_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	shop_layer.add_child(scroll)
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map_drag = HomeKit._DragScroll.new()
+	scroll.add_child(map_drag)
+	var margin := MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for side in ["left", "right"]:
+		margin.add_theme_constant_override("margin_" + side, 24)
+	margin.add_theme_constant_override("margin_top", 24)
+	margin.add_theme_constant_override("margin_bottom", 40)
+	scroll.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	margin.add_child(box)
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 10)
+	box.add_child(bar)
+	var home_btn := HomeKit.neon_button(tr("🏠 Home"), HomeKit.BUTTON, 24, 60)
+	home_btn.custom_minimum_size.x = 170
+	home_btn.pressed.connect(_shop_home)
+	bar.add_child(home_btn)
+	var heading := Label.new()
+	heading.text = tr("Workshop")
+	heading.add_theme_font_size_override("font_size", 36)
+	heading.add_theme_color_override("font_color", CUR[2].lerp(Color.WHITE, 0.6))
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	bar.add_child(heading)
+	var wallet := Label.new()
+	wallet.text = "⚡ %d %s" % [_bolts(), tr("bolts")]
+	wallet.add_theme_font_size_override("font_size", 34)
+	wallet.add_theme_color_override("font_color", CUR[2])
+	wallet.add_theme_color_override("font_outline_color", Color(CUR[2], 0.4))
+	wallet.add_theme_constant_override("outline_size", 6)
+	wallet.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(wallet)
+	var how := Label.new()
+	how.text = tr("Earn bolts: %d per campaign star, %d per full chapter, %d per daily board, %d per 7-day streak. Themes change the Classic look.") % [BOLTS_STAR, BOLTS_CHAPTER, BOLTS_DAILY, BOLTS_STREAK7]
+	how.add_theme_font_size_override("font_size", 20)
+	how.add_theme_color_override("font_color", HomeKit.DIM.lerp(Color.WHITE, 0.3))
+	how.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	how.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(how)
+	for t in THEMES:
+		box.add_child(_shop_row(t))
+
+func _shop_row(t: Dictionary) -> Control:
+	var panel := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.06, 0.07, 0.16, 0.95)
+	sb.set_corner_radius_all(16)
+	sb.set_border_width_all(2)
+	var equipped: bool = _theme().id == t.id
+	sb.border_color = CUR[3] if equipped else Color(0.5, 0.5, 1.0, 0.3)
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 10
+	panel.add_theme_stylebox_override("panel", sb)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	panel.add_child(row)
+	var sw := Control.new()
+	sw.custom_minimum_size = Vector2(110, 84)
+	sw.draw.connect(_draw_swatch.bind(sw, t))
+	row.add_child(sw)
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_child(col)
+	var name_l := Label.new()
+	name_l.text = tr(t.name)
+	name_l.add_theme_font_size_override("font_size", 28)
+	col.add_child(name_l)
+	var need := _need_text(t)
+	var sub := Label.new()
+	sub.add_theme_font_size_override("font_size", 19)
+	sub.add_theme_color_override("font_color", HomeKit.DIM.lerp(Color.WHITE, 0.3))
+	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(sub)
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(150, 64)
+	b.add_theme_font_size_override("font_size", 22)
+	if equipped:
+		b.text = tr("In use")
+		b.disabled = true
+		sub.text = tr("Your board")
+	elif _owned(t.id):
+		b.text = tr("Use")
+		sub.text = tr("Owned")
+		b.pressed.connect(_shop_use.bind(t.id))
+	elif need != "":
+		b.text = "🔒"
+		b.disabled = true
+		sub.text = need
+	else:
+		b.text = "⚡ %d" % int(t.price)
+		b.disabled = _bolts() < int(t.price)
+		sub.text = tr("Ready to buy") if not b.disabled else tr("Not enough bolts yet")
+		b.pressed.connect(_shop_buy.bind(t.id))
+	row.add_child(b)
+	return panel
+
+## A tiny 3 x 2 board in the theme's colours, with a lit wire across it.
+func _draw_swatch(c: Control, t: Dictionary) -> void:
+	var tc: Array = t.tiles
+	var s := c.size
+	c.draw_rect(Rect2(Vector2.ZERO, s), Color(tc[5]))
+	var cw: float = (s.x - 8) / 3.0
+	var chh: float = (s.y - 8) / 2.0
+	for i in 6:
+		var p := Vector2(4 + (i % 3) * cw, 4 + (i / 3) * chh)
+		c.draw_rect(Rect2(p + Vector2(2, 4), Vector2(cw - 4, chh - 4)), Color(tc[4]))
+		c.draw_rect(Rect2(p + Vector2(2, 2), Vector2(cw - 4, chh - 4)), Color(tc[i % 2]))
+	var y: float = 4 + chh * 0.5
+	c.draw_line(Vector2(4 + cw * 0.5, y), Vector2(4 + cw * 2.5, y), Color(CUR[2], 0.35), 10.0)
+	c.draw_line(Vector2(4 + cw * 0.5, y), Vector2(4 + cw * 2.5, y), CUR[2], 4.0)
+	c.draw_line(Vector2(4 + cw * 2.5, y), Vector2(4 + cw * 2.5, 4 + chh * 1.5), CUR[2], 4.0)
+	c.draw_rect(Rect2(Vector2.ZERO, s), Color(tc[6]), false, 2.0)
+
+func _shop_buy(id: String) -> void:
+	if map_drag and map_drag.moved:
+		return
+	for t in THEMES:
+		if t.id == id and not _owned(id) and _need_text(t) == "" and _bolts() >= int(t.price):
+			progress.spent = int(progress.get("spent", 0)) + int(t.price)
+			var owned: Array = progress.get("owned", [])
+			owned.append(id)
+			progress.owned = owned
+			_play("done")
+			_shop_use(id)
+			return
+
+func _shop_use(id: String) -> void:
+	if map_drag and map_drag.moved:
+		return
+	if not _owned(id):
+		return
+	progress.theme = id
+	_save_progress()
+	_sb_cell = -1.0
+	board.queue_redraw()
+	_play("zap", -6.0)
+	_open_shop()
+
+func _shop_home() -> void:
+	if map_drag and map_drag.moved:
+		return
+	_close_shop()
+	_go_home()
+
+func _close_shop() -> void:
+	if shop_layer and is_instance_valid(shop_layer):
+		shop_layer.queue_free()
+	shop_layer = null
 
 # ---------- pause / save ----------
 
