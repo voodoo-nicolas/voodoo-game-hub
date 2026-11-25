@@ -11,6 +11,8 @@ signal tapped_empty
 
 const LIFT := 0.004
 const TAP_SLOP := 14.0
+const LINE_W := 0.075     # ribbon half-width in cells (was 0.13: owner wanted thinner so the tip reads)
+const SLIDE_SPEED := 11.0 # cells per second for the snake move
 
 var engine: E
 var skin: String = "classic"
@@ -24,6 +26,7 @@ var arrow_nodes: Dictionary = {}    # arrow id -> MeshInstance3D
 var flash_node: MeshInstance3D
 var highlight: Dictionary = {}      # arrow id -> Color
 var interactive: bool = true
+var slides: Array = []              # snake moves in flight: {node, id, pts, nrm, cum, len, t, end, exits, a, base}
 
 var yaw: float = -0.6
 var pitch: float = -0.5
@@ -92,7 +95,7 @@ func show_level(e: E) -> void:
 	engine = e
 	highlight.clear()
 	pivot.position = engine.shape_center()
-	base_dist = engine.shape_radius() / tan(deg_to_rad(cam.fov * 0.5)) * 1.18
+	base_dist = engine.shape_radius() / tan(deg_to_rad(cam.fov * 0.5)) * 1.42  # owner 2026-11-25: start zoomed out a little more
 	dist = base_dist
 	yaw = -0.6
 	pitch = -0.5
@@ -112,6 +115,7 @@ func reset_view() -> void:
 	tw.tween_property(self, "dist", base_dist, 0.35)
 
 func _process(delta: float) -> void:
+	_step_slides(delta)
 	if not _pressed and spin_v.length() > 0.01:
 		yaw -= spin_v.x * delta
 		pitch -= spin_v.y * delta
@@ -121,6 +125,7 @@ func _process(delta: float) -> void:
 # ---------- building meshes ----------
 
 func rebuild() -> void:
+	_cancel_slides()
 	_build_shape()
 	_build_deco()
 	for id in arrow_nodes:
@@ -130,6 +135,7 @@ func rebuild() -> void:
 		_add_arrow_node(a)
 
 func refresh_arrow(id: int) -> void:
+	_cancel_slides(id)
 	var a := engine.arrow_by_id(id)
 	if arrow_nodes.has(id):
 		if a.is_empty():
@@ -144,7 +150,8 @@ func sync_arrows() -> void:
 	var live := {}
 	for a in engine.arrows:
 		live[int(a.id)] = true
-		refresh_arrow(int(a.id))
+		if not _sliding(int(a.id)):  # a snake move redraws it when it lands
+			refresh_arrow(int(a.id))
 	for id in arrow_nodes.keys():
 		if not live.has(id):
 			arrow_nodes[id].queue_free()
@@ -258,7 +265,7 @@ func _arrow_mesh(a: Dictionary, over = null) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var cl: Array = a.cells
-	var w := 0.13 / engine.n
+	var w := LINE_W / engine.n
 	var base: Color = _arrow_color(a)
 	if highlight.has(int(a.id)):
 		base = highlight[int(a.id)]
@@ -323,13 +330,15 @@ func _joint(st: SurfaceTool, k: int, w: float, c: Color) -> void:
 	_quad(st, ctr - u, ctr + u, v, c, true)
 
 func _head(st: SurfaceTool, k: int, d: int, c: Color) -> void:
+	_head_at(st, engine.cell_center(k, LIFT * 1.5), Vector3(E.DIRS[d]), Vector3(E.DIRS[E.key_normal(k)]), c)
+
+func _head_at(st: SurfaceTool, ctr: Vector3, f: Vector3, nrm: Vector3, c: Color, alpha: float = 1.0) -> void:
 	var s := 1.0 / engine.n
-	var ctr: Vector3 = engine.cell_center(k, LIFT * 1.5)
-	var f := Vector3(E.DIRS[d])
-	var side := f.cross(Vector3(E.DIRS[E.key_normal(k)]))
+	var side := f.cross(nrm)
 	var tip := ctr + f * s * 0.46
-	var back := ctr - f * s * 0.02
-	for p in [tip, back + side * s * 0.30, back - side * s * 0.30]:
+	var back := ctr - f * s * 0.04
+	c.a *= alpha
+	for p in [tip, back + side * s * 0.27, back - side * s * 0.27]:
 		st.set_color(c)
 		st.add_vertex(p)
 
@@ -357,6 +366,145 @@ func fly_away(id: int, dir: int) -> void:
 	tw.tween_property(mi, "position", mi.position + d * 2.4, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_property(mi.material_override, "albedo_color:a", 0.0, 0.45)
 	tw.chain().tween_callback(mi.queue_free)
+
+## Snake move: the arrow slides head-first along its own bends and then `path` (the tip grows
+## forward, the tail shrinks behind it). exits: it then runs off the cliff edge and fades;
+## otherwise it ends parked and the arrow is redrawn from the engine. `a` = the arrow BEFORE
+## the move (a copy), hi = the moving head. Forks keep fly_away (several heads move at once).
+func slither(a: Dictionary, hi: int, path: Array, dir: int, exits: bool) -> void:
+	var id := int(a.id)
+	var body: Array = a.cells.duplicate()
+	if a.kind == E.KIND_TWO and hi == 0:
+		body.reverse()  # the moving end goes last (same as engine._park)
+	var seq: Array = body + path
+	var pts: Array = []
+	var nrm: Array = []
+	for i in seq.size():
+		var k := int(seq[i])
+		var nk := Vector3(E.DIRS[E.key_normal(k)])
+		if i > 0 and E.key_normal(int(seq[i - 1])) != E.key_normal(k):
+			var m: Vector3 = engine.corner_point(int(seq[i - 1]), k)
+			var np := Vector3(E.DIRS[E.key_normal(int(seq[i - 1]))])
+			pts.append(m + np * LIFT); nrm.append(np)
+			pts.append(m + nk * LIFT); nrm.append(nk)
+		pts.append(engine.cell_center(k, LIFT)); nrm.append(nk)
+	var cum: Array = [0.0]
+	for i in range(1, pts.size()):
+		cum.append(float(cum[i - 1]) + pts[i - 1].distance_to(pts[i]))
+	var blen := 0.0  # body length = up to the last body cell's point
+	for i in pts.size():
+		if pts[i].is_equal_approx(engine.cell_center(int(body[body.size() - 1]), LIFT)):
+			blen = cum[i]
+			break
+	var end: float = cum[cum.size() - 1] - blen
+	if exits:
+		var last: Vector3 = pts[pts.size() - 1]
+		var f := Vector3(E.DIRS[dir])
+		var far := 3.0
+		pts.append(last + f * far); nrm.append(nrm[nrm.size() - 1])
+		cum.append(float(cum[cum.size() - 1]) + far)
+		end += blen + 1.2
+	var base := _arrow_color(a)
+	var node: MeshInstance3D
+	if arrow_nodes.has(id):
+		_cancel_slides(id)
+		node = arrow_nodes[id]
+		if exits:
+			arrow_nodes.erase(id)
+	else:
+		node = MeshInstance3D.new()
+		node.material_override = _flat_mat()
+		add_child(node)
+	node.position = Vector3.ZERO
+	slides.append({"node": node, "id": id, "pts": pts, "nrm": nrm, "cum": cum, "len": blen, "t": 0.0,
+		"end": maxf(end, 0.001), "exits": exits, "kind": a.kind, "hi": hi, "base": base, "speed": SLIDE_SPEED / engine.n})
+
+func _sliding(id: int) -> bool:
+	for sl in slides:
+		if int(sl.id) == id:
+			return true
+	return false
+
+func _cancel_slides(id: int = -1) -> void:
+	for sl in slides.duplicate():
+		if id >= 0 and int(sl.id) != id:
+			continue
+		slides.erase(sl)
+		if sl.exits and is_instance_valid(sl.node):
+			sl.node.queue_free()
+
+func _step_slides(delta: float) -> void:
+	if slides.is_empty() or engine == null:
+		return
+	for sl in slides.duplicate():
+		var spd: float = sl.speed * (1.0 + float(sl.t) / maxf(0.05, float(sl.len)) * 0.6)  # eases faster
+		sl.t = minf(float(sl.end), float(sl.t) + spd * delta)
+		if not is_instance_valid(sl.node):
+			slides.erase(sl)
+			continue
+		var alpha := 1.0
+		if sl.exits:  # fades as the tail runs off the shape
+			alpha = clampf((float(sl.end) - float(sl.t)) / 1.2, 0.0, 1.0)
+		sl.node.mesh = _slide_mesh(sl, alpha)
+		if float(sl.t) >= float(sl.end):
+			slides.erase(sl)
+			if sl.exits:
+				sl.node.queue_free()
+			else:
+				refresh_arrow(int(sl.id))
+
+## Point + normal + tangent at distance d along a slide's polyline.
+func _slide_at(sl: Dictionary, d: float) -> Array:
+	var cum: Array = sl.cum
+	var pts: Array = sl.pts
+	for i in range(1, cum.size()):
+		if d <= float(cum[i]) or i == cum.size() - 1:
+			var seg: float = float(cum[i]) - float(cum[i - 1])
+			var u := 0.0 if seg <= 1e-6 else clampf((d - float(cum[i - 1])) / seg, 0.0, 1.0)
+			var f: Vector3 = (pts[i] - pts[i - 1]).normalized() if seg > 1e-6 else Vector3.ZERO
+			return [pts[i - 1].lerp(pts[i], u), sl.nrm[i - 1], f, i]
+	return [pts[0], sl.nrm[0], Vector3.ZERO, 1]
+
+func _slide_mesh(sl: Dictionary, alpha: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var w := LINE_W / engine.n
+	var d0: float = sl.t
+	var d1: float = float(sl.t) + float(sl.len)
+	var a0 := _slide_at(sl, d0)
+	var a1 := _slide_at(sl, d1)
+	var chain: Array = [[a0[0], a0[1], d0]]
+	for i in range(int(a0[3]), int(a1[3])):
+		chain.append([sl.pts[i], sl.nrm[i], float(sl.cum[i])])
+	chain.append([a1[0], a1[1], d1])
+	var span := maxf(1e-4, d1 - d0)
+	for i in range(1, chain.size()):
+		var p: Vector3 = chain[i - 1][0]
+		var q: Vector3 = chain[i][0]
+		if p.distance_to(q) < 1e-5:
+			continue
+		var c := _slide_col(sl, (float(chain[i - 1][2]) + float(chain[i][2])) * 0.5 - d0, span)
+		c.a *= alpha
+		_strip(st, p, q, chain[i - 1][1], w, c)
+		if i < chain.size() - 1:  # square joint so bends stay solid
+			var nv: Vector3 = chain[i][1]
+			var ax := 0 if absf(nv.x) > 0.5 else (1 if absf(nv.y) > 0.5 else 2)
+			var u := Vector3.ZERO
+			var v := Vector3.ZERO
+			u[(ax + 1) % 3] = w
+			v[(ax + 2) % 3] = w
+			_quad(st, q - u, q + u, v, c, true)
+	var f: Vector3 = a1[2]
+	if f != Vector3.ZERO:
+		_head_at(st, a1[0] + Vector3(a1[1]) * LIFT * 0.5, f, a1[1], _slide_col(sl, span, span), alpha)
+	return st.commit()
+
+func _slide_col(sl: Dictionary, along: float, span: float) -> Color:
+	if sl.kind == E.KIND_TWO:  # front half = the moving head's colour (head 0 = two_a)
+		var front := col("two_a") if int(sl.hi) == 0 else col("two_b")
+		var back := col("two_b") if int(sl.hi) == 0 else col("two_a")
+		return front if along / span >= 0.5 else back
+	return sl.base
 
 ## Bump: the arrow jerks forward and back, the way it wanted to go flashes red.
 func bump(id: int, dir: int, path: Array) -> void:

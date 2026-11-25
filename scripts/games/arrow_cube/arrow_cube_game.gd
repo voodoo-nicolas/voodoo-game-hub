@@ -393,6 +393,7 @@ func _on_arrow_tapped(id: int, head: int) -> void:
 			_clear_feedback()
 			_after_move()
 		return
+	var before := a.duplicate(true)
 	var r := engine.tap(id, head)
 	if not r.moved:
 		var path: Array = []
@@ -407,13 +408,16 @@ func _on_arrow_tapped(id: int, head: int) -> void:
 			_on_lost()
 		return
 	if r.result == "exit":
-		world.fly_away(id, int(r.get("dir", a.heads[0].dir)))
+		if before.kind == E.KIND_FORK:
+			world.fly_away(id, int(r.get("dir", a.heads[0].dir)))
+		else:  # snake move: slides along its bends and off the edge
+			world.slither(before, int(r.head), r.paths[0], int(r.get("dir", before.heads[0].dir)), true)
 		_sfx("place")
 		_buzz(12)
 		if info:
 			info.add("Arrows cleared")
 	else:
-		world.refresh_arrow(id)
+		world.slither(before, int(r.head), r.paths[0], int(r.dir), false)
 		_sfx("tick")
 	_after_move()
 
