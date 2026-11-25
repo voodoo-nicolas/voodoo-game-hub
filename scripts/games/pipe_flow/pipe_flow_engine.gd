@@ -32,6 +32,7 @@ const GREEN := 3  # blue + yellow
 
 const LEVEL_COUNT := 240  # 120 more, harder (2026-11-25); the first 120 boards are unchanged
 const CHAPTER_SIZE := 10
+const SLOW_FROM := 109  # first level built by _tree_nets (see params_for)
 
 ## Chapters of 10 levels. Sizes and bulb counts ease up from the first level of
 ## the chapter to the last. nets: [colour, bulbs at level 1 of chapter, bulbs at level 10].
@@ -107,7 +108,8 @@ static func params_for(lvl: int) -> Dictionary:
 		"h": int(roundf(lerpf(ch.h[0], ch.h[1], t))),
 		"nets": nets,
 		"decoy": ch.decoy, "lock": ch.lock, "loops": ch.loops, "free": ch.free,
-		"fill": ch.get("fill", 0.0),
+		# Levels 109-120 took 3-28 s to route on PC (owner OK'd new boards 2026-11-25): tree builder too.
+		"fill": ch.get("fill", 0.65 if lvl >= SLOW_FROM else 0.0),
 	}
 
 static func seed_for(lvl: int) -> int:
