@@ -30,6 +30,8 @@ const Campaign = preload("res://scripts/games/geometry_wars/geometry_wars_campai
 const MenuStyles = preload("res://scripts/games/geometry_wars/menu_styles.gd")
 const HomeKit = preload("res://scripts/games/geometry_wars/home_kit.gd")
 const ArenaCanvas = preload("res://scripts/games/geometry_wars/arena_canvas.gd")
+## Look pass 2026-11-25: space backdrop, vignette, flashes, UI pops.
+const Fx = preload("res://scripts/games/geometry_wars/geometry_wars_fx.gd")
 const JoystickCanvas = preload("res://scripts/games/geometry_wars/joystick_canvas.gd")
 ## The app's shared on-screen controller (scripts/common/pad/, docs/claude/pad.md): two floating sticks
 ## (left moves, right aims and fires) and a Bomb button between them. Older apps don't have it and keep
@@ -211,6 +213,10 @@ var aim_value: Vector2 = Vector2.ZERO
 var game_screen: Control
 var view_clip: Control
 var arena_canvas: Node2D
+var backdrop: Control
+var overlay: Control
+var _shown_score := -1
+var _shown_combo := -1
 var joystick_canvas: Node2D
 var touch_pad: Control = null        # the shared Pad (null on apps without it)
 var _pad_bomb_shown := false
@@ -863,6 +869,7 @@ func _check_bosses_dead() -> void:
 		_spark_burst(pos, Color.WHITE, 60, 1.5)
 		arena_canvas.shock(pos, 1.4)
 		shake = 1.4
+		overlay.flash(Color(1, 1, 1), 0.55)
 		_sfx("boss_die", 2.0, 1.0, 0)
 		var pts: int = int(int(Bosses.POINTS.get(b.kind, 20000)) * (1.0 + 0.25 * (int(b.get("tier", 1)) - 1))) * multiplier
 		score += pts
@@ -1263,6 +1270,7 @@ func _on_bomb_pressed() -> void:
 	spawn_timer = maxf(spawn_timer, 1.2)
 	arena_canvas.shock(player_pos, 1.0)
 	shake = 1.2
+	overlay.flash(Color(0.6, 0.85, 1.0) if Core.classic else Color(1.0, 0.35, 0.4), 0.45)
 	_sfx("bomb", 3.0, 1.0, 0)
 	_update_hud()
 
@@ -1275,6 +1283,7 @@ func _on_player_hit() -> void:
 	_spark_burst(player_pos, Color(1.0, 0.6, 0.3), 40, 1.2)
 	arena_canvas.shock(player_pos, 0.8)
 	shake = 1.3
+	overlay.hurt()
 	_sfx("death", 3.0, 1.0, 0)
 	# Everything on screen goes with the ship (no points), like the original.
 	for e in enemies:
@@ -1363,8 +1372,14 @@ func _check_goal() -> void:
 			return
 	match str(rules.goal):
 		"kills":
-			if kills >= int(rules.n):
-				_end_game(true)
+			if kills >= int(rules.n) and not cleared:
+				# Campaign: the goal is met, the mission goes on (owner,
+				# 2026-11-25) -- cleared and banked, then overtime like a
+				# survive level until 🏁 Finish or the last life.
+				if rules.campaign:
+					_on_clock_survived(tr("LEVEL CLEARED!"))
+				else:
+					_end_game(true)
 		"boss":
 			var rush_left: bool = not (rules.get("rush", []) as Array).is_empty() and (rush_index < (rules.rush as Array).size() or rush_t >= 0.0)
 			if bosses.is_empty() and boss_events_left <= 0 and not rush_left:
@@ -1373,11 +1388,12 @@ func _check_goal() -> void:
 ## A campaign level's clock ran out with you still flying: it is cleared
 ## (banked now, so closing the app keeps it), and the swarm keeps coming --
 ## every point still counts toward the stars (owner, 2026-10-07).
-func _on_clock_survived() -> void:
+func _on_clock_survived(title: String = "") -> void:
 	cleared = true
 	run.clear_t = elapsed_seconds
+	overlay.flash(Color(1.0, 0.85, 0.4), 0.4)
 	_sfx("level_clear", 0.0, 1.0, 0)
-	_show_banner(tr("SURVIVED!") + "\n" + tr("Keep going: every point counts for the stars"), Color(1, 0.9, 0.4), 3.5)
+	_show_banner((title if title != "" else tr("SURVIVED!")) + "\n" + tr("Keep going: every point counts for the stars"), Color(1, 0.9, 0.4), 3.5)
 	finish_button.visible = true
 	var data := Campaign.load_progress()
 	Campaign.record(data, level_id, hardcore, Levels.stars_for(level_id, score), score)
@@ -1525,6 +1541,15 @@ func _show_result() -> void:
 		row.add_child(_result_button("Play Again", HomeKit.LIME, _restart_current))
 	row.add_child(_result_button("🏠 Home", HomeKit.PURPLE, _go_home))
 	result_dialog.visible = true
+	# The card fades in and rises with a little bounce.
+	result_dialog.modulate.a = 0.0
+	var card := result_box.get_parent() as Control
+	var rtw := result_dialog.create_tween().set_parallel()
+	rtw.tween_property(result_dialog, "modulate:a", 1.0, 0.3)
+	if card:
+		card.pivot_offset = card.size / 2.0
+		card.scale = Vector2(0.85, 0.85)
+		rtw.tween_property(card, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 ## This run's moves, for the achievements (owner, 2026-10-07: badges for
 ## special manoeuvres -- seals flown through, near misses, chain blasts...).
@@ -1546,6 +1571,7 @@ func _record_moves() -> void:
 func _result_button(text: String, color: Color, action: Callable) -> Button:
 	var b := HomeKit.neon_button(tr(text), color, 24, 62)
 	b.custom_minimum_size.x = 150
+	Fx.squash_on_press(b)
 	b.pressed.connect(action)
 	return b
 
@@ -1610,6 +1636,13 @@ func _update_hud() -> void:
 	else:
 		lives_label.text = "♥ %d" % lives
 	combo_label.text = "×%d" % multiplier
+	# The multiplier punches when it climbs; the score breathes on big gains.
+	if multiplier > _shown_combo and _shown_combo >= 0:
+		Fx.pop(combo_label, 0.45, 0.4)
+	if _shown_score >= 0 and score - _shown_score >= 1000:
+		Fx.pop(score_label, 0.12, 0.3)
+	_shown_combo = multiplier
+	_shown_score = score
 	bomb_button.text = ("💣\n×%d" if size.x >= size.y else "💣 ×%d") % bombs
 	bomb_button.disabled = bombs <= 0
 	var bomb_available: bool = int(rules.bombs) > 0 or int(rules.bomb_every) > 0 or bombs > 0
@@ -1622,6 +1655,8 @@ func _update_hud() -> void:
 	var g := ""
 	if str(rules.goal) == "kills":
 		g = tr("Kills %d/%d") % [mini(kills, int(rules.n)), int(rules.n)]
+		if cleared and int(rules.time) <= 0:
+			g = "✔ +" + _format_time(_overtime())
 	if int(rules.time) > 0:
 		var clock := ("✔ +" + _format_time(_overtime())) if cleared else ("⏱ " + _format_time(float(rules.time) - elapsed_seconds))
 		g = clock if g == "" else g + "  " + clock
@@ -1653,6 +1688,9 @@ func _show_banner(text: String, color: Color, hold: float = 2.0) -> void:
 	if _banner_tw and _banner_tw.is_valid():
 		_banner_tw.kill()
 	_banner_tw = banner.create_tween()
+	banner.pivot_offset = banner.size / 2.0
+	banner.scale = Vector2(1.35, 1.35)
+	_banner_tw.tween_property(banner, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_banner_tw.tween_interval(hold)
 	_banner_tw.tween_property(banner, "modulate:a", 0.0, 0.8)
 
@@ -1766,9 +1804,20 @@ func _build_game_screen() -> void:
 	view_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	game_screen.add_child(view_clip)
 
+	backdrop = Fx.Backdrop.new()
+	backdrop.game = self
+	backdrop.classic = Core.classic
+	backdrop.set_classic(Core.classic)
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	view_clip.add_child(backdrop)
+
 	arena_canvas = ArenaCanvas.new()
 	arena_canvas.game = self
 	view_clip.add_child(arena_canvas)
+
+	overlay = Fx.Overlay.new()
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	view_clip.add_child(overlay)
 
 	banner = Label.new()
 	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1933,6 +1982,7 @@ func _neon_button(text: String, color: Color) -> Button:
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		b.add_theme_color_override(c, color.lightened(0.3))
 	b.add_theme_color_override("font_disabled_color", Color(color, 0.35))
+	Fx.squash_on_press(b)
 	return b
 
 func _stat_label(text: String) -> Label:
@@ -1956,6 +2006,16 @@ func _build_result_dialog() -> void:
 	result_dialog.add_child(center)
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(520, 0)
+	# Glass card with a neon rim and glow (look pass 2026-11-25).
+	var psb := StyleBoxFlat.new()
+	psb.bg_color = Color(0.04, 0.03, 0.09, 0.94)
+	psb.set_border_width_all(2)
+	psb.border_color = Color(0.35, 0.9, 1.0, 0.8)
+	psb.set_corner_radius_all(18)
+	psb.shadow_color = Color(0.3, 0.8, 1.0, 0.3)
+	psb.shadow_size = 18
+	psb.set_content_margin_all(24)
+	panel.add_theme_stylebox_override("panel", psb)
 	center.add_child(panel)
 	result_box = VBoxContainer.new()
 	result_box.add_theme_constant_override("separation", 10)
@@ -2265,6 +2325,8 @@ func _set_skin(skin: String) -> void:
 	if arena_canvas:
 		arena_canvas.classic = Core.classic
 		arena_canvas.queue_redraw()
+	if backdrop:
+		backdrop.set_classic(Core.classic)
 
 func _build_home() -> void:
 	home = HomeKit.new({
