@@ -16,6 +16,7 @@ const HomeKit = preload("res://scripts/games/block_escape/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const UI = preload("res://scripts/common/ui.gd")
+const Fx = preload("res://scripts/games/block_escape/block_escape_fx.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const I18N_PATH := "res://scripts/games/block_escape/block_escape_i18n.gd"
 ## Written by tools/block_escape_gen.gd; a level missing here is generated from the same seed.
@@ -89,6 +90,20 @@ var started: bool = false   # the clock waits for the first move
 var show_marks: bool = false   # colour-blind shapes (⚙ Options), off by default
 var tip_dialog: ColorRect
 var how_btn: Button
+# [NEW 2026-11-25] look pass: animated backdrop, HUD panel, particles, intro / lift / win animations.
+var fx_bg: ColorRect
+var hud_panel: PanelContainer
+var time_chip: PanelContainer
+var prog_bar: Control
+var prog_shown: float = 0.0
+var total_blocks: int = 1
+var particles: Array = []
+var gate_flash: Dictionary = {}   # gate index -> seconds left
+var lift: Dictionary = {}         # block index -> 0..1 (picked-up)
+var intro_t: float = 9.0
+var flash_t: float = 0.0
+var anim_t: float = 0.0
+var danger: float = 0.0
 
 func _ready() -> void:
 	if ResourceLoader.exists(I18N_PATH):
@@ -119,6 +134,9 @@ func _build_ui() -> void:
 	tex_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tex_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(tex_bg)
+	fx_bg = Fx.backdrop()
+	add_child(fx_bg)
+	fx_bg.resized.connect(_on_fx_resized)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -130,9 +148,14 @@ func _build_ui() -> void:
 	top.add_theme_constant_override("margin_left", 16)
 	top.add_theme_constant_override("margin_right", 16)
 	root.add_child(top)
+	hud_panel = PanelContainer.new()
+	top.add_child(hud_panel)
+	var hud_box := VBoxContainer.new()
+	hud_box.add_theme_constant_override("separation", 6)
+	hud_panel.add_child(hud_box)
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 10)
-	top.add_child(bar)
+	hud_box.add_child(bar)
 	var pause_btn := Button.new()
 	pause_btn.text = "⏸"
 	pause_btn.custom_minimum_size = Vector2(76, 64)
@@ -141,21 +164,37 @@ func _build_ui() -> void:
 	bar.add_child(pause_btn)
 	my_buttons.append(pause_btn)
 	title_label = Label.new()
-	title_label.add_theme_font_size_override("font_size", 30)
+	title_label.add_theme_font_size_override("font_size", 32)
+	if ResourceLoader.exists("res://games/block_escape/title.ttf"):
+		title_label.add_theme_font_override("font", load("res://games/block_escape/title.ttf"))
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.clip_text = true
 	bar.add_child(title_label)
+	time_chip = PanelContainer.new()
+	time_chip.custom_minimum_size = Vector2(118, 0)
+	time_chip.resized.connect(_center_pivot.bind(time_chip))
+	bar.add_child(time_chip)
 	time_label = Label.new()
 	time_label.add_theme_font_size_override("font_size", 34)
-	time_label.custom_minimum_size = Vector2(120, 0)
-	time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	bar.add_child(time_label)
+	time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	time_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	time_chip.add_child(time_label)
 
+	# Blocks left: a label over a fill bar of blocks already out.
+	var prow := HBoxContainer.new()
+	prow.add_theme_constant_override("separation", 10)
+	hud_box.add_child(prow)
+	prog_bar = Control.new()
+	prog_bar.custom_minimum_size = Vector2(0, 14)
+	prog_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	prog_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	prog_bar.draw.connect(_draw_progress)
+	prow.add_child(prog_bar)
 	left_label = Label.new()
 	left_label.add_theme_font_size_override("font_size", 22)
-	left_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	root.add_child(left_label)
+	left_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	prow.add_child(left_label)
 
 	var bm := MarginContainer.new()
 	bm.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -175,6 +214,7 @@ func _build_ui() -> void:
 	feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	feedback_label.custom_minimum_size = Vector2(0, 64)
+	feedback_label.resized.connect(_center_pivot.bind(feedback_label))
 	root.add_child(feedback_label)
 
 	var row_margin := MarginContainer.new()
@@ -283,8 +323,51 @@ func _button(text: String, action: Callable) -> Button:
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.add_theme_font_size_override("font_size", 26)
 	b.pressed.connect(action)
+	b.button_down.connect(_press_anim.bind(b, 0.93))
+	b.button_up.connect(_press_anim.bind(b, 1.0))
+	b.resized.connect(_center_pivot.bind(b))
 	my_buttons.append(b)
 	return b
+
+func _center_pivot(c: Control) -> void:
+	c.pivot_offset = c.size / 2.0
+
+## Squash on press, springy release.
+func _press_anim(b: Control, to: float) -> void:
+	var tw := b.create_tween()
+	tw.tween_property(b, "scale", Vector2(to, to), 0.07 if to < 1.0 else 0.25) 		.set_trans(Tween.TRANS_QUAD if to < 1.0 else Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func _on_fx_resized() -> void:
+	(fx_bg.material as ShaderMaterial).set_shader_parameter("aspect", fx_bg.size.x / maxf(1.0, fx_bg.size.y))
+
+func _panel_box(fill: Color, border: Color, radius: int, shadow: float) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = fill
+	sb.border_color = border
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(radius)
+	sb.shadow_color = Color(0, 0, 0, 0.22)
+	sb.shadow_size = int(shadow)
+	sb.shadow_offset = Vector2(0, shadow * 0.4)
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	return sb
+
+func _draw_progress() -> void:
+	var r := Rect2(Vector2.ZERO, prog_bar.size)
+	var classic := _classic()
+	var sb := StyleBoxFlat.new()
+	sb.set_corner_radius_all(int(r.size.y / 2.0))
+	sb.bg_color = Color(0.1, 0.2, 0.4, 0.18) if classic else Color(1, 1, 1, 0.08)
+	prog_bar.draw_style_box(sb, r)
+	if prog_shown > 0.001:
+		var fr := Rect2(r.position, Vector2(maxf(r.size.y, r.size.x * prog_shown), r.size.y))
+		sb.bg_color = Color("38b54a") if classic else HomeKit.LIME
+		prog_bar.draw_style_box(sb, fr)
+		sb.bg_color = Color(1, 1, 1, 0.35)
+		prog_bar.draw_style_box(sb, Rect2(fr.position + Vector2(3, 2), Vector2(fr.size.x - 6, r.size.y * 0.35)))
 
 func _style_buttons() -> void:
 	for b in my_buttons:
@@ -319,6 +402,15 @@ func _set_skin(name: String) -> void:
 			ch.visible = skin != "classic"
 	if tex_bg:
 		tex_bg.visible = skin == "classic"
+	if fx_bg:
+		Fx.skin_backdrop(fx_bg, skin == "classic")
+	if hud_panel:
+		if skin == "classic":
+			hud_panel.add_theme_stylebox_override("panel", _panel_box(Color(1, 1, 1, 0.82), Color(1, 1, 1, 0.95), 26, 10))
+			time_chip.add_theme_stylebox_override("panel", _panel_box(Color("1f2a3a"), Color("0f1722"), 18, 0))
+		else:
+			hud_panel.add_theme_stylebox_override("panel", _panel_box(Color(0.04, 0.05, 0.12, 0.78), Color(HomeKit.CYAN, 0.55), 26, 14))
+			time_chip.add_theme_stylebox_override("panel", _panel_box(Color(0, 0, 0, 0.55), Color(HomeKit.CYAN, 0.35), 18, 0))
 	for l in [title_label, left_label]:
 		if l:
 			l.add_theme_color_override("font_color", INK if skin == "classic" else Color.WHITE)
@@ -349,11 +441,13 @@ func _update_hud() -> void:
 		var t := int(ceil(maxf(time_left, 0.0)))
 		time_label.text = "%d:%02d" % [t / 60, t % 60]
 	var low := mode != "zen" and time_left <= 10.0 and playing
-	var tc := INK if _classic() else Color.WHITE
+	var tc := Color.WHITE
 	if low:
-		tc = Color("d62828") if _classic() else Color("ff4f4f")
+		tc = Color("ff5a5a")
 	time_label.add_theme_color_override("font_color", tc)
 	left_label.text = (tr("Blocks left: %d") % engine.left()) if engine.rows > 0 else ""
+	if engine.rows > 0 and prog_bar:
+		prog_bar.queue_redraw()
 
 # ---------- geometry ----------
 
@@ -394,6 +488,17 @@ func _draw_board() -> void:
 		board.draw_line(Vector2(gx0 + i * gstep, 0), Vector2(gx0 + i * gstep, bsz.y), gcol, 1.0)
 	for i in int(bsz.y / gstep) + 1:
 		board.draw_line(Vector2(0, gy0 + i * gstep), Vector2(bsz.x, gy0 + i * gstep), gcol, 1.0)
+	# [2026-11-25] a soft pool of light behind the tray and a wide contact shadow lift it off the backdrop.
+	var pool := StyleBoxFlat.new()
+	pool.bg_color = Color(0, 0, 0, 0)
+	pool.set_corner_radius_all(int(s * 0.6))
+	pool.shadow_color = Color(1, 1, 1, 0.35) if classic else Color(HomeKit.CYAN, 0.18)
+	pool.shadow_size = int(s * 1.2)
+	board.draw_style_box(pool, area.grow(fw))
+	pool.shadow_color = Color(0.02, 0.05, 0.15, 0.45)
+	pool.shadow_size = int(s * 0.45)
+	pool.shadow_offset = Vector2(0, s * 0.3)
+	board.draw_style_box(pool, area.grow(fw))
 	# _round_rect(area.grow(fw), frame_col, s * 0.35)
 	# Frame with depth: drop shadow, outer rim, face, recessed inner lip.
 	_round_rect(Rect2(area.grow(fw).position + Vector2(0, s * 0.12), area.grow(fw).size), Color(0, 0, 0, 0.25), s * 0.35)
@@ -417,13 +522,29 @@ func _draw_board() -> void:
 	for g in engine.gates:
 		var gr := _gate_rect(g, s, o, fw)
 		var gc := _col(int(g.color))
+		var gi_ := engine.gates.find(g)
+		var glow := float(gate_flash.get(gi_, 0.0)) / 0.5
+		if drag_block >= 0 and drag_block < engine.blocks.size() and int(engine.blocks[drag_block].color) == int(g.color):
+			glow = maxf(glow, 0.45 + 0.35 * sin(anim_t * 7.0))
+		if glow > 0.0:
+			_glow(gr, gc.lightened(0.3), glow, s * 0.5)
 		_round_rect(gr, gc.darkened(0.3), s * 0.12)
-		_round_rect(gr.grow(-2.0), gc, s * 0.12)
+		_round_rect(gr.grow(-2.0), gc.lightened(0.45 * minf(1.0, glow)), s * 0.12)
 		var side := int(g.side)
 		var d := Vector2(Engine_.DIRS[side])
 		var along := Vector2(absf(d.y), absf(d.x))  # direction along the frame
 		var span := gr.size.x if side % 2 == 0 else gr.size.y
 		_arrow(gr.get_center() + along * span * 0.25, side, s * 0.13, Color(1, 1, 1, 0.9))
+		if glow > 0.0:
+			# open gate: bright rim + an arrow that keeps sliding outward
+			var rim := StyleBoxFlat.new()
+			rim.draw_center = false
+			rim.border_color = Color(1, 1, 1, 0.9 * minf(1.0, glow))
+			rim.set_border_width_all(3)
+			rim.set_corner_radius_all(int(s * 0.12))
+			board.draw_style_box(rim, gr.grow(1.0))
+			var sl := fposmod(anim_t * 1.6, 1.0)
+			_arrow(gr.get_center() - along * span * 0.25 + d * s * 0.5 * sl, side, s * 0.12, Color(1, 1, 1, (1.0 - sl) * minf(1.0, glow)))
 		# var mark: String = MARKS[int(g.color) % MARKS.size()]
 		# var fs := int(s * 0.28)
 		# var mw: float = font.get_string_size(mark, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
@@ -451,26 +572,57 @@ func _draw_board() -> void:
 				board.draw_rect(Rect2(inner.position + Vector2(s * 0.05, s * 0.05), inner.size - Vector2(s * 0.05, s * 0.05)), base.darkened(0.08))
 				board.draw_rect(Rect2(inner.position + Vector2(s * 0.05, s * 0.05), inner.size - Vector2(s * 0.1, s * 0.1)), base)
 	for lv in leaving:
-		var a := clampf(1.0 - lv.t / 0.35, 0.0, 1.0)
-		_draw_block(lv.cells, lv.from + lv.dir * (lv.t / 0.35) * 2.5, int(lv.color), s, o, a, 0, 0)
+		var e: float = clampf(lv.t / LEAVE_T, 0.0, 1.0)
+		var a := 1.0 - smoothstep(0.45, 1.0, e)
+		var pos: Vector2 = lv.from + lv.dir * (e * e * 3.2)
+		var ad := Vector2(absf(lv.dir.x), absf(lv.dir.y))
+		var st := Vector2.ONE + ad * e * 0.35 - Vector2(ad.y, ad.x) * e * 0.18
+		var tb := _block_box(lv.cells, pos, s, o)
+		for k in 3:  # speed trail behind the block
+			var tr_ := Rect2(tb.position - lv.dir * s * 0.45 * (k + 1) * e, tb.size).grow(-s * 0.08 * (k + 1))
+			board.draw_rect(tr_, Color(_col(int(lv.color)), 0.16 * a / (k + 1)))
+		_draw_block(lv.cells, pos, int(lv.color), s, o, a, 0, 0, st)
 	for bi in engine.blocks.size():
 		var b: Dictionary = engine.blocks[bi]
 		if b.gone:
 			continue
 		var p: Vector2 = vis.get(bi, Vector2(b.pos))
-		_draw_block(b.cells, p, int(b.color), s, o, 1.0, int(b.axis), int(b.lock))
+		# intro: each block pops in a beat after the one before
+		var ik := clampf((intro_t - 0.12 - bi * 0.03) / 0.35, 0.0, 1.0)
+		if ik <= 0.0:
+			continue
+		var sc := Fx.ease_out_back(ik)
+		var lf := float(lift.get(bi, 0.0))
+		sc *= 1.0 + 0.08 * lf
 		if bi == hint_block and hint_t > 0.0:
 			var bb := _block_box(b.cells, p, s, o)
 			var hcol := Color.WHITE if classic else HomeKit.GOLD
-			board.draw_rect(bb.grow(4.0), Color(hcol, 0.5 + 0.5 * sin(hint_t * 10.0)), false, 6.0)
+			_glow(bb, hcol, 0.55 + 0.45 * sin(hint_t * 10.0), s * 0.45)
+			sc *= 1.0 + 0.03 * sin(hint_t * 10.0)
+		_draw_block(b.cells, p, int(b.color), s, o, 1.0, int(b.axis), int(b.lock), Vector2(sc, sc), lf * s * 0.1)
 	if smash_t > 0.0:
 		var k := smash_t / 0.4
-		for i in 8:
-			var ang := TAU * i / 8.0
-			board.draw_circle(smash_at + Vector2(cos(ang), sin(ang)) * s * (1.2 - k), s * 0.12 * k, Color(1, 1, 1, k))
+		board.draw_arc(smash_at, s * (1.6 - 1.2 * k), 0, TAU, 32, Color(1, 0.85, 0.5, k), s * 0.12 * k)
+	Fx.draw(board, particles)
+	if flash_t > 0.0:
+		var fs := StyleBoxFlat.new()
+		fs.bg_color = Color(1, 1, 1, 0.45 * flash_t / 0.6)
+		fs.set_corner_radius_all(int(s * 0.35))
+		board.draw_style_box(fs, area.grow(fw))
 	if hammer_armed and playing:
 		board.draw_rect(area, Color(1, 0.6, 0.1, 0.12))
 		board.draw_rect(area, Color("ff9f1c"), false, 4.0)
+
+## Soft coloured halo (StyleBox shadow: one draw call).
+func _glow(r: Rect2, col: Color, k: float, size: float) -> void:
+	var sb := StyleBoxFlat.new()
+	sb.draw_center = false
+	sb.border_color = Color(col, clampf(k, 0.0, 1.0))
+	sb.set_border_width_all(3)
+	sb.set_corner_radius_all(int(size * 0.4))
+	sb.shadow_color = Color(col, 0.7 * clampf(k, 0.0, 1.0))
+	sb.shadow_size = int(size)
+	board.draw_style_box(sb, r.grow(3.0))
 
 func _gate_rect(g: Dictionary, s: float, o: Vector2, fw: float) -> Rect2:
 	var a := float(g.start) * s + s * 0.06
@@ -496,7 +648,16 @@ func _block_box(cells: Array, p: Vector2, s: float, o: Vector2) -> Rect2:
 
 ## One toy brick: shadow, body (cells joined), a round stud per cell, the colour's
 ## mark, arrows for one-way blocks, chains + count for locked ones. Original drawing.
-func _draw_block(cells: Array, p: Vector2, colour: int, s: float, o: Vector2, alpha: float, axis: int, lock: int) -> void:
+func _draw_block(cells: Array, p: Vector2, colour: int, s: float, o: Vector2, alpha: float, axis: int, lock: int, sc: Vector2 = Vector2.ONE, lift_px: float = 0.0) -> void:
+	var xf := sc != Vector2.ONE or lift_px != 0.0
+	if xf:
+		var bc := _block_box(cells, p, s, o).get_center()
+		board.draw_set_transform(bc - bc * sc + Vector2(0, -lift_px), 0.0, sc)
+	_draw_block_body(cells, p, colour, s, o, alpha, axis, lock, lift_px)
+	if xf:
+		board.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+func _draw_block_body(cells: Array, p: Vector2, colour: int, s: float, o: Vector2, alpha: float, axis: int, lock: int, lift_px: float) -> void:
 	var classic := _classic()
 	var col := _col(colour)
 	var m := s * 0.05
@@ -510,7 +671,7 @@ func _draw_block(cells: Array, p: Vector2, colour: int, s: float, o: Vector2, al
 			if cells.has(cc + Vector2i(0, 1)):
 				r.size.y += m * 2.0
 			if pass_i == 0:
-				_round_rect(Rect2(r.position + Vector2(0, s * 0.07), r.size).grow(s * 0.035), Color(col.darkened(0.7), alpha), rad)
+				_round_rect(Rect2(r.position + Vector2(0, s * 0.07 + lift_px * 2.2), r.size).grow(s * 0.035 + lift_px * 0.4), Color(col.darkened(0.7), alpha * (1.0 - minf(0.5, lift_px / s * 3.0))), rad)
 			elif pass_i == 1:
 				if classic:
 					_round_rect(r.grow(ow), Color(col.darkened(0.7), alpha), rad + ow)
@@ -683,8 +844,15 @@ func _drag_to(px: Vector2) -> void:
 
 func _escape(bi: int, gi: int) -> void:
 	var b: Dictionary = engine.blocks[bi]
+	var dir := Vector2(Engine_.DIRS[int(engine.gates[gi].side)])
 	leaving.append({"cells": b.cells.duplicate(), "color": b.color, "from": vis.get(bi, Vector2(b.pos)),
-		"dir": Vector2(Engine_.DIRS[int(engine.gates[gi].side)]), "t": 0.0})
+		"dir": dir, "t": 0.0})
+	var s := _cell()
+	var gr := _gate_rect(engine.gates[gi], s, _origin(), s * 0.5)
+	gate_flash[gi] = 0.5
+	Fx.burst(particles, gr.get_center(), dir, _col(int(b.color)), 18, s * 6.0, s * 0.2, 1.0)
+	Fx.burst(particles, gr.get_center(), dir, Color.WHITE, 6, s * 4.0, s * 0.12, 0.6)
+	lift.erase(bi)
 	engine.remove(bi)
 	drag_block = -1
 	vis.erase(bi)
@@ -701,6 +869,11 @@ func _smash(bi: int) -> void:
 	var b: Dictionary = engine.blocks[bi]
 	smash_at = _block_box(b.cells, Vector2(b.pos), _cell(), _origin()).get_center()
 	smash_t = 0.4
+	shake_t = 0.25
+	var s := _cell()
+	for cc in b.cells:
+		Fx.burst(particles, _origin() + (Vector2(b.pos) + Vector2(cc) + Vector2(0.5, 0.5)) * s, Vector2.ZERO, _col(int(b.color)), 7, s * 5.0, s * 0.26, PI, s * 14.0)
+	Fx.burst(particles, smash_at, Vector2.ZERO, Color(1, 0.9, 0.6), 10, s * 7.0, s * 0.1, PI)
 	engine.remove(bi)
 	vis.erase(bi)
 	_sfx("explode")
@@ -792,6 +965,43 @@ func _process(delta: float) -> void:
 				cur = target
 			vis[bi] = cur
 			redraw = true
+	anim_t += delta
+	if intro_t < 3.0:
+		intro_t += delta
+		redraw = true
+	for bi in engine.blocks.size():
+		var want := 1.0 if bi == drag_block else 0.0
+		var lf := float(lift.get(bi, 0.0))
+		if lf != want:
+			lf = move_toward(lf, want, delta * 8.0)
+			lift[bi] = lf
+			redraw = true
+	if drag_block >= 0:
+		redraw = true  # gate pulse
+	if not particles.is_empty():
+		particles = Fx.step(particles, delta)
+		redraw = true
+	for gk in gate_flash.keys():
+		gate_flash[gk] = float(gate_flash[gk]) - delta
+		if gate_flash[gk] <= 0.0:
+			gate_flash.erase(gk)
+		redraw = true
+	if flash_t > 0.0:
+		flash_t = maxf(0.0, flash_t - delta)
+		redraw = true
+	var tot := maxf(1.0, float(total_blocks))
+	var want_p := 1.0 - float(engine.left()) / tot if engine.rows > 0 else 0.0
+	if absf(prog_shown - want_p) > 0.001:
+		prog_shown = lerpf(prog_shown, want_p, minf(1.0, delta * 8.0))
+		prog_bar.queue_redraw()
+	var low := playing and mode != "zen" and started and time_left <= 10.0
+	danger = move_toward(danger, 1.0 if low else 0.0, delta * 2.0)
+	(fx_bg.material as ShaderMaterial).set_shader_parameter("danger", danger)
+	if low and time_chip:
+		var pk := 1.0 + 0.08 * maxf(0.0, sin(anim_t * TAU))
+		time_chip.scale = Vector2(pk, pk)
+	elif time_chip and time_chip.scale != Vector2.ONE:
+		time_chip.scale = Vector2.ONE
 	for lv in leaving:
 		lv.t += delta
 	if not leaving.is_empty():
@@ -804,8 +1014,10 @@ func _process(delta: float) -> void:
 	if redraw:
 		board.queue_redraw()
 
+const LEAVE_T := 0.42
+
 func _still_leaving(l: Dictionary) -> bool:
-	return l.t < 0.35
+	return l.t < LEAVE_T
 
 func _time_up() -> void:
 	time_left = 0.0
@@ -869,9 +1081,27 @@ func _on_solved() -> void:
 	how_btn.visible = mode == "levels" and stars < 3
 	if how_btn.visible:
 		tip_dialog.get_meta("message_label").text = _improve_text(stars)
-	end_dialog.visible = true
+	_celebrate()
+	var tw := create_tween()
+	tw.tween_interval(1.1)
+	tw.tween_callback(_show_end)
 	_update_hud()
 	board.queue_redraw()
+
+func _celebrate() -> void:
+	flash_t = 0.6
+	var s := _cell()
+	var top := Vector2(board.size.x / 2.0, _origin().y)
+	for i in 70:
+		var c := _col(randi() % TOY.size())
+		Fx.burst(particles, top + Vector2(randf_range(-2.0, 2.0) * s, 0), Vector2.UP, c, 1, s * 14.0, s * 0.22, 1.1, s * 22.0)
+	for q in particles:
+		q.life *= 2.2
+		q.max *= 2.2
+
+func _show_end() -> void:
+	if engine.solved() and not playing:
+		end_dialog.visible = true
 
 ## Why the missing stars were missed, and what to do differently.
 func _improve_text(stars: int) -> String:
@@ -967,6 +1197,19 @@ func _begin_play() -> void:
 	drag_block = -1
 	vis.clear()
 	leaving.clear()
+	particles.clear()
+	gate_flash.clear()
+	lift.clear()
+	intro_t = 0.0
+	flash_t = 0.0
+	total_blocks = engine.blocks.size()
+	prog_shown = 1.0 - float(engine.left()) / maxf(1.0, float(total_blocks))
+	board.pivot_offset = board.size / 2.0
+	board.scale = Vector2(0.94, 0.94)
+	board.modulate.a = 0.0
+	var tw := board.create_tween().set_parallel().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tw.tween_property(board, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(board, "modulate:a", 1.0, 0.25)
 	end_dialog.visible = false
 	lose_dialog.visible = false
 	_clear_feedback()
@@ -1007,6 +1250,11 @@ func _soft() -> Color:
 func _feedback(text: String, col: Color, secs: float = 3.0) -> void:
 	feedback_label.text = text
 	feedback_label.add_theme_color_override("font_color", col)
+	feedback_label.scale = Vector2(0.85, 0.85)
+	feedback_label.modulate.a = 0.0
+	var tw := feedback_label.create_tween().set_parallel()
+	tw.tween_property(feedback_label, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(feedback_label, "modulate:a", 1.0, 0.15)
 	feedback_timer.stop()
 	if secs > 0.0:
 		feedback_timer.start(secs)
