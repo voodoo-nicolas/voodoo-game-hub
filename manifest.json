@@ -265,7 +265,7 @@
     "bunco": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/bunco.pck", "scene": "res://scenes/games/bunco/bunco.tscn", "updated": "2026-11-23"},
     "ship_captain_crew": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/ship_captain_crew.pck", "scene": "res://scenes/games/ship_captain_crew/ship_captain_crew.tscn", "updated": "2026-11-23"},
     "trivia_battle": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/trivia_battle.pck", "scene": "res://scenes/games/trivia_battle/trivia_battle.tscn", "updated": "2026-11-23"},
-    "color_sort": {"version": 9, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/color_sort.pck", "scene": "res://scenes/games/color_sort/color_sort.tscn", "updated": "2026-11-24"},
+    "color_sort": {"version": 10, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/color_sort.pck", "scene": "res://scenes/games/color_sort/color_sort.tscn", "updated": "2026-11-25"},
     "hidato": {"version": 6, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hidato.pck", "scene": "res://scenes/games/hidato/hidato.tscn", "updated": "2026-11-23"},
     "sevens": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/sevens.pck", "scene": "res://scenes/games/sevens/sevens.tscn", "updated": "2026-11-23"},
     "rummy": {"version": 7, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/rummy.pck", "scene": "res://scenes/games/rummy/rummy.tscn", "updated": "2026-11-23"},
