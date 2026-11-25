@@ -55,6 +55,12 @@ const GOLD_FROM := 13
 const GOLD_MULT := 1.33
 # Owner 2026-11-20: a star does a third less to a boss (it still kills a 1-hp foe outright).
 const STAR_BOSS := 0.67
+## Owner 2026-11-24: "Climb the waterfall" and "Climb above the clouds" are upward climbs:
+## the land rises in rock steps whose cliff faces must be jumped (CLIMB_STEP high, under a
+## single jump), and the camera follows the hero up (game: climb_dy).
+const CLIMB_STAGES := [11, 17]
+const CLIMB_STEP := Vector2(80.0, 120.0)   # rise of one step (a jump clears 168; rolls add ~30)
+const CLIMB_GAP := Vector2(300.0, 620.0)    # flat run between two steps
 const RUINS_STAGES := [10, 19]      # overgrown ruins: statues, broken walls
 const DEADLY_AIR := 0.8             # a deep lake: little breath, a fast drowning tick
 const DEADLY_TICK := 0.5
@@ -154,6 +160,8 @@ var boss_owe := 0.0   # Tora on Normal: the hearts a boss hit still owes (x0.75,
 var god := false   # owner test key F11: the hero takes no damage (not saved)
 var arena_x := 0.0
 var locked := false
+var climb := false   # CLIMB_STAGES: this stage climbs
+var climb_top := 0.0   # world y of the summit (the gate's plateau)
 var time := 0.0
 var rng := RandomNumberGenerator.new()
 var events: Array = []
@@ -194,6 +202,9 @@ func build_stage() -> void:
 		length = (3600.0 + act() * 400.0) * 3.0   # a boss stage: a climb to the duel (twice as long, owner 2026-11-16)
 	night = NIGHT_STAGES.has(stage)
 	ruins = RUINS_STAGES.has(stage)
+	climb = CLIMB_STAGES.has(stage)
+	if climb:
+		length *= 0.6   # every cliff costs a jump: a climb is shorter on the map, not in time
 	arena_x = length
 	locked = false
 	solids.clear()
@@ -222,7 +233,9 @@ func build_stage() -> void:
 	var t0 := TUTOR if stage == 1 else 0.0   # the tutorial stretch stays flat and quiet
 	var n := int((length + VIEW_W) / SEG) + 2
 	heights.resize(n)
-	var amp := minf(110.0 + act() * 10.0, 165.0)   # owner's reference pictures: land that really rises and falls
+	var amp := minf(110.0 + act() * 10.0, 165.0)
+	if climb:
+		amp = 30.0   # gentle rolls on each step: the steps are the climb   # owner's reference pictures: land that really rises and falls
 	var ph1 := rng.randf() * TAU
 	var ph2 := rng.randf() * TAU
 	for i in n:
@@ -235,7 +248,22 @@ func build_stage() -> void:
 		var rough := sin(gxx * 0.09) * 3.0 + sin(gxx * 0.23 + ph2) * 1.5   # a ragged, hand-painted rim
 		var blend := smoothstep(350.0 + t0, 800.0 + t0, gxx) * (1.0 - smoothstep(length - END_CLEAR - 500.0, length - END_CLEAR, gxx))
 		heights[i] = GROUND - (amp * wave + rough) * blend
-	_plan_lakes()
+	var risers: Array = []   # [x, rise] of each climb step
+	if climb:
+		var rise := 0.0
+		var sx := 900.0 + rng.randf_range(0.0, 200.0)
+		var j := 0
+		for i in n:
+			var gxx := i * SEG
+			while gxx >= sx and sx < length - END_CLEAR - 400.0:
+				var h := rng.randf_range(CLIMB_STEP.x, CLIMB_STEP.y)
+				rise += h
+				risers.append([sx, h])
+				sx += rng.randf_range(CLIMB_GAP.x, CLIMB_GAP.y)
+			heights[i] -= rise
+		climb_top = GROUND - rise
+	else:
+		_plan_lakes()
 	_plan_structs()
 	_plan_traps()
 	var x := 700.0 + t0
@@ -243,7 +271,7 @@ func build_stage() -> void:
 		x += rng.randf_range(520.0, 900.0)
 		if x > length - END_CLEAR:
 			break
-		if rng.randf() < 0.35 + act() * 0.06:
+		if not climb and rng.randf() < 0.35 + act() * 0.06:
 			var depth := rng.randf_range(80.0, 150.0 + act() * 10.0)
 			var hw := maxf(rng.randf_range(220.0, 420.0), depth * 3.4)   # wide, flat-bottomed lakes with soft banks
 			if x + hw > length - END_CLEAR:
@@ -257,9 +285,16 @@ func build_stage() -> void:
 			x += hw * 1.2
 	pits.clear()
 	_arch_bridges()
-	# Left and right world walls (the right one closes the arena).
-	solids.append(Rect2(-60, -400, 60, 1300))
-	solids.append(Rect2(length + VIEW_W - 60, -400, 60, 1300))
+	# Left and right world walls (the right one closes the arena); tall enough for a climb.
+	solids.append(Rect2(-60, -40000, 60, 41300))
+	solids.append(Rect2(length + VIEW_W - 60, -40000, 60, 41300))
+	# The climb's cliff faces: a rock wall on each step's edge, so it must be jumped, not walked.
+	for rz in risers:
+		var rx: float = rz[0]
+		var top := ground_y(rx + SEG)
+		var bot := ground_y(rx - SEG * 2.0)
+		if bot - top > 60.0:   # (a building's yard flattened it to a ramp: no wall there)
+			solids.append(Rect2(rx - SEG * 2.0, top, SEG * 2.0 + 4.0, bot - top + 40.0))
 	# Ledges and pillars to climb.
 	x = 500.0 + t0
 	while x < length - END_CLEAR:
@@ -267,6 +302,11 @@ func build_stage() -> void:
 		if x > length - END_CLEAR - 300.0:
 			break
 		if _over_pit(x) or _over_pit(x + 160):
+			continue
+		var near_cliff := false   # a ledge over a cliff face would cap the jump up it
+		for rz in risers:
+			near_cliff = near_cliff or (rz[0] > x - 320.0 and rz[0] < x + 600.0)
+		if near_cliff:
 			continue
 		if rng.randf() < 0.3:
 			var pg := maxf(ground_y(x), ground_y(x + 46))

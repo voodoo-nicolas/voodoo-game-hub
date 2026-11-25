@@ -88,8 +88,19 @@ func _init() -> void:
 		for i in e4.heights.size() - 1:
 			steep = maxf(steep, absf(e4.heights[i + 1] - e4.heights[i]) / E.SEG)
 			check(e4.heights[i] <= E.LOWEST + 0.01, "ground on screen s%d" % st)
-		check(steep < 1.6, "no cliff in the ground s%d (steepest %.2f)" % [st, steep])
-		check(absf(e4.ground_y(e4.arena_x + 300) - E.GROUND) < 0.01, "flat arena s%d" % st)
+		if e4.climb:
+			# Climb stages: every sheer step in the land has a rock wall on it (or is a short ramp).
+			for i in e4.heights.size() - 1:
+				var dh: float = e4.heights[i] - e4.heights[i + 1]
+				if dh > 60.0:
+					var walled := false
+					for so in e4.solids:
+						walled = walled or (so.position.x <= i * E.SEG + E.SEG and so.end.x >= i * E.SEG)
+					check(walled, "cliff face walled s%d x=%d" % [st, i * E.SEG])
+			check(absf(e4.ground_y(e4.arena_x + 300) - e4.climb_top) < 0.01, "flat summit s%d" % st)
+		else:
+			check(steep < 1.6, "no cliff in the ground s%d (steepest %.2f)" % [st, steep])
+			check(absf(e4.ground_y(e4.arena_x + 300) - E.GROUND) < 0.01, "flat arena s%d" % st)
 	check(pools_seen >= 15, "water in the dips (%d pools)" % pools_seen)
 	# Deepest pool: sink, lose breath, drown slowly; a stroke to the surface refills the air.
 	var e5 = E.new()
