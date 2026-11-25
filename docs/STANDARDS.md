@@ -516,3 +516,18 @@ fits the game. Purpose: bring players back daily, without ads.
   meaning): Voodoo IQ is exempt. Party games with nothing to help with are exempt too; the exempt list is in
   `tools/hub.py` (`NO_HELPS`) with the reason for each.
 - Cross-device sync and the anonymous "who sits at 3 / who waits" counter are not built (APP_BUILD_BACKLOG).
+
+## 18. Cloud progress, level select, no level counts [NEW 2026-11-24, owner]
+- Every game with lasting progress (levels, stars, unlocks, campaign) mirrors its progress file to the
+  account with the shared kit `scripts/common/cloud_save.gd` (loaded guarded: older APKs stay local-only).
+  On open and on sign-in the copy with the most progress (the game's own score: levels cleared, stars...)
+  wins; ties keep the device copy. The in-play board save (resume) stays on the device.
+- Campaigns offer a level select over every level already reached; replaying an old level never lowers
+  progress, and Continue / Quick Play always goes to the furthest level.
+- Every game's GameInfo stats + badges (`user://stats_<id>.json`) sync too, merged key by key (counts and
+  highs keep the bigger, times / fewest the smaller; cloud row `stats_<id>`). Test: `tools/test_cloud_save.gd`.
+- Never state how many levels a game has ("300 levels!"): `hub.py check` warns (`lint_level_counts`) and
+  each game drops the number when touched.
+- 80 % alert: level games call `report_completion(done, total)`; the owner reads
+  `public.completion_alerts` (migration 20261124000000). Adventure / story games (Turned, Beached, The
+  Runner, Stonewater, Voyage of Aeneas, Adventure modes) don't report.

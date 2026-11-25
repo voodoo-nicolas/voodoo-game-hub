@@ -9,8 +9,8 @@ const GOAL := "Walk from the start to the exit flag in as few steps as you can."
 const HOW := [
 	"Drag your finger along the paths: you walk to the cell under your finger when it is a few steps away.",
 	"Swipe quickly to run: you keep going down the corridor until the next turning, dead end or key.",
-	"Campaign: 195 mazes in six tiers: Very Easy, Easy, Medium, Hard, Very Hard and Insane, 30 each.",
-	"After every 10 mazes comes a ⚡ challenge maze from the next tier, a taste of what is coming.",
+	"Campaign: mazes in six tiers: Very Easy, Easy, Medium, Hard, Very Hard and Insane.",
+	"Every tenth maze is followed by a ⚡ challenge maze from the next tier, a taste of what is coming.",
 	"From Medium on, some mazes have gates. A gate opens only after you pick up the key of its colour.",
 	"Very Hard and Insane mazes may be in fog: you only see what is near you and where you have been.",
 	"Stars: 3 if your steps are within 30% of the best route, 2 within about twice it, 1 for any way out.",

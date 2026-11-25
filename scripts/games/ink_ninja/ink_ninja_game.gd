@@ -36,10 +36,24 @@ const Scenery = preload("res://scripts/games/ink_ninja/ink_ninja_scenery.gd")
 const Poses = preload("res://scripts/games/ink_ninja/ink_ninja_poses.gd")
 ## Owner art 2026-11-20: each act's boss is a set of painted poses (games/ink_ninja/art/boss,
 ## cut by tools/ink_ninja_art.py); the drawn bosses stay as the fallback.
+## Owner 2026-11-24 "the hit box is on the cloud, not the boss": in these poses the art tool
+## put the feet point on the smoke / wings beside the body. Hand-set body centre x (px),
+## kept here so a re-run of tools/ink_ninja_art.py does not undo it.
+const ANCHOR_FIX := {"dragon_strike": 220.0, "dragon_stagger": 190.0, "dragon_hit": 250.0, "dragon_wind": 295.0,
+	"tsuru_hit": 255.0, "tsuru_cast": 360.0, "tsuru_strike": 325.0}
 const BOSS_IDS := ["warden", "tora", "dragon", "tsuru", "calligrapher", "shu"]
 const BOSS_H := 175.0          # world height of a boss's body (the hero is 70)
 const TRAIL_T := 0.16          # how long the silver / gold sword trail lingers
 const HARD_UNLOCK_PATH := "user://ink_ninja_unlock.json"
+## Owner 2026-11-24 "I keep losing game progress": the furthest mission reached per difficulty
+## ({"0": stage, "1": .., "2": ..}). Never deleted by a game over or a New Game; Missions
+## (Landing → More) starts any mission up to it.
+const REACHED_PATH := "user://ink_ninja_reached.json"
+## Progress follows the account (scripts/common/cloud_save.gd, STANDARDS §18): the reached
+## file (missions per difficulty + "hard" unlock) is merged with the cloud copy, best per key.
+## No 80% alert: story game (owner: adventure games excluded).
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # APK-side: load() guarded, older apps stay local
+var cloud: Node = null
 ## Owner's intro film (2026-11-20, D:/Dev/hub/ink ninja final1.mp4 as 720p Ogg Theora): plays every time
 ## the game is opened (from the app or the hub), before the Landing. A tap or Skip ends it. Not when the
 ## pause menu's 🏠 Home reloads the scene (that is the same visit).
@@ -355,6 +369,10 @@ func _build_ui() -> void:
 	], true)
 	add_child(end_dialog)
 
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("ink_ninja", REACHED_PATH, _cloud_score, Callable(), _cloud_merge)
+		add_child(cloud)
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	var modes: Array = []
@@ -378,7 +396,7 @@ func _build_ui() -> void:
 		"info": info,
 		"accent": Color("d8d8d8"),
 		"solo_heading": "Story",
-		"more": [["Objectives", Color("8a8a8a"), _show_goals]],
+		"more": [["Missions", Color("b0b0b0"), _show_missions], ["Objectives", Color("8a8a8a"), _show_goals]],
 		"subtitle": "Ink and steel. One ninja.",
 		"art": "res://games/ink_ninja/landing_bg.jpg",   # owner picture 2026-11-15 (moon, pagoda, red-scarf ninja)
 		"landing_art": true,
@@ -547,7 +565,10 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Hard is open once the story was beaten on Normal or Hard (HARD_UNLOCK_PATH).
 func _hard_open() -> bool:
 	var d = SaveUtil.read(HARD_UNLOCK_PATH)
-	return d is Dictionary and bool(d.get("hard", false))
+	if d is Dictionary and bool(d.get("hard", false)):
+		return true
+	var r = SaveUtil.read(REACHED_PATH)   # unlock brought back from the cloud
+	return r is Dictionary and int(r.get("hard", 0)) > 0
 
 func _try_hard() -> void:
 	if _hard_open():
@@ -604,6 +625,7 @@ func _begin() -> void:
 	fade = 1.0
 	relife = false
 	boss_trail = 1.0
+	climb_dy = minf(engine.py, engine.ground_y(engine.px)) - Engine_.GROUND if engine.climb else 0.0
 	corpse = {}
 	rainbow.clear()
 	boss_hold_t = 0.0
@@ -643,6 +665,11 @@ func _process(delta: float) -> void:
 	if not started or cut_on:
 		return
 	delta = minf(delta, 0.05)
+	if engine.climb:
+		var want_dy: float = minf(engine.py, engine.ground_y(engine.px)) - Engine_.GROUND
+		climb_dy = lerpf(climb_dy, want_dy, minf(1.0, delta * 3.0))
+	else:
+		climb_dy = 0.0
 	shake = maxf(0.0, shake - delta * 30.0)
 	flash = maxf(0.0, flash - delta * 2.2)
 	land_t = maxf(0.0, land_t - delta)
@@ -977,6 +1004,7 @@ func _after_pause() -> void:
 					fin.append_array(Cutscene_.for_slot("final_all_scrolls"))
 				_cutscene_then(fin, _game_over.bind(true))
 			else:
+				_mark_reached(engine.diff, engine.stage)
 				_save_game()
 				_cutscene_then(Cutscene_.for_stage(engine.stage), _begin)
 		"over":
@@ -1002,6 +1030,13 @@ func _game_over(won: bool) -> void:
 	SaveUtil.delete(SAVE_PATH)
 	if won and engine.diff >= 1:
 		SaveUtil.write(HARD_UNLOCK_PATH, {"hard": true})
+		var r = SaveUtil.read(REACHED_PATH)
+		if not r is Dictionary:
+			r = {}
+		r["hard"] = 1
+		SaveUtil.write(REACHED_PATH, r)
+		if cloud:
+			cloud.saved()
 	var msg := (tr("You mastered the ink!") + "\n" + tr(Story.EPILOGUE) if won else tr("Game over!")) + "\n" + tr("Score: %d") % engine.score
 	if info:
 		info.add("Games played")
@@ -1032,18 +1067,26 @@ func _draw_field() -> void:
 	# Misty pine forest (owner's references, 2026-11-14): far and mid pine layers fading into
 	# fog, tall dark trunks in front, each scrolling slower than the ground.
 	_draw_sky(c, sz, k, cam)
+	# Climbing (owner 2026-11-24): the forest sinks away below as the hero rises, and a sea
+	# of cloud (or a falling river) takes its place.
+	var sink := clampf(-climb_dy * 0.12, 0.0, 420.0) if engine.climb else 0.0
+	if engine.climb and engine.stage != 11:
+		_draw_climb_back(c, sz, k, cam, sink)
 	# Owner 2026-11-20: the pines a little darker, the nearer ones darkest (like his photo).
 	#_pine_layer(c, pines_far, cam * 0.12, k, 440.0, pal.far)
-	_pine_layer(c, pines_far, cam * 0.12, k, 440.0, Color(pal.far).lerp(pal.mid, 0.35))
-	_fog(c, k, 300.0, 470.0, 0.8)
+	_pine_layer(c, pines_far, cam * 0.12, k, 440.0 + sink, Color(pal.far).lerp(pal.mid, 0.35))
+	_fog(c, k, 300.0 + sink, 470.0 + sink, 0.8)
 	#_pine_layer(c, pines_mid, cam * 0.3, k, 540.0, pal.mid)
-	_pine_layer(c, pines_mid, cam * 0.3, k, 540.0, Color(pal.mid).lerp(pal.near, 0.4))
-	_fog(c, k, 420.0, 560.0, 0.6)
-	_pine_layer(c, pines_near, cam * 0.45, k, 600.0, Color(pal.near).lerp(pal.shadow, 0.35))
-	_fog(c, k, 480.0, 600.0, 0.55)
-	_trunks(c, cam * 0.62, k)
+	_pine_layer(c, pines_mid, cam * 0.3, k, 540.0 + sink * 1.3, Color(pal.mid).lerp(pal.near, 0.4))
+	_fog(c, k, 420.0 + sink * 1.3, 560.0 + sink * 1.3, 0.6)
+	_pine_layer(c, pines_near, cam * 0.45, k, 600.0 + sink * 1.6, Color(pal.near).lerp(pal.shadow, 0.35))
+	_fog(c, k, 480.0 + sink * 1.6, 600.0 + sink * 1.6, 0.55)
+	if engine.climb and engine.stage == 11:
+		_draw_climb_back(c, sz, k, cam, sink)   # the falls pour in front of the far forest
+	if sink < 200.0:
+		_trunks(c, cam * 0.62, k)
 	_fog(c, k, 520.0, 600.0, 0.5)
-	var o := Vector2(-cam * k, 0) + sh
+	var o := Vector2(-cam * k, -climb_dy * k) + sh
 	_draw_water_back(c, o, k)
 	_draw_ground(c, o, sz, k)
 	# Ledges, pillars and walls: solid ink with a dry-brush top edge.
@@ -1065,6 +1108,10 @@ func _draw_field() -> void:
 			var mortar := PackedVector2Array()
 			var row := 0
 			var by := r.position.y + 18.0 * k
+			if by < 0.0:   # a tall climb wall: start the courses at the top of the screen
+				var skip := ceilf(-by / (18.0 * k))
+				by += skip * 18.0 * k
+				row += int(skip)
 			while by < minf(r.end.y, field.size.y):
 				mortar.append(Vector2(r.position.x, by))
 				mortar.append(Vector2(r.end.x, by))
@@ -1075,7 +1122,8 @@ func _draw_field() -> void:
 					bx += 28.0 * k
 				by += 18.0 * k
 				row += 1
-			c.draw_multiline(mortar, pal.ink, 1.5 * k)
+			if not mortar.is_empty():
+				c.draw_multiline(mortar, pal.ink, 1.5 * k)
 			c.draw_rect(r, pal.ink, false, 3.0 * k)
 			continue
 		c.draw_rect(r, pal.ink)
@@ -1125,6 +1173,9 @@ func _draw_field() -> void:
 		var tele: bool = b.phase != "idle" and b.t > 0.0
 		_draw_rainbow(c, o, k)
 		_boss_art(c, o + Vector2(b.x, b.y) * k, k, b, tele)   # each act's own boss (was: _figure "boss%d" by move set)
+		if show_hitbox:
+			var hb: Rect2 = engine.boss_box()
+			c.draw_rect(Rect2(o + hb.position * k, hb.size * k), Color(1, 0, 0, 0.9), false, 3.0)
 	elif not corpse.is_empty():
 		_draw_rainbow(c, o, k)
 		var fa: float = clampf(1.0 - (corpse.t - 1.4) / 1.2, 0.0, 1.0)   # lies there, then dissolves into the paper
@@ -1161,6 +1212,8 @@ func _draw_field() -> void:
 	_draw_breath(c, o, k)
 	_draw_smoke(c, o, k)
 	_draw_mist(c, sz, k)
+	if engine.climb:
+		_draw_climb_front(c, o, sz, k)
 	_draw_motes(c, sz, k)
 	_draw_petals(c, sz, k)
 	_draw_haze(c, o, sz, k)
@@ -1170,6 +1223,8 @@ func _draw_field() -> void:
 ## Owner 2026-11-20: on a wide landscape phone the world looked tiny. The field is zoomed in
 ## (up to 1.4x) as far as the screen width still shows the whole boss arena (VIEW_W); the
 ## extra height is cut mostly from the sky and follows the hero up a pagoda.
+var climb_dy := 0.0   # climb stages: how far the camera has risen (world units, <= 0)
+var show_hitbox := false   # test shots: outline the boss hit box
 var view_y := 0.0
 var zoom := 0.0
 func _fit_field(delta: float) -> void:
@@ -1193,7 +1248,7 @@ func _fit_field(delta: float) -> void:
 	var extra := vs.y * (z - 1.0)
 	var k := vs.y / Engine_.H
 	var want := vs.y * 0.84 - Engine_.GROUND * k * z   # the ground line at 84 % of the screen
-	want = maxf(want, vs.y * 0.2 - (engine.py - 70.0) * k * z)   # keep the hero's head in view
+	want = maxf(want, vs.y * 0.2 - (engine.py - climb_dy - 70.0) * k * z)   # keep the hero's head in view
 	want = clampf(want, -extra, 0.0)
 	view_y = want if delta <= 0.0 or absf(view_y - want) > extra + 1.0 else lerpf(view_y, want, minf(1.0, delta * 4.0))
 	field.set_anchors_preset(Control.PRESET_TOP_LEFT)
@@ -1743,8 +1798,11 @@ func _draw_ground(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
 			rim.append(p + Vector2(0, -(2.0 + fmod(x * 0.37, 3.0)) * k))
 		prev = p
 		x += step
-	pts.append(Vector2(pts[pts.size() - 1].x, sz.y + 4))
-	pts.append(Vector2(pts[0].x, sz.y + 4))
+	var floor_y := sz.y + 4.0
+	for gp in pts:
+		floor_y = maxf(floor_y, gp.y + 4.0)   # a climb can carry the land below the screen edge
+	pts.append(Vector2(pts[pts.size() - 1].x, floor_y))
+	pts.append(Vector2(pts[0].x, floor_y))
 	c.draw_colored_polygon(pts, pal.ink)
 	c.draw_multiline(rim, pal.ink, 2.0 * k)
 	# Texture (owner 2026-11-15): grass tufts on the rim, soil strata and stones below,
@@ -2510,6 +2568,49 @@ func _draw_motes(c: CanvasItem, sz: Vector2, k: float) -> void:
 		c.draw_texture_rect(disc, Rect2(Vector2(x - r * 2.2, y - r * 2.2), Vector2(r, r) * 4.4), false, Color(col, col.a * 0.25))
 		c.draw_texture_rect(disc, Rect2(Vector2(x - r, y - r), Vector2(r, r) * 2), false, col)
 
+## Behind the climb: the stage 11 waterfall pouring down the scroll, or the stage 17 sea of
+## cloud rising from below as the forest drops away (sink: how far it has dropped).
+func _draw_climb_back(c: CanvasItem, sz: Vector2, k: float, cam: float, sink: float) -> void:
+	if engine.stage == 11:
+		# Two broad falls (parallax) with streaks running down.
+		for L in 2:
+			var par := 0.08 + L * 0.1
+			var span := 1500.0 + L * 500.0
+			var fx := fposmod(900.0 + L * 1300.0 - cam * par, span) * k - 200.0 * k
+			var fw := (260.0 + L * 120.0) * k
+			c.draw_rect(Rect2(fx, 0, fw, sz.y), Color(0.92, 0.95, 0.97, 0.85 - L * 0.15))
+			c.draw_line(Vector2(fx, 0), Vector2(fx, sz.y), Color(pal.mid, 0.6), 3.0 * k)
+			c.draw_line(Vector2(fx + fw, 0), Vector2(fx + fw, sz.y), Color(pal.mid, 0.6), 3.0 * k)
+			var lines := PackedVector2Array()
+			for i in 28:
+				var lx := fx + fposmod(i * 37.0, fw / k) * k
+				var ly := fposmod(anim_t * (520.0 + L * 180.0) + i * 97.0 - climb_dy * par * 3.0, sz.y / k + 200.0) * k - 120.0 * k
+				lines.append(Vector2(lx, ly))
+				lines.append(Vector2(lx, ly + (60.0 + fmod(i * 13.0, 70.0)) * k))
+			c.draw_multiline(lines, Color(0.55, 0.65, 0.72, 0.7), 2.5 * k)
+			c.draw_texture_rect(fog_tex, Rect2(fx - 60.0 * k, sz.y * 0.55, fw + 120.0 * k, sz.y * 0.45), false, Color(pal.paper, 0.6))   # spray at the foot
+	else:
+		# A sea of cloud: soft banks that rise into view as the land falls away.
+		var sea := 640.0 - sink * 0.9
+		for i in 14:
+			var w := (260.0 + fmod(i * 71.0, 180.0)) * k
+			var x := fposmod(i * 211.0 - cam * (0.05 + fmod(i, 3) * 0.03) + anim_t * 6.0, sz.x / k + 600.0) * k - 300.0 * k
+			var y := (sea + fmod(i * 47.0, 90.0)) * k
+			c.draw_texture_rect(disc, Rect2(Vector2(x - w, y - w * 0.22), Vector2(w * 2.0, w * 0.44)), false, Color(pal.fog, 0.55))
+		c.draw_rect(Rect2(0, (sea + 60.0) * k, sz.x, sz.y), Color(pal.fog, 0.5))
+
+## In front of the climb: mist drifting across, thicker high up on the cloud climb, and the
+## waterfall's spray at the cliff steps.
+func _draw_climb_front(c: CanvasItem, o: Vector2, sz: Vector2, k: float) -> void:
+	var high := clampf(-climb_dy / 6000.0, 0.0, 1.0)   # 0 at the foot, 1 near the summit
+	var n := 10 if engine.stage == 17 else 5
+	for i in n:
+		var w := (300.0 + fmod(i * 83.0, 220.0)) * k
+		var x := fposmod(i * 257.0 + anim_t * (18.0 + i * 3.0) - engine.cam_x() * 0.4, sz.x / k + 700.0) * k - 350.0 * k
+		var y := (180.0 + fmod(i * 131.0, 460.0)) * k
+		var a := (0.18 + 0.22 * high) if engine.stage == 17 else 0.12
+		c.draw_texture_rect(disc, Rect2(Vector2(x - w, y - w * 0.18), Vector2(w * 2.0, w * 0.36)), false, Color(pal.fog, a * (0.75 + 0.25 * sin(anim_t * 0.4 + i))))
+
 func _draw_mist(c: CanvasItem, sz: Vector2, k: float) -> void:
 	for m in mist:
 		var x: float = m[0] * sz.x
@@ -2770,6 +2871,80 @@ func _show_goals() -> Control:
 	home.show_card(parts[0])
 	return parts[0]
 
+# ---------- mission select ----------
+
+func _reached(d: int) -> int:
+	var r = SaveUtil.read(REACHED_PATH)
+	var top: int = int(r.get(str(d), 1)) if r is Dictionary else 1
+	var sv = SaveUtil.read(SAVE_PATH)   # a run saved before this list existed still counts
+	if sv is Dictionary and int(sv.get("diff", 1)) == d:
+		top = maxi(top, int(sv.get("stage", 1)))
+	return clampi(top, 1, Engine_.STAGES)
+
+func _mark_reached(d: int, st: int) -> void:
+	var r = SaveUtil.read(REACHED_PATH)
+	if not r is Dictionary:
+		r = {}
+	if st > int(r.get(str(d), 1)):
+		r[str(d)] = mini(st, Engine_.STAGES)
+		SaveUtil.write(REACHED_PATH, r)
+		if cloud:
+			cloud.saved()
+
+## Cloud: total missions reached over all difficulties (+ the Hard unlock).
+func _cloud_score(d: Dictionary) -> int:
+	var t := 0
+	for k in d:
+		t += int(d[k])
+	return t
+
+## Cloud: keep the best of each difficulty (and the Hard unlock) from both copies.
+func _cloud_merge(a: Dictionary, b: Dictionary) -> Dictionary:
+	var out := a.duplicate()
+	for k in b:
+		if not out.has(k) or int(b[k]) > int(out[k]):   # keep number types (no needless rewrite)
+			out[k] = b[k]
+	return out
+
+## Missions card: every mission reached on each difficulty; tap one to start there.
+func _show_missions() -> Control:
+	var parts: Array = home.card(tr("Missions"))
+	var body: Control = parts[1]
+	var any := false
+	for d in DIFF_NAMES.size():
+		var top := _reached(d)
+		if top <= 1 and d != 1:   # Normal always lists mission 1
+			continue
+		any = true
+		var h := Label.new()
+		h.text = tr(["Easy", "Normal", "Hard"][d])
+		h.add_theme_font_size_override("font_size", 30)
+		body.add_child(h)
+		for st in range(1, top + 1):
+			var ch: Array = Story.CHAPTERS[st - 1]
+			var act := (st - 1) / Engine_.ACT_LEN + 1
+			var b := HomeKit.neon_button("%d-%d  %s" % [act, (st - 1) % Engine_.ACT_LEN + 1, tr(ch[0])], [HomeKit.LIME, HomeKit.CYAN, HomeKit.PINK][d], 22, 56)
+			b.pressed.connect(_start_mission.bind(d, st, parts[0]))
+			body.add_child(b)
+		body.add_child(HSeparator.new())
+	if not any:
+		var l := Label.new()
+		l.text = tr("Finish a mission to unlock it here.")
+		body.add_child(l)
+	home.show_card(parts[0])
+	return parts[0]
+
+func _start_mission(d: int, st: int, card_node: Control) -> void:
+	home.close_card(card_node)
+	home.play_now(func():
+		SaveUtil.delete(SAVE_PATH)
+		engine.reset(d)
+		engine.stage = st
+		engine.build_stage()
+		prologue = st == 1
+		all_scrolls = false
+		_cutscene_then(Cutscene_.for_stage(st), _begin))
+
 ## The chapter the player is on: the running stage, else the saved one, else 1.
 func _story_stage() -> int:
 	if started:
@@ -2848,6 +3023,7 @@ func _load_saved_game() -> void:
 	engine.lives = clampi(int(d.get("lives", 3)), 1, 3)
 	engine.stars = maxi(0, int(d.get("stars", Engine_.START_STARS)))
 	all_scrolls = bool(d.get("all_scrolls", false))
+	_mark_reached(engine.diff, engine.stage)
 	engine.build_stage()
 	if float(d.get("cp", 0.0)) > 200.0:
 		engine.restart_at(float(d.get("cp", 0.0)))
@@ -2919,7 +3095,7 @@ func _draw_pose(c: CanvasItem, feet: Vector2, k: float, act: int, pose: String, 
 	if t == null:
 		return false
 	var s: float = BOSS_H / Poses.FIG_PX * k
-	var ax: float = e[0]
+	var ax: float = float(ANCHOR_FIX.get(id + "_" + pose, e[0]))
 	var ay: float = e[1]
 	if hard and e.size() > 4:
 		ax = e[4]   # the owner's own colour picture: its own feet point

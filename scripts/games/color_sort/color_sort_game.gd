@@ -8,6 +8,8 @@ extends Control
 ## Landing menu style: S9 Arcade Marquee (docs/MENU_STYLES.md).
 const MenuStyles = preload("res://scripts/games/color_sort/menu_styles.gd")
 const CSEngine = preload("res://scripts/games/color_sort/color_sort_engine.gd")
+## Look pass 2026-11-25: glow / vignette / fog textures (color_sort_fx.gd).
+const FX = preload("res://scripts/games/color_sort/color_sort_fx.gd")
 const HELP = preload("res://scripts/games/color_sort/color_sort_help.gd")
 const HomeKit = preload("res://scripts/games/color_sort/home_kit.gd")
 const Orientation = preload("res://scripts/common/orientation.gd")
@@ -20,6 +22,8 @@ const VOODOO_PATH := "res://scripts/common/voodoo.gd"
 
 const SAVE_PATH := "user://color_sort_save.json"
 const PROGRESS_PATH := "user://color_sort_progress.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 const OPTS_PATH := "user://color_sort_opts.json"
 const LEVEL_NAMES := ["Easy", "Normal", "Hard", "Expert"]
 ## Eighteen colours; most levels use far fewer.
@@ -110,6 +114,10 @@ var wobble: float = 0.0           # liquid sloshing after a pour, 1 -> 0
 var flash: float = 0.0            # central vial completed
 var anim = null                   # the pour being shown: {from, to, n, col, t}
 var lifts := PackedFloat32Array() # how far each vial is raised (selected)
+var shine := PackedFloat32Array() # a vial just finished (one full colour): glow 1 -> 0
+var status_panel: PanelContainer
+var _stream_end := Vector2.ZERO
+var _stream_col := Color.WHITE
 var idle_acc: float = 0.0
 var bubble_acc: float = 0.0
 var _lay: Dictionary = {}
@@ -137,8 +145,13 @@ func _ready() -> void:
 		voodoo = load(VOODOO_PATH)
 	_load_opts()
 	_load_progress()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("color_sort", PROGRESS_PATH, _progress_score, _load_progress)
+		add_child(cloud)
 	_init_particles()
 	_build_ui()
+	_style_hud()
 	_calm_music()
 	_sync_down()
 
@@ -189,7 +202,13 @@ func _build_ui() -> void:
 	status_label = Label.new()
 	status_label.add_theme_font_size_override("font_size", 26)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	root.add_child(status_label)
+	status_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+	status_label.add_theme_constant_override("shadow_offset_y", 2)
+	# look pass: the level / moves / par line sits in a glassy pill
+	status_panel = PanelContainer.new()
+	status_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	status_panel.add_child(status_label)
+	root.add_child(status_panel)
 
 	banner_label = Label.new()
 	banner_label.add_theme_font_size_override("font_size", 22)
@@ -235,7 +254,7 @@ func _build_ui() -> void:
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(HELP)
 	var modes: Array = [{"text": "▶ Play", "sub": tr("Level %d") % int(progress.level), "key": "campaign",
-		"action": _start_campaign}, {"text": "⏱ Timed", "sub": tr("Level %d") % int(progress.timed_level), "key": "timed",
+		"action": _start_campaign}, {"text": "📋 Level Select", "sub": "Replay any level you have reached", "action": _open_level_select, "card": true}, {"text": "⏱ Timed", "sub": tr("Level %d") % int(progress.timed_level), "key": "timed",
 		"action": _start_timed}]
 	for i in 4:
 		modes.append({"text": ["🙂 Easy", "😐 Normal", "😈 Hard", "🤯 Expert"][i], "sub": "%d colors" % CSEngine.LEVELS[i].colors, "row": "lvl",
@@ -276,7 +295,33 @@ func _button(text: String, action: Callable) -> Button:
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.add_theme_font_size_override("font_size", 26)
 	b.pressed.connect(action)
+	b.button_down.connect(_press_pop.bind(b, 0.94))
+	b.button_up.connect(_press_pop.bind(b, 1.0))
 	return b
+
+## Buttons squash a little while held and spring back (look pass).
+func _press_pop(b: Button, to: float) -> void:
+	b.pivot_offset = b.size / 2.0
+	var t := b.create_tween()
+	t.tween_property(b, "scale", Vector2(to, to), 0.08 if to < 1.0 else 0.22).set_trans(Tween.TRANS_BACK if to >= 1.0 else Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+## The status pill's colours follow the skin.
+func _style_hud() -> void:
+	if status_panel == null:
+		return
+	var sb := StyleBoxFlat.new()
+	var acc: Color = Color("ffcf7a") if _is_classic() else HomeKit.CYAN
+	sb.bg_color = Color(0.04, 0.05, 0.1, 0.72)
+	sb.border_color = Color(acc, 0.55)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(22)
+	sb.content_margin_left = 22
+	sb.content_margin_right = 22
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 6
+	sb.shadow_color = Color(acc, 0.18)
+	sb.shadow_size = 8
+	status_panel.add_theme_stylebox_override("panel", sb)
 
 ## The game's own pickers on the setup screens.
 func _add_options(box: VBoxContainer) -> void:
@@ -325,12 +370,19 @@ func _load_progress() -> void:
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
+	if cloud:
+		cloud.saved()
+
+## Cloud vs device (STANDARDS §18): the copy further along the campaign wins, then Timed.
+func _progress_score(d: Dictionary) -> int:
+	return int(d.get("level", 1)) * 100000 + int(d.get("timed_level", 1))
 
 # ---------- looks ----------
 
 func _set_skin(name: String) -> void:
 	skin = "voodoo" if name == "voodoo" else "classic"
 	_lay_key = ""
+	_style_hud()
 	if bg:
 		bg.color = HomeKit.CLASSIC.table if skin == "classic" else HomeKit.BG
 		if bg.get_child_count() > 0:
@@ -451,7 +503,7 @@ func _draw_lab(w: float, h: float, rects: Array) -> void:
 		var ts: Vector2 = lab_tex.get_size()
 		var sc: float = maxf(w / ts.x, h / ts.y)
 		var sz: Vector2 = ts * sc
-		table.draw_texture_rect(lab_tex, Rect2((Vector2(w, h) - sz) / 2.0, sz), false, Color(0.5, 0.5, 0.58))
+		table.draw_texture_rect(lab_tex, Rect2((Vector2(w, h) - sz) / 2.0, sz), false, Color(0.42, 0.42, 0.5))  # look pass: dimmer (was 0.5, 0.5, 0.58)
 		table.draw_rect(Rect2(0, 0, w, h), Color(0.03, 0.04, 0.1, 0.35))
 	var rows := {}
 	for r in rects:
@@ -462,6 +514,50 @@ func _draw_lab(w: float, h: float, rects: Array) -> void:
 		table.draw_rect(Rect2(x0, y, w - 12.0, 16.0), Color("6b4426"))
 		table.draw_rect(Rect2(x0, y, w - 12.0, 4.0), Color("a8743a"))
 		table.draw_rect(Rect2(x0, y + 16.0, w - 12.0, 5.0), Color(0, 0, 0, 0.35))
+
+## Look pass: warm lamp light from above, a glow along each shelf, dust in the light,
+## a vignette. Keeps the busy painting back so the vials read first.
+func _draw_atmo_classic(w: float, h: float, rects: Array) -> void:
+	var sway: float = 0.5 + 0.5 * sin(clock * 0.5)
+	FX.light(table, Vector2(w * (0.42 + 0.16 * sway), -h * 0.05), Vector2(w * 0.75, h * 0.55), Color(1.0, 0.82, 0.55, 0.22))
+	var rows := {}
+	for r in rects:
+		rows[int(round(r.end.y))] = true
+	var rh: float = float(_layout().lh) * engine.cap * 0.75
+	for yr in rows:
+		# a soft dark backing behind the row so the vials stand off the painting, then warm shelf light
+		FX.light(table, Vector2(w * 0.5, float(yr) - rh * 0.5), Vector2(w * 0.75, rh), Color(0.02, 0.02, 0.06, 0.45))
+		FX.light(table, Vector2(w * 0.5, float(yr) - 30.0), Vector2(w * 0.6, 70.0), Color(1.0, 0.78, 0.45, 0.16))
+	table.draw_texture_rect(FX.vignette(), Rect2(0, 0, w, h), false, Color(1, 1, 1, 0.9))
+
+## Voodoo: violet mist drifting two ways, a sick-green ground glow, vignette.
+func _draw_atmo_voodoo(w: float, h: float) -> void:
+	FX.light(table, Vector2(w * 0.5, h * 1.02), Vector2(w * 0.9, h * 0.35), Color(0.35, 1.0, 0.55, 0.12))
+	FX.light(table, Vector2(w * 0.5, h * 0.38), Vector2(w * 0.7, h * 0.4), Color(0.55, 0.25, 1.0, 0.10 + 0.04 * sin(clock * 0.8)))
+	FX.drift(table, Rect2(0, 0, w, h), clock, 9.0, 2.6, Color(0.6, 0.4, 1.0, 0.13))
+	FX.drift(table, Rect2(0, 0, w, h), -clock, 14.0, 1.9, Color(0.4, 0.9, 1.0, 0.07))
+	table.draw_texture_rect(FX.vignette(), Rect2(0, 0, w, h), false)
+
+## Under each vial: a soft contact shadow; the raised vial glows in its top colour;
+## a vial that just became one full colour shines.
+func _draw_vial_lights(rects: Array, lay: Dictionary) -> void:
+	if shine.size() != rects.size():
+		shine.resize(rects.size())
+	for i in rects.size():
+		var r: Rect2 = rects[i]
+		var cx: float = r.get_center().x
+		FX.light(table, Vector2(cx, r.end.y + 1.0), Vector2(r.size.x * 0.75, 9.0), Color(0, 0, 0, 0.55))
+		var lift: float = lifts[i] if i < lifts.size() else 0.0
+		var tube: Array = engine.tubes[i]
+		if lift < -1.0 and not tube.is_empty():
+			var k: float = clampf(-lift / maxf(1.0, float(lay.lh) * 0.7), 0.0, 1.0)
+			var col := _color_of(int(tube[tube.size() - 1]))
+			var pulse: float = 0.85 + 0.15 * sin(clock * 6.0)
+			FX.light(table, r.get_center() + Vector2(0, lift), r.size * Vector2(1.9, 0.8), Color(col.lightened(0.2), 0.85 * k * pulse))
+		if shine[i] > 0.0:
+			var c2: Color = _color_of(int(tube[0])) if not tube.is_empty() else Color.WHITE
+			var e: float = shine[i]
+			FX.light(table, r.get_center(), r.size * Vector2(1.3 + (1.0 - e) * 0.8, 0.7), Color(c2.lightened(0.3), 0.7 * e))
 
 func _draw_table() -> void:
 	if engine == null or engine.tubes.is_empty():
@@ -483,9 +579,12 @@ func _draw_table() -> void:
 			table.draw_circle(p_pos[i], p_rad[i], Color(1, 1, 1, a))
 	var rects: Array = lay.rects
 	if not _is_classic():
+		_draw_atmo_voodoo(w, h)
 		_draw_decor(lay, w, h)
 	else:
 		_draw_lab(w, h, rects)
+		_draw_atmo_classic(w, h, rects)
+	_draw_vial_lights(rects, lay)
 	for p in engine.rules.get("blocked", []):
 		if int(p[0]) < rects.size() and int(p[1]) < rects.size():
 			var pa: Vector2 = rects[int(p[0])].get_center()
@@ -1188,7 +1287,13 @@ func _draw_stream(lay: Dictionary) -> void:
 	for s in 9:
 		var u: float = s / 8.0
 		pts.append(from_p.lerp(mid, u).lerp(mid.lerp(to_p, u), u))
-	table.draw_polyline(pts, col, maxf(3.0, float(lay.lh) * 0.22), true)
+	var wid: float = maxf(3.0, float(lay.lh) * 0.22)
+	table.draw_polyline(pts, col.darkened(0.15), wid + 2.0, true)
+	table.draw_polyline(pts, col, wid, true)
+	table.draw_polyline(pts, Color(col.lightened(0.6), 0.7), maxf(1.0, wid * 0.3), true)
+	FX.light(table, to_p, Vector2(wid * 2.6, wid * 1.6), Color(col.lightened(0.4), 0.6))
+	_stream_end = to_p
+	_stream_col = col
 
 # ---------- particles ----------
 
@@ -1240,12 +1345,30 @@ func _update_particles(delta: float) -> bool:
 				p_vel[i].y += 260.0 * delta
 	return alive
 
+## Droplets kicked up where the pour lands.
+func _splash() -> void:
+	if _stream_end == Vector2.ZERO:
+		return
+	var a: float = -PI * 0.5 + randf_range(-0.9, 0.9)
+	_spawn(_stream_end, Vector2(cos(a), sin(a)) * randf_range(50.0, 110.0), randf_range(0.2, 0.35), randf_range(1.5, 2.6), _stream_col.lightened(0.2), 1)
+
 ## A few bubbles rising in the vial that just received liquid.
 func _bubbles_in(r: Rect2, rise: float, col: Color) -> void:
 	for k in 4:
 		var x: float = r.position.x + r.size.x * randf_range(0.3, 0.7)
 		var spd: float = randf_range(40.0, 70.0)
 		_spawn(Vector2(x, r.end.y - 10.0 - randf() * 8.0), Vector2(0, -spd), maxf(0.15, rise / spd), randf_range(1.8, 3.4), col, 0)
+
+## A vial is now one full colour: it shines and throws a little crown of sparks.
+func _vial_done(i: int, r: Rect2, col: Color) -> void:
+	if shine.size() <= i:
+		shine.resize(i + 1)
+	shine[i] = 1.0
+	for k in 16:
+		var a: float = -PI * 0.5 + randf_range(-1.1, 1.1)
+		var spd: float = randf_range(110.0, 230.0)
+		var c: Color = col.lightened(0.45) if k % 4 != 0 else Color("fff2b0")
+		_spawn(Vector2(r.get_center().x + randf_range(-0.3, 0.3) * r.size.x, r.position.y + 6.0), Vector2(cos(a), sin(a)) * spd, randf_range(0.5, 0.9), randf_range(1.8, 3.6), c, 1)
 
 func _burst(at: Vector2, order: Array) -> void:
 	for k in 40:
@@ -1278,7 +1401,10 @@ func _process(delta: float) -> void:
 	for i in lifts.size():
 		var target: float = lift_h if i == selected else 0.0
 		if lifts[i] != target:
-			lifts[i] = move_toward(lifts[i], target, absf(lift_h) * 9.0 * delta)
+			# eased (look pass): quick start, soft landing; snaps when close
+			lifts[i] = lerpf(lifts[i], target, 1.0 - exp(-(9.0 if lifts[i] > 0.0 else 16.0) * delta))
+			if absf(lifts[i] - target) < 0.4:
+				lifts[i] = target
 			dirty = true
 	if anim != null:
 		anim.t = float(anim.t) + delta / POUR_TIME
@@ -1297,6 +1423,12 @@ func _process(delta: float) -> void:
 	if flash > 0.0:
 		flash = maxf(0.0, flash - delta * 1.4)
 		dirty = true
+	for i in shine.size():
+		if shine[i] > 0.0:
+			shine[i] = maxf(0.0, shine[i] - delta * 1.3)
+			dirty = true
+	if anim != null and float(anim.t) > 0.3 and float(anim.t) < 0.9 and randf() < 0.5:
+		_splash()
 	if _update_particles(delta):
 		dirty = true
 	if engine.has_center() and engine.center.size() > 0 and playing:
@@ -1391,6 +1523,9 @@ func _finish_pour() -> void:
 	else:
 		var r: Rect2 = lay.rects[int(a.to)]
 		_bubbles_in(r, r.size.y * 0.5, col)
+		var tt: Array = engine.tubes[int(a.to)]
+		if tt.size() == engine.cap and engine._single(tt):
+			_vial_done(int(a.to), r, col)
 	_render()
 	if engine.solved():
 		var t := create_tween()
@@ -1779,8 +1914,11 @@ func _begin_play() -> void:
 	_lay_key = ""
 	end_dialog.visible = false
 	lifts.resize(engine.tubes.size())
+	shine.resize(engine.tubes.size())
+	# look pass: the vials rise into place one after another (lifts settle back to 0)
 	for i in lifts.size():
-		lifts[i] = 0.0
+		lifts[i] = 70.0 + 16.0 * i
+		shine[i] = 0.0
 	_render()
 	_save_game()
 
@@ -1842,3 +1980,36 @@ func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
 		s.play(sound)
+
+# ---------- level select [NEW 2026-11-24, owner: replay without losing progress] ----------
+
+func _open_level_select() -> void:
+	var parts: Array = home.card("📋 Level Select")
+	var body: VBoxContainer = parts[1]
+	var grid := GridContainer.new()
+	grid.columns = 5
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	body.add_child(grid)
+	for n in range(1, _reached_level() + 1):
+		var b := Button.new()
+		var st := 0
+		b.text = str(n) if st == 0 else "%d
+%s" % [n, "★".repeat(st)]
+		b.custom_minimum_size = Vector2(0, 70)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(_pick_level.bind(n, parts[0]))
+		grid.add_child(b)
+	home.show_card(parts[0])
+
+func _pick_level(n: int, card: Control) -> void:
+	home.close_card(card)
+	SaveUtil.delete(SAVE_PATH)
+	home.play_now(_replay_level.bind(n))
+
+func _reached_level() -> int:
+	return maxi(1, int(progress.level))
+
+func _replay_level(n: int) -> void:
+	timed = false
+	_new_level(n)

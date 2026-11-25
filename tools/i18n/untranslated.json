@@ -382,6 +382,9 @@
  "CCcb": [
   "scripts\\common\\game_logos_puzzle.gd"
  ],
+ "CONTROLS\nTouch: drag to look, pinch to zoom, tap to fire.\nMouse: drag or the arrow keys / WASD to look, wheel to zoom, left click or Enter to fire, right click or Space to hold breath.\nController: sticks look, RT or A fires, LT / B / X holds breath, LB / RB zoom out / in, D-pad up / down zoom.\nOptions can flip the look up / down direction.": [
+  "scripts\\games\\red_mist\\red_mist_game.gd"
+ ],
  "Campamento de botas": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -417,9 +420,6 @@
  ],
  "Cien días": [
   "scripts\\games\\wilson\\wilson_quests.gd"
- ],
- "Cleared!": [
-  "scripts\\games\\arrows\\arrows_game.gd"
  ],
  "Club del amanecer": [
   "scripts\\games\\wilson\\wilson_quests.gd"
@@ -584,6 +584,9 @@
  "IQ*": [
   "scripts\\games\\voodoo_iq\\voodoo_iq_game.gd"
  ],
+ "Ilka": [
+  "scripts\\games\\ancient_assassins\\ancient_assassins_game.gd"
+ ],
  "January": [
   "scripts\\account\\consent_screen.gd"
  ],
@@ -687,6 +690,9 @@
  ],
  "NO_TIER_BADGES": [
   "scripts\\common\\achievements.gd"
+ ],
+ "Nayra": [
+  "scripts\\games\\ancient_assassins\\ancient_assassins_game.gd"
  ],
  "Needs": [
   "scripts\\games\\wilson\\wilson_game.gd"
@@ -794,6 +800,9 @@
  "Road editor: drag the yellow dots, F10 saves, F9 closes": [
   "scripts\\games\\bridge_master\\bridge_master_game.gd"
  ],
+ "Rubí": [
+  "scripts\\games\\ancient_assassins\\ancient_assassins_game.gd"
+ ],
  "S.TOP#.": [
   "scripts\\common\\game_teasers_rest.gd"
  ],
@@ -885,6 +894,9 @@
  "Tabla de mareas": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
+ "Tainá": [
+  "scripts\\games\\ancient_assassins\\ancient_assassins_game.gd"
+ ],
  "Temporada de quemaduras": [
   "scripts\\games\\wilson\\wilson_quests.gd"
  ],
@@ -938,6 +950,9 @@
  ],
  "Windows": [
   "scripts\\common\\pc_updater.gd"
+ ],
+ "Yara": [
+  "scripts\\games\\ancient_assassins\\ancient_assassins_game.gd"
  ],
  "Yoga en la playa": [
   "scripts\\games\\wilson\\wilson_quests.gd"
@@ -1128,6 +1143,9 @@
  ],
  "mount failed": [
   "scripts\\common\\catalog.gd"
+ ],
+ "movement quicker": [
+  "scripts\\games\\hover_duel\\hover_duel_engine.gd"
  ],
  "no fly zone": [
   "scripts\\games\\reversi\\reversi_game.gd"

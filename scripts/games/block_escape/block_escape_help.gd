@@ -25,7 +25,7 @@ const NO_TIER_BADGES := ["Blocks escaped"]
 const ACHIEVEMENTS := [
 	{"id": "lvl10", "icon": "🧱", "title": "Out the Door", "desc": "Clear Levels 1 to 10", "key": "Levels cleared", "at": 10},
 	{"id": "lvl100", "icon": "🏗", "title": "Block Buster", "desc": "Clear Levels 1 to 100", "key": "Levels cleared", "at": 100},
-	{"id": "lvl300", "icon": "🏆", "title": "Grand Escape", "desc": "Clear all 300 Levels", "key": "Levels cleared", "at": 300},
+	{"id": "lvl300", "icon": "🏆", "title": "Grand Escape", "desc": "Clear every level", "key": "Levels cleared", "at": 300},
 	{"id": "stars3", "icon": "⭐", "title": "Speed Mover", "desc": "Earn 3 ★ on 25 boards", "key": "3-star clears", "at": 25},
 	{"id": "out1000", "icon": "🚪", "title": "Thousand Exits", "desc": "Get 1000 blocks out", "key": "Blocks escaped", "at": 1000},
 	{"id": "daily7", "icon": "📅", "title": "Week of Escapes", "desc": "Clear the Daily 7 days in a row", "key": "Daily streak", "at": 7},

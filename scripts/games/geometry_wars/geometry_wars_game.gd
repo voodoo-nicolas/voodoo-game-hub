@@ -42,6 +42,8 @@ const HELP = preload("res://scripts/games/geometry_wars/geometry_wars_help.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 
 const SAVE_PATH := "user://geometry_wars_save.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 
 const SHOCKWAVE_TIME := 0.8
 ## Hit circles, in grid squares (Core.U pixels each).
@@ -231,6 +233,10 @@ func _ready() -> void:
 	preload("res://scripts/games/geometry_wars/geometry_wars_i18n.gd").install(self)
 	randomize()
 	Orientation.lock_landscape()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("geometry_wars", Campaign.PATH, _progress_score, Callable())
+		add_child(cloud)
 	# A save from before the Adventure update, or from before the bosses
 	# changed shape (2026-10-07), can't be resumed: drop it so Home doesn't
 	# offer a Resume that starts a new game.
@@ -2303,7 +2309,7 @@ func _home_modes() -> Array:
 	var data := Campaign.load_progress()
 	var modes: Array = [
 		{"text": "💀  Endless", "sub": "3 lives, bombs, the full swarm", "action": _start_mode.bind("evolved")},
-		{"text": "🗺  Campaign", "sub": "40 levels · beat bosses to unlock modes", "action": _open_campaign.bind(false), "color": HomeKit.GOLD},
+		{"text": "🗺  Campaign", "sub": "Beat bosses to unlock modes", "action": _open_campaign.bind(false), "color": HomeKit.GOLD},
 	]
 	var n := 0
 	for m in Levels.MODE_ORDER:
@@ -2358,3 +2364,13 @@ func _help_life() -> bool:
 	lives += 1
 	lives_label.text = "♥ %d" % lives
 	return true
+
+## Cloud vs device (STANDARDS §18): the copy with more campaign + Cursed stars wins.
+func _progress_score(d: Dictionary) -> int:
+	var n := 0
+	for key in ["stars", "hard"]:
+		var st = d.get(key, {})
+		if st is Dictionary:
+			for k in st:
+				n += int(st[k])
+	return n

@@ -21,6 +21,8 @@ const HELP := preload("res://scripts/games/hover_duel/hover_duel_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://hover_duel_save.json"
 const CAMPAIGN_PATH := "user://hover_duel_campaign.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 const HANGAR_PATH := "user://hover_duel_hangar.json"   # credits, owned ships, upgrades, ship flown
 const PAD_PATH := "res://scripts/common/pad/pad_controller.gd"
 const Goals = preload("res://scripts/games/hover_duel/hover_duel_goals.gd")
@@ -106,6 +108,10 @@ func _ready() -> void:
 	Orientation.lock_landscape()
 	engine = E.new()
 	_load_campaign()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("hover_duel", CAMPAIGN_PATH, _progress_score, _load_campaign)
+		add_child(cloud)
 	_load_hangar()
 	goals.load_saved(SaveUtil.read(Goals.PATH))
 	engine.reset("valley", 1101, ["skimmer", "gnat"], [-1, 0])
@@ -1018,6 +1024,9 @@ func _game_over() -> void:
 					camp["done"] = true
 					msg += "\n" + tr("Campaign complete! Every rival beaten.")
 				SaveUtil.write(CAMPAIGN_PATH, camp)
+				if cloud:
+					cloud.saved()
+					cloud.report_completion(camp.stars.size(), E.CAMPAIGN.size())
 				next_btn.visible = level + 1 < E.CAMPAIGN.size()
 				if info:
 					info.high("Campaign stars", _total_stars())
@@ -1858,3 +1867,12 @@ func _upgrade(type: String, st: String, card: Control) -> void:
 func _reopen_hangar(card: Control) -> void:
 	home.close_card(card)
 	_open_hangar()
+
+## Cloud vs device (STANDARDS §18): the copy further along the campaign (then more stars) wins.
+func _progress_score(d: Dictionary) -> int:
+	var n := 0
+	var st = d.get("stars", {})
+	if st is Dictionary:
+		for k in st:
+			n += int(st[k])
+	return int(d.get("reached", 0)) * 1000 + n

@@ -64,6 +64,22 @@ func save() -> void:
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(data))
+	# [NEW 2026-11-24] STANDARDS §18: the game's cloud-save node (cloud_save.gd joins "cloud_save").
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree and path == PATH:
+		for n in tree.get_nodes_in_group("cloud_save"):
+			if str(n.get("game")) == "chess":
+				n.saved()
+
+## Cloud vs device: the copy with more lessons and boards solved (then more owned) wins.
+static func score(d: Dictionary) -> int:
+	var n := 0
+	for key in ["solved_list", "owned"]:
+		if d.get(key) is Array:
+			n += (d[key] as Array).size() * (10 if key == "solved_list" else 1)
+	if d.get("done_lessons") is Dictionary:
+		n += (d.done_lessons as Dictionary).size() * 50
+	return n
 
 # ---------- points and shop ----------
 

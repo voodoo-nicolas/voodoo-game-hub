@@ -10,6 +10,8 @@ const ChessPieces = preload("res://scripts/games/chess/chess_pieces.gd")
 const ChessStyles = preload("res://scripts/games/chess/chess_styles.gd")
 const ChessLessons = preload("res://scripts/games/chess/chess_lessons.gd")
 const ChessProgress = preload("res://scripts/games/chess/chess_progress.gd")
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 const BoardView = preload("res://scripts/games/chess/chess_board_view.gd")
 const SoundLib = preload("res://scripts/games/chess/sound_lib.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
@@ -137,6 +139,10 @@ func _ready() -> void:
 	rng.randomize()
 	engine = ChessEngine.new()
 	progress = ChessProgress.new()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("chess", ChessProgress.PATH, ChessProgress.score, progress.load_file)
+		add_child(cloud)
 	_build_ui()
 	_reset_board()
 	_prepare_music()

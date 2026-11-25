@@ -124,6 +124,7 @@ const STRINGS := {
 		"Master of Ink": "Maestro de la tinta",
 		"Medium": "Medio",
 		"Menu": "Menú",
+		"Missions": "Misiones",
 		"More": "Más",
 		"Multiplayer": "Multijugador",
 		"Needles": "Agujas",

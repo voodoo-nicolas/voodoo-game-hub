@@ -15,7 +15,7 @@ const HOW := [
 	"Each colour has its own shell pattern (spots, stripes, big spots, diamonds, dots or rings), so you can tell them apart by more than colour.",
 	"Glowing bugs carry a power. Pop one to use it: 💣 blasts the bugs around it, ⏳ slows the chains, ⏪ sends them backwards, 🌈 gives you a rainbow bug that matches any colour.",
 	"Clear a level to earn a bonus: 1000 points, more for every spare life and for later levels. An extra life comes every 25,000 points (up to 5).",
-	"Campaign: 30 levels on 6 garden paths, 5 levels each. Your furthest level is kept for each difficulty; 📋 Level Select replays any level you have reached.",
+	"Campaign: levels along garden paths. Your furthest level is kept for each difficulty; 📋 Level Select replays any level you have reached.",
 	"Endless: wave after wave on random paths, faster and with more colours, until your lives run out.",
 	"Easy has one colour fewer and slower chains; Hard has faster chains.",
 	"🛟 Helps (pause menu, or ⏪ in the top bar): ⏪ pushes every chain back for a few seconds, 💣 pops the 8 bugs nearest each pit. You hold up to 3; one comes back 24 hours after the last one you used.",

@@ -19,6 +19,8 @@ const HELP := preload("res://scripts/games/maze_trail/maze_trail_help.gd")
 const TITLE_FOR_HOME := HELP.TITLE
 const SAVE_PATH := "user://maze_trail_save.json"
 const PROGRESS_PATH := "user://maze_trail_progress.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 ## Owner's Landing pictures (2026-11-07): Classic = the hedge path to the castle,
 ## Voodoo = the neon city maze.
 const ART_CLASSIC := "res://games/maze_trail/landing_bg.jpg"
@@ -84,6 +86,10 @@ func _ready() -> void:
 	Orientation.lock_portrait()
 	engine = MazeEngine.new()
 	_load_progress()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("maze_trail", PROGRESS_PATH, _progress_score, _load_progress)
+		add_child(cloud)
 	_build_ui()
 	_play_music()
 	_begin("campaign", 1, MazeEngine.seed_for(1))
@@ -169,11 +175,11 @@ func _build_ui() -> void:
 		"help": HELP,
 		"info": info,
 		"accent": TIER_COLORS[0],
-		"subtitle": "Find the way out. 195 mazes, from very easy to insane.",
+		"subtitle": "Find the way out, from very easy to insane.",
 		"art": ART_CLASSIC,
 		"logo": _draw_home_logo,
 		"modes": [
-			{"text": "🗺 Campaign", "sub": "195 mazes · collect stars", "action": _start_campaign},
+			{"text": "🗺 Campaign", "sub": "Collect stars", "action": _start_campaign},
 		],
 		"play": [
 			{"text": "📋 Level Select", "sub": "Pick any maze you have opened", "action": _open_map_from_landing, "card": true},
@@ -515,7 +521,7 @@ func _show_solved_card(stars: int, msg: String) -> void:
 				label = tr("Next: %s") % tr(MazeEngine.TIERS[MazeEngine.block_of(cur_level + 1)])
 			buttons.append({"text": label, "action": _start_level.bind(cur_level + 1)})
 		else:
-			msg += "\n" + tr("All 195 mazes solved!")
+			msg += "\n" + tr("Every maze solved!")
 		if stars < 3:
 			buttons.append({"text": tr("Try for 3 stars"), "action": _restart})
 		buttons.append({"text": tr("📋 Levels"), "action": _open_map.bind(false)})
@@ -599,6 +605,29 @@ func _load_progress() -> void:
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
+	if cloud:
+		cloud.saved()
+		cloud.report_completion(_stars_cleared(), MazeEngine.LEVEL_COUNT)
+
+## Cloud vs device (STANDARDS §18): the copy with more levels cleared (then stars) wins.
+func _progress_score(d: Dictionary) -> int:
+	var st = d.get("stars", {})
+	if not st is Dictionary:
+		return 0
+	var n := 0
+	var total := 0
+	for k in st:
+		if int(st[k]) > 0:
+			n += 1
+			total += int(st[k])
+	return n * 4 + total
+
+func _stars_cleared() -> int:
+	var n := 0
+	for k in progress.get("stars", {}):
+		if int(progress.stars[k]) > 0:
+			n += 1
+	return n
 
 func _cleared() -> int:
 	var n := 0

@@ -89,6 +89,13 @@ static func load_progress() -> Dictionary:
 
 static func save_progress(d: Dictionary) -> void:
 	SaveUtil.write(PATH, d)
+	# [NEW 2026-11-24] STANDARDS §18: tell the game's cloud-save node (cloud_save.gd joins "cloud_save").
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree:
+		for n in tree.get_nodes_in_group("cloud_save"):
+			if str(n.get("game")) == "geometry_wars":
+				n.saved()
+				n.report_completion(total_stars(d, false), Levels.count() * 3)
 
 static func stars_of(d: Dictionary, id: int, hard: bool) -> int:
 	return int((d["hard" if hard else "stars"] as Dictionary).get(str(id), 0))

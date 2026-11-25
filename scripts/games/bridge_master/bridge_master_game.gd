@@ -25,6 +25,8 @@ const TITLE_FOR_HOME := HELP.TITLE
 const OBJ := preload("res://scripts/games/bridge_master/bridge_master_objectives.gd")
 const SAVE_PATH := "user://bridge_master_save.json"
 const PROGRESS_PATH := "user://bridge_master_progress.json"
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 const ART_LANDING := "res://games/bridge_master/landing_bg.jpg"
 const BACKDROPS := ["res://games/bridge_master/bg_forest.jpg", "res://games/bridge_master/bg_desert.jpg", "res://games/bridge_master/bg_mesa.jpg"]
 ## Owner's cut-out art (2026-11-13), made by tools/bridge_master_cutout.py; Classic
@@ -175,6 +177,10 @@ func _ready() -> void:
 	for p in BACKDROPS:
 		_backdrops.append(load(p) if ResourceLoader.exists(p) else null)
 	_load_progress()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("bridge_master", PROGRESS_PATH, _progress_score, _load_progress)
+		add_child(cloud)
 	grid_mode = str(progress.get("grid", "dots"))
 	if not grid_mode in GRID_MODES:
 		grid_mode = "dots"
@@ -346,13 +352,13 @@ func _build_ui() -> void:
 		"help": HELP,
 		"info": info,
 		"accent": ACCENT,
-		"subtitle": "Build it, then drive across. 300 levels.",
+		"subtitle": "Build it, then drive across.",
 		"art": ART_LANDING,
 		"landing": "slabs",
 		"landing_style": LandingSlabs,
 		"logo": _draw_home_logo,
 		"modes": [
-			{"text": "🌉 Campaign", "sub": "300 levels · build cheap for stars", "action": _start_campaign, "detail": _campaign_detail},
+			{"text": "🌉 Campaign", "sub": "Build cheap for stars", "action": _start_campaign, "detail": _campaign_detail},
 			{"text": "📅 Daily Bridge", "sub": "A new bridge every day · double stars", "action": _start_daily, "detail": _daily_detail},
 		],
 		"play": [
@@ -1103,7 +1109,7 @@ func _show_win_card(stars: int, msg: String) -> void:
 	if cur_level < E.LEVEL_COUNT:
 		buttons.append({"text": tr("Next level"), "action": _start_level.bind(cur_level + 1)})
 	else:
-		msg += "\n" + tr("All 300 levels built!")
+		msg += "\n" + tr("Every level built!")
 	buttons.append({"text": tr("🏋 Load test"), "action": _start_load_test})
 	if stars < 3:
 		buttons.append({"text": tr("✏ Build cheaper"), "action": _stop_test})
@@ -1265,6 +1271,29 @@ func _load_progress() -> void:
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
+	if cloud:
+		cloud.saved()
+		cloud.report_completion(_stars_cleared(), E.LEVEL_COUNT)
+
+## Cloud vs device (STANDARDS §18): the copy with more levels cleared (then stars) wins.
+func _progress_score(d: Dictionary) -> int:
+	var st = d.get("stars", {})
+	if not st is Dictionary:
+		return 0
+	var n := 0
+	var total := 0
+	for k in st:
+		if int(st[k]) > 0:
+			n += 1
+			total += int(st[k])
+	return n * 4 + total
+
+func _stars_cleared() -> int:
+	var n := 0
+	for k in progress.get("stars", {}):
+		if int(progress.stars[k]) > 0:
+			n += 1
+	return n
 
 func _cleared() -> int:
 	var n := 0

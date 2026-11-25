@@ -551,6 +551,7 @@ def validate() -> tuple[list[str], list[str]]:
     errors += lint_helps(m)
     warnings += lint_legal()
     warnings += lint_game_xp(m)  # older games over the cap get trimmed as each is touched
+    warnings += lint_level_counts(m)  # STANDARDS §18: fixed as each game is touched
     sys.path.insert(0, str(ROOT / "tools"))
     import rating_report
     rating_errors, _flags = rating_report.problems(m)
@@ -705,6 +706,27 @@ def lint_helps(m: dict) -> list[str]:
         if '"helps":' not in text and "helps_left(" not in text:
             errors.append(f"{gid}: no helps (STANDARDS §17) -- add cfg \"helps\" or list it in NO_HELPS with the reason")
     return errors
+
+
+# STANDARDS §18 (owner 2026-11-24): never advertise how many levels a game has
+# ("300 levels of fun!"). Player-facing strings only: quoted text in game scripts.
+LEVEL_COUNT_RE = re.compile(r'"[^"\n]*\b\d{2,5}\+?\s*(?:levels|niveles|stages|mazes|laberintos|niveaux)\b[^"\n]*"', re.I)
+
+def lint_level_counts(m: dict) -> list[str]:
+    """STANDARDS §18: no "N levels" in player-facing text. Warning until each game is touched."""
+    out = []
+    for gid in catalog_ids(m):
+        hits = 0
+        for f in (ROOT / "scripts/games" / gid).glob("*.gd"):
+            if f.name.endswith("_i18n.gd"):
+                continue   # generated copies of the strings counted in the source
+            for line in f.read_text(encoding="utf-8").splitlines():
+                if line.lstrip().startswith("#") or '"desc":' in line:
+                    continue   # comments; achievement milestones ("Clear 50 levels") are fine
+                hits += len(LEVEL_COUNT_RE.findall(line))
+        if hits:
+            out.append(f"{gid}: {hits} string(s) state a level count (STANDARDS §18) -- drop the number")
+    return out
 
 
 def lint_credits() -> list[str]:

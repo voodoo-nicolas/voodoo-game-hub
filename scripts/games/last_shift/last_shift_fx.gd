@@ -83,6 +83,9 @@ shader_type canvas_item;
 uniform float strength = 0.5;
 uniform float hurt = 0.0;
 uniform float grade = 1.0;
+uniform float alarm = 0.0;
+uniform float alarm_phase = 0.0;
+uniform float aspect = 1.777;
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
 void fragment() {
 	vec3 src = texture(screen_tex, SCREEN_UV).rgb;
@@ -98,7 +101,49 @@ void fragment() {
 	float edge = smoothstep(0.30, 0.80, d);
 	vec3 col = mix(vec3(0.0), vec3(0.65, 0.04, 0.04), clamp(hurt, 0.0, 1.0));
 	float a = clamp(edge * (strength + hurt * 0.45) + hurt * 0.10, 0.0, 0.95);
-	COLOR = vec4(mix(g, col, a), 1.0);
+	vec3 outc = mix(g, col, a);
+	// v0.7 alarm: two rotating beacon beams sweeping in from the top corners plus a pulsing red rim,
+	// added on top of a darker ambient, so the alarm reads as light (depth) instead of a pink wash.
+	if (alarm > 0.001) {
+		vec2 p = (UV - vec2(0.5, 0.0)) * vec2(aspect, 1.0);
+		float beams = 0.0;
+		for (int i = 0; i < 2; i++) {
+			float side = i == 0 ? -1.0 : 1.0;
+			vec2 o = p - vec2(side * aspect * 0.5, 0.0);
+			float ang = atan(o.x, o.y);
+			float rot = alarm_phase * side + float(i) * 1.7;
+			float w = cos(ang * 1.0 - rot);
+			beams += smoothstep(0.86, 1.0, w) * (1.0 - smoothstep(0.2, 1.6, length(o)));
+		}
+		float pulse = 0.5 + 0.5 * sin(alarm_phase * 2.0);
+		float rim = smoothstep(0.35, 0.85, d) * (0.10 + 0.14 * pulse);
+		vec3 red = vec3(1.0, 0.12, 0.08);
+		outc += red * (beams * 0.20 + rim) * alarm;
+	}
+	COLOR = vec4(outc, 1.0);
+}
+"""
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	return m
+
+## v0.7: room-change fade as an iris that closes on the screen centre (Nash: the camera follows
+## him) with a soft, slightly noisy edge. Driven by the ColorRect's color.a exactly like the old
+## plain fade (0 = open, 1 = black), so every existing tween keeps working.
+static func iris_material() -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = """
+shader_type canvas_item;
+uniform float aspect = 1.777;
+void fragment() {
+	float t = COLOR.a;
+	vec2 p = (UV - 0.5) * vec2(aspect, 1.0);
+	float ang = atan(p.y, p.x);
+	float r = length(p) + 0.012 * sin(ang * 9.0 + t * 6.0);
+	float reach = (1.0 - t) * (0.5 * length(vec2(aspect, 1.0)) + 0.1);
+	float a = smoothstep(reach - 0.09, reach, r);
+	a = max(a, smoothstep(0.85, 1.0, t));        // fully black at the end, whatever the edge
+	COLOR = vec4(0.0, 0.0, 0.0, a * step(0.001, t));
 }
 """
 	var m := ShaderMaterial.new()
@@ -217,7 +262,14 @@ static func blood_screen_material() -> ShaderMaterial:
 shader_type canvas_item;
 uniform float amount = 0.0;
 uniform float aspect = 1.777;
-float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// v0.7: sin-free hash. The sin one gave a lattice point different values from neighbouring cells
+// (GPU rounding of large sin arguments), so the noise broke into hard blocks on screen.
+float h(vec2 p) {
+	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+	p3 += dot(p3, p3.yzx + 33.33);
+	return fract((p3.x + p3.y) * p3.z);
+}
 float vn(vec2 p) {
 	vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
 	return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y);
@@ -227,8 +279,10 @@ float fbm(vec2 p) { return vn(p) * 0.55 + vn(p * 2.1) * 0.3 + vn(p * 4.3) * 0.15
 float drops(vec2 p, float dens) {
 	vec2 i = floor(p); vec2 f = fract(p);
 	if (h(i) > dens) return 0.0;
-	vec2 c = vec2(h(i + 3.1), h(i + 7.7)) * 0.6 + 0.2;
-	float rad = 0.12 + 0.3 * h(i + 1.3);
+	// v0.7: drops stay inside their cell (v0.6: centre 0.2..0.8, radius up to 0.42, so big drops
+	// were clipped by the cell edge into squares)
+	vec2 c = vec2(h(i + 3.1), h(i + 7.7)) * 0.36 + 0.32;
+	float rad = 0.1 + 0.2 * h(i + 1.3);
 	return 1.0 - smoothstep(rad - 0.06, rad, length(f - c));
 }
 void fragment() {
@@ -243,8 +297,10 @@ void fragment() {
 	float solid = smoothstep(reach - 0.02, reach + 0.12, rr);
 	// spray speckles in a band inside the solid edge
 	float band = smoothstep(reach - 0.45, reach, rr) * (1.0 - solid);
-	float sp1 = drops(sp * 38.0, band * 0.75);
-	float sp2 = drops(sp * 95.0 + 7.0, band * 0.6);
+	// v0.7: fixed density per cell, faded by the band. (v0.6 used the band as the density, which
+	// changes inside a cell and cut drops into hard squares: blocky edges on screen.)
+	float sp1 = drops(sp * 38.0, 0.55) * band;
+	float sp2 = drops(sp * 95.0 + 7.0, 0.45) * band;
 	// diagonal brush streaks near the corners
 	vec2 d = vec2(uv.x + uv.y, (uv.x - uv.y) * 9.0);
 	float streak = smoothstep(0.62, 0.8, vn(d * vec2(2.5, 1.0))) * smoothstep(reach - 0.2, reach + 0.1, r);
@@ -298,6 +354,8 @@ void fragment() {
 	sp.centered = false
 	sp.scale = room_px / 256.0
 	sp.material = m
+	# v0.7: filtered (the world viewport defaults to NEAREST, which drew the fog as hard blocks)
+	sp.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	sp.z_index = 1400
 	return sp
 

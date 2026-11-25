@@ -8,6 +8,8 @@ extends Control
 ## (tarot_engine.gd, user://tarot_progress.json).
 
 const TarotEngine = preload("res://scripts/games/tarot/tarot_engine.gd")
+const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
+var cloud: Node = null
 const Orientation = preload("res://scripts/common/orientation.gd")
 const SoundLib = preload("res://scripts/games/tarot/sound_lib.gd")
 ## Home screen + pause menu + neon look, copied into this game's folder by
@@ -66,6 +68,10 @@ func _ready() -> void:
 	engine = TarotEngine.new()
 	engine.load_data()
 	engine.load_progress()
+	if ResourceLoader.exists(CLOUD_SAVE):
+		cloud = load(CLOUD_SAVE).new()
+		cloud.setup("tarot", TarotEngine.PROGRESS_PATH, _progress_score, engine.load_progress)
+		add_child(cloud)
 	_build_ui()
 	_booting = true   # the first deal happens under the Landing: no sound yet
 	_start("three")
@@ -404,6 +410,8 @@ func _finish() -> void:
 	if mode == "daily":
 		engine.touch_daily(TarotEngine.today())
 	engine.save()
+	if cloud:
+		cloud.saved()
 	if info:
 		if first_today:
 			info.add("Readings given")
@@ -641,3 +649,8 @@ func _sfx(id: String) -> void:
 			SoundLib.play(self, "casino/card_place")
 		"impact/bell_heavy":
 			SoundLib.play(self, "impact/bell_heavy", -8.0)
+
+## Cloud vs device (STANDARDS §18): the copy with more cards met (then readings) wins.
+func _progress_score(d: Dictionary) -> int:
+	var seen = d.get("seen", {})
+	return (seen.size() if seen is Dictionary else 0) * 1000 + int(d.get("readings", 0))

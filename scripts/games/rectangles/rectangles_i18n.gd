@@ -6,7 +6,6 @@ const STRINGS := {
 	"es": {
 		"%d of %d unlocked": "%d de %d desbloqueados",
 		"%d ways to play": "%d formas de jugar",
-		"300 levels · collect stars": "300 niveles · junta estrellas",
 		"A cell that only one number can reach belongs to that number.": "Una casilla a la que solo un número puede llegar le pertenece a ese número.",
 		"A prime number, like 7 or 11, can only make a straight line of cells, because its only factors are 1 and itself.": "Un número primo, como 7 u 11, solo puede formar una línea recta de casillas, porque sus únicos factores son 1 y él mismo.",
 		"A rectangle that doesn't fit the rule disappears when you let go.": "Un rectángulo que no cumple la regla desaparece al soltar.",
@@ -23,6 +22,7 @@ const STRINGS := {
 		"Classic levels: 3 ★ with no hint and under the par time, 2 ★ with at most one hint, 1 ★ for finishing. Daily: one 7 × 7 board a day, the same for everyone. Weekly: a big 10 × 10 board. Zen: endless random boards.": "Niveles clásicos: 3 ★ sin pistas y bajo el tiempo objetivo, 2 ★ con una pista como máximo, 1 ★ por terminar. Diario: un tablero de 7 × 7 al día, el mismo para todos. Semanal: un gran tablero de 10 × 10. Zen: tableros aleatorios sin fin.",
 		"Classic stars": "Estrellas clásicas",
 		"Classic: the game's traditional colours. Voodoo: neon on black, with skulls.": "Clásico: los colores tradicionales del juego. Vudú: neón sobre negro, con calaveras.",
+		"Collect stars": "Junta estrellas",
 		"Couldn't load the leaderboard. Check your connection and try again.": "No se pudo cargar la clasificación. Revisa tu conexión e inténtalo de nuevo.",
 		"Cut the grid into rectangles. Each number is its own size.": "Corta la cuadrícula en rectángulos. Cada número es su propio tamaño.",
 		"Daily": "Diario",

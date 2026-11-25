@@ -2559,6 +2559,7 @@ func _update_light() -> void:
 	var amb: Color = th.ambient
 	var light_col: Color = th.light
 	var energy := 0.75
+	var alarm_fx := 0.0
 	if _dusk:
 		amb = DUSK_LIGHT
 		energy = 0.0
@@ -2572,15 +2573,22 @@ func _update_light() -> void:
 		var speed := 3.0 if _siren.playing else 1.4
 		var k := 0.5 + 0.5 * sin(_clock * speed)
 		# v0.6: darker red ambient + brighter light pools = depth instead of a flat red wash
-		amb = Color(0.42, 0.17 + 0.06 * k, 0.19 + 0.06 * k)
+		# amb = Color(0.42, 0.17 + 0.06 * k, 0.19 + 0.06 * k)
+		# v0.7: less red in the ambient (the beacon sweep in the vignette pass carries the alarm
+		# colour now), so floors keep their material and people stay readable.
+		amb = Color(0.36, 0.2 + 0.05 * k, 0.22 + 0.05 * k)
 		light_col = Color(1.0, 0.36 + 0.1 * k, 0.3 + 0.08 * k)
 		energy = 0.95
+		alarm_fx = 1.0 if _siren.playing else 0.55
 	var m := _flicker_mult
 	_light.color = Color(amb.r * m, amb.g * m, amb.b * m, 1.0)
 	for l in _room_lights:
 		l.color = light_col
 		l.energy = energy * m
 	_nash_light.energy = 0.0 if (_dusk or _dawn) else 0.45
+	var vm := _vignette.material as ShaderMaterial
+	vm.set_shader_parameter("alarm", alarm_fx * m)
+	vm.set_shader_parameter("alarm_phase", _clock * (2.2 if _siren.playing else 1.0))
 
 ## A quick double flicker of the room lights.
 func _flicker() -> void:
@@ -2746,6 +2754,7 @@ func _build_hud() -> void:
 	_fade = ColorRect.new()
 	_fade.color = Color(0, 0, 0, 0)
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fade.material = LsFx.iris_material()   # v0.7: iris instead of a flat fade
 	fade_layer.add_child(_fade)
 	_end_label = _plain_label(34, Color.WHITE)
 	_end_label.visible = false
@@ -2787,6 +2796,9 @@ func _on_region_tapped(region: String) -> void:
 func _layout_hud() -> void:
 	var v := get_viewport_rect().size
 	_vignette.size = v
+	(_vignette.material as ShaderMaterial).set_shader_parameter("aspect", v.x / maxf(v.y, 1.0))
+	if _fade != null:
+		(_fade.material as ShaderMaterial).set_shader_parameter("aspect", v.x / maxf(v.y, 1.0))
 	_blood_screen.size = v
 	(_blood_screen.material as ShaderMaterial).set_shader_parameter("aspect", v.x / maxf(v.y, 1.0))
 	# as wide as the gap between the D-pad and the weapon-wheel button allows (they sit on that line)
