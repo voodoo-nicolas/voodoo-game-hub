@@ -62,7 +62,9 @@ var rng := RandomNumberGenerator.new()
 var acc: float = 0.0
 
 ## opts: "dist" (metres between the two, default 22-30), "style", "wind_max",
-## "hp" ([a, b]), "chars" ([a, b]).
+## "hp" ([a, b]), "chars" ([a, b]); shop upgrades (2026-11-25, vs the computer only):
+## "pow" ([a, b] damage %, default 100), "armor" ([a, b] % of damage taken off, default 0),
+## "extra_ammo" ([a, b] added to each limited weapon).
 func reset(p_seed: int = -1, opts: Dictionary = {}) -> void:
 	if p_seed < 0:
 		rng.randomize()
@@ -74,6 +76,9 @@ func reset(p_seed: int = -1, opts: Dictionary = {}) -> void:
 	var dist: float = float(opts.get("dist", rng.randf_range(22.0, 30.0)))
 	var hp: Array = opts.get("hp", [MAX_HP, MAX_HP])
 	var chars: Array = opts.get("chars", [0, 1])
+	var pw: Array = opts.get("pow", [100, 100])
+	var arm: Array = opts.get("armor", [0, 0])
+	var xa: Array = opts.get("extra_ammo", [0, 0])
 	var lat := snappedf(rng.randf_range(-4.0, 4.0), 0.1)
 	var h0 := snappedf(rng.randf_range(0.8, 2.2), 0.1)
 	var h1 := snappedf(rng.randf_range(0.8, 2.6) + (1.8 if style == 2 else 0.0), 0.1)
@@ -98,9 +103,10 @@ func reset(p_seed: int = -1, opts: Dictionary = {}) -> void:
 	for i in 2:
 		var ammo: Array = []
 		for wpn in WEAPONS:
-			ammo.append(int(wpn.ammo))
+			ammo.append(int(wpn.ammo) + (int(xa[i]) if int(wpn.ammo) > 0 else 0))
 		var isl: Dictionary = islands[i]
-		fighters.append({"x": isl.x, "y": isl.top, "z": isl.z, "hp": int(hp[i]), "char": int(chars[i]), "ammo": ammo, "weapon": 0})
+		fighters.append({"x": isl.x, "y": isl.top, "z": isl.z, "hp": int(hp[i]), "char": int(chars[i]), "ammo": ammo, "weapon": 0,
+			"pow": int(pw[i]), "armor": int(arm[i])})
 		aim.append([0, 150])
 	turn = 0
 	winner = -1
@@ -245,7 +251,7 @@ func _hit_at(q: Vector3, s: Dictionary, wpn: Dictionary, real: bool) -> Dictiona
 			continue
 		var zone := zone_at(i, q)
 		if zone != "":
-			var dmg := int(roundf(float(wpn.dmg) * float(ZONE_MULT[zone])))
+			var dmg := damage(int(s.owner), i, wpn, zone)
 			if real:
 				f.hp = maxi(0, f.hp - dmg)
 				last_hit = {"f": i, "zone": zone, "dmg": dmg}
@@ -399,12 +405,19 @@ func _miss(r: Dictionary, j: int, target: Vector3) -> float:
 		return 500.0
 	return target.distance_to(r.p) + (20.0 if r.out else 0.0)
 
+## Damage of a throw by fighter a with weapon wpn landing on fighter b's zone (shop upgrades included).
+func damage(a: int, b: int, wpn: Dictionary, zone: String) -> int:
+	var pw: float = float(fighters[a].get("pow", 100)) / 100.0 if a >= 0 and a < fighters.size() else 1.0
+	var arm: float = float(fighters[b].get("armor", 0)) / 100.0
+	return maxi(1, int(roundf(float(wpn.dmg) * float(ZONE_MULT[zone]) * pw * (1.0 - arm))))
+
 # ---------- save / load / online ----------
 
 func snapshot() -> Dictionary:
 	var fs: Array = []
 	for f in fighters:
-		fs.append({"x": f.x, "y": f.y, "z": f.z, "hp": f.hp, "char": f.char, "ammo": (f.ammo as Array).duplicate(), "weapon": f.weapon})
+		fs.append({"x": f.x, "y": f.y, "z": f.z, "hp": f.hp, "char": f.char, "ammo": (f.ammo as Array).duplicate(), "weapon": f.weapon,
+			"pow": f.get("pow", 100), "armor": f.get("armor", 0)})
 	return {"islands": islands.duplicate(true), "blocks": blocks.duplicate(true), "style": style, "fighters": fs,
 		"turn": turn, "winner": winner, "seed": seed_, "throws": throws, "wind": wind, "wind_max": wind_max}
 
@@ -428,7 +441,8 @@ func from_dict(d: Dictionary) -> bool:
 		var ammo: Array = []
 		for a in f.ammo:
 			ammo.append(int(a))
-		fighters.append({"x": float(f.x), "y": float(f.y), "z": float(f.z), "hp": int(f.hp), "char": int(f.char), "ammo": ammo, "weapon": int(f.weapon)})
+		fighters.append({"x": float(f.x), "y": float(f.y), "z": float(f.z), "hp": int(f.hp), "char": int(f.char), "ammo": ammo, "weapon": int(f.weapon),
+			"pow": int(f.get("pow", 100)), "armor": int(f.get("armor", 0))})
 	turn = int(d.get("turn", 0))
 	winner = int(d.get("winner", -1))
 	seed_ = int(d.get("seed", 0))

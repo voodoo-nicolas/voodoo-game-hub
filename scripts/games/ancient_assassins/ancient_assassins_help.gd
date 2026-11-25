@@ -15,6 +15,8 @@ const HOW := [
 	"Weapons, at the bottom: 🗡 Javelin (34, unlimited), 🪓 Throwing Axe (46, 2 per fight; heavy, the wind barely moves it, but it doesn't fly far) and ⭕ Chakram (26, 3 per fight; fast and flat, the wind throws it around).",
 	"Columns and rocks block throws; a throw that falls short lands in the water.",
 	"📜 Contracts: 8 rivals in a row, each tougher than the last, with stars for the health you keep. vs Computer: Easy, Normal, Hard or Expert. 2 Players: pass the phone each turn. 🌐 Online: play a friend on another phone.",
+	"After you let go, the camera follows your weapon and stays where it lands, so you see whether it hit.",
+	"🛒 Shop (on the Landing, under your assassin): every fight pays ⭐ stars (more for harder levels and flawless wins). Spend them on outfits, hair dyes and upgrades: sharper edges, a tougher hide, a fuller quiver. Upgrades count against the computer only.",
 	"⏸ pauses; Resume on the Landing carries on the same fight (not online fights).",
 ]
 const TIPS := [
