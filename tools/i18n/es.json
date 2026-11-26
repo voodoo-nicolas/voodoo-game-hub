@@ -13758,5 +13758,20 @@
  "Second Chance": "Segunda oportunidad",
  "Take back your lock-in and shoot again.": "Retira tu confirmación y vuelve a sacar la foto.",
  "With friends (2-8 phones): everyone hunts the same colour. The first close lock-in scores ⚡ First Close (+1) and starts a 30-second countdown; the closest photo scores 🥇 Closest (+1). Darkest / Lightest / Most vivid rounds give the winner 2.": "Con amigos (2-8 teléfonos): todos buscan el mismo color. La primera confirmación muy cercana gana ⚡ Primero cerca (+1) y empieza una cuenta atrás de 30 segundos; la foto más parecida gana 🥇 Más cercana (+1). Las rondas de Lo más oscuro / claro / intenso le dan 2 al ganador.",
- "🛟 Helps (solo): Hot / Cold, Peek, Second Chance and More Time. You have 3; one comes back 24 hours after you last used one.": "🛟 Ayudas (solo): Frío / caliente, Espiar, Segunda oportunidad y Más tiempo. Tienes 3; una vuelve 24 horas después de usar la última."
+ "🛟 Helps (solo): Hot / Cold, Peek, Second Chance and More Time. You have 3; one comes back 24 hours after you last used one.": "🛟 Ayudas (solo): Frío / caliente, Espiar, Segunda oportunidad y Más tiempo. Tienes 3; una vuelve 24 horas después de usar la última.",
+ "A person in it, or something that shouldn't be here? Tap 🚩.": "¿Sale una persona o algo que no debería estar? Toca 🚩.",
+ "Best find? Pick your favourite.": "¿El mejor hallazgo? Elige tu favorito.",
+ "Counts": "Vale",
+ "Find it and 📸. No people in the photo, please!": "Encuéntralo y 📸. ¡Sin personas en la foto, por favor!",
+ "Find: %s": "Encuentra: %s",
+ "Flag": "Marcar",
+ "In Mixed and Chaos: find a teacup, something round, a pentagon... The players vote whether each photo counts.": "En Mixto y Caos: encuentra una taza de té, algo redondo, un pentágono... Los jugadores votan si cada foto vale.",
+ "Is this %s?": "¿Esto es %s?",
+ "No other photo counts this round.": "Ninguna otra foto vale en esta ronda.",
+ "Object rounds": "Rondas de objetos",
+ "Object rounds (with friends): find a thing, a shape or something special (\"a teacup\", \"a pentagon\", \"something older than you\"). The phone can't tell what's in a photo, so the others vote Yes or No on each one. 🔎 First Find (+1) = the first photo that counts; 😂 Best Find (+1) = the favourite.": "Rondas de objetos (con amigos): encuentra una cosa, una forma o algo especial (\"una taza de té\", \"un pentágono\", \"algo más viejo que tú\"). El teléfono no sabe qué hay en una foto, así que los demás votan Sí o No en cada una. 🔎 Primer hallazgo (+1) = la primera foto que vale; 😂 Mejor hallazgo (+1) = la favorita.",
+ "The others are voting on your photo.": "Los demás están votando tu foto.",
+ "The others will vote on it. Lock it in or retake.": "Los demás la van a votar. Confírmala o repite la foto.",
+ "Voted down": "Rechazada",
+ "Voted. Waiting for the others…": "Votaste. Esperando a los demás…"
 }

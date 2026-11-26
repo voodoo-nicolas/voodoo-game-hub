@@ -22,6 +22,7 @@ func _initialize() -> void:
 	_plans()
 	_room()
 	_powers()
+	_objects()
 	print("hue_hunt: %s" % ("OK" if fails == 0 else "%d FAILED" % fails))
 	quit(1 if fails else 0)
 
@@ -385,3 +386,82 @@ func _powers() -> void:
 	for k in 40:
 		ok(P.pick(k, 3) in P.ids(), "pick is a known power-up")
 	ok(P.pick(9, 4) == P.pick(9, 4), "pick is deterministic")
+
+
+func _objects() -> void:
+	const R = preload("res://scripts/games/hue_hunt/hue_hunt_room.gd")
+	const J = preload("res://scripts/games/hue_hunt/hue_hunt_judge.gd")
+	ok(E.objects().size() >= 100, "100+ prompts: %d" % E.objects().size())
+	var themes := {}
+	for o in E.objects():
+		themes[o[4]] = true
+		ok(o[2] != "", "ES prompt " + o[0])
+	ok(themes.has("object") and themes.has("shape") and themes.has("property"), "three themes")
+	ok(E.object_text("teacup", true) == "una taza de té", "ES prompt lookup")
+	ok(J.judge("teacup", null, {"2": true, "3": false}).valid, "judge: tie passes")
+	ok(not J.judge("teacup", null, {"2": false, "3": false, "4": true}).valid, "judge: majority no fails")
+	ok(J.judge("teacup", null, {}).valid, "judge: no voters passes")
+	# a match with object rounds: mixed puts them in (about 1 in 4)
+	var seen := false
+	for sd in 20:
+		var m := R.new_match({"rounds": 10, "selection": "mixed"}, [1, 2, 3], sd, 0.0)
+		for sp in m.plan:
+			if sp.type == E.T_OBJECT:
+				seen = true
+				ok(sp.prompt != "" and int(sp.taps) == 0, "object spec has a prompt, no taps")
+	ok(seen, "mixed multiplayer has object rounds")
+	var off := R.new_match({"rounds": 10, "selection": "chaos", "objects": false}, [1, 2], 4, 0.0)
+	for sp in off.plan:
+		ok(sp.type != E.T_OBJECT, "objects off: none")
+	# play one object round with 4 players
+	var st := R.new_match({"rounds": 1, "selection": "classic"}, [1, 2, 3, 4], 9, 0.0)
+	st.plan[0] = E.make_spec(E.T_OBJECT, [], {"prompt": "teacup"})
+	st = _wire(st)
+	ok(R.lock_in(st, 3, [], 5.0), "P3 finds (first)")
+	ok(R.lock_in(st, 1, [], 8.0), "P1 finds")
+	ok(R.lock_in(st, 2, [], 9.0), "P2 finds")
+	ok(float(st.first_close_t) < 0.0, "object lock-ins don't start the countdown")
+	R.tick(st, [1, 2, 3, 4], 10.0)
+	ok(st.phase == "round", "P4 still hunting")
+	R.tick(st, [1, 2, 3, 4], float(st.deadline))
+	ok(st.phase == "vote" and st.vote_order == ["3", "1", "2"], "vote earliest first: %s" % str(st.vote_order))
+	ok(R.voting_on(st) == "3", "voting on P3")
+	ok(not R.vote(st, 3, 3, true), "no vote on own photo")
+	ok(not R.vote(st, 2, 1, true), "only the current photo")
+	ok(R.vote(st, 1, 3, false) and R.vote(st, 2, 3, false) and R.vote(st, 4, 3, true), "P3 voted down 2-1")
+	ok(not R.vote(st, 4, 3, false), "one vote each")
+	st = _wire(st)
+	ok(R.tick(st, [1, 2, 3, 4], 20.0) and R.voting_on(st) == "1", "everyone voted: next photo at once")
+	R.vote(st, 2, 1, true)
+	R.vote(st, 3, 1, false)
+	ok(R.tick(st, [1, 2, 3, 4], 20.0 + R.VOTE_TIME) and R.voting_on(st) == "2", "time up: next photo (P4 didn't vote)")
+	R.vote(st, 1, 2, true)
+	R.vote(st, 3, 2, true)
+	R.vote(st, 4, 2, true)
+	R.tick(st, [1, 2, 3, 4], 31.0)
+	ok(st.phase == "best", "best-find vote")
+	ok(not R.best_vote(st, 1, 3), "can't pick an invalid photo")
+	ok(not R.best_vote(st, 1, 1), "can't pick your own")
+	ok(R.best_vote(st, 1, 2) and R.best_vote(st, 3, 2) and R.best_vote(st, 4, 1), "best votes")
+	ok(not R.best_vote(st, 4, 2), "one best vote each")
+	ok(not R.best_vote(st, 2, 2), "P2 can't vote for P2")
+	ok(R.best_vote(st, 2, 1), "P2 votes P1")
+	R.tick(st, [1, 2, 3, 4], 32.0)
+	ok(st.phase == "reveal", "reveal after the best vote")
+	var aw := {}
+	for a in st.awards:
+		aw[a.award] = str(a.player)
+	ok(aw.get("first_find") == "1", "first find = earliest VALID (P1, not voted-down P3): %s" % str(aw))
+	ok(aw.get("best_find") == "1", "best find: P1 2 votes vs P2 2 votes -> earlier P1: %s" % str(aw))
+	# flag during the vote removes a photo too
+	var f := R.new_match({"rounds": 1}, [1, 2, 3], 2, 0.0)
+	f.plan[0] = E.make_spec(E.T_OBJECT, [], {"prompt": "spoon"})
+	R.lock_in(f, 2, [], 1.0)
+	R.tick(f, [1, 2, 3], float(f.deadline))
+	ok(R.flag(f, 1, 2) and R.flag(f, 3, 2), "flags during the vote")
+	ok(not R.valid(f, "2"), "flagged photo is not valid")
+	# nobody locked in an object round: straight to reveal
+	var e := R.new_match({"rounds": 1}, [1, 2], 3, 0.0)
+	e.plan[0] = E.make_spec(E.T_OBJECT, [], {"prompt": "spoon"})
+	R.tick(e, [1, 2], float(e.deadline))
+	ok(e.phase == "reveal" and e.awards.is_empty(), "empty object round -> reveal")

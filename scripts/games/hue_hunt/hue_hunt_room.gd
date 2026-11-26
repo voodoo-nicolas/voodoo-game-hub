@@ -19,28 +19,35 @@ extends RefCounted
 ##   awards     last round's awards [{player, award, points}]
 ##   reveal_end host s when the reveal closes by itself
 ##   now        host s when this state was sent (clients derive their offset)
+##   vote_order, vote_i, votes {"n": {"voter": yes}}, best {"voter": n},
+##   vote_end, best_end      Object rounds: the players' vote (hue_hunt_judge.gd)
+##   powers, granted, used, active, peeks   power-ups (hue_hunt_powerups.gd)
 ## Thumbnails never go in the state: they travel once as their own event and
 ## are dropped after the reveal.
 
 const E = preload("res://scripts/games/hue_hunt/hue_hunt_engine.gd")
 const P = preload("res://scripts/games/hue_hunt/hue_hunt_powerups.gd")
+const Judge = preload("res://scripts/games/hue_hunt/hue_hunt_judge.gd")
 
 const REVEAL_TIME := 25.0
-const DEFAULTS := {"rounds": 10, "selection": "classic", "place": "local", "difficulty": "normal", "powerups": true}
+const VOTE_TIME := 10.0     # per photo: is this a teacup?
+const BEST_TIME := 15.0     # the best-find vote
+const DEFAULTS := {"rounds": 10, "selection": "classic", "place": "local", "difficulty": "normal", "powerups": true, "objects": true}
 
 
 static func new_match(settings: Dictionary, seats: Array, seed_v: int, now: float) -> Dictionary:
 	var s := DEFAULTS.duplicate()
 	s.merge(settings, true)
 	var plan := E.plan_match({"seed": seed_v, "rounds": int(s.rounds), "selection": s.selection,
-		"solo": false, "objects": [], "place": s.place})
+		"solo": false, "objects": E.object_ids() if s.objects else [], "place": s.place})
 	var scores := {}
 	for n in seats:
 		scores[str(n)] = 0
 	var st := {"ver": 0, "match_id": seed_v, "phase": "round", "settings": s, "plan": plan, "round_i": 0, "seats": seats.duplicate(),
 		"scores": scores, "lockins": {}, "flags": {}, "awards": [], "first_close_t": -1.0,
 		"started": now, "deadline": 0.0, "reveal_end": 0.0, "now": now,
-		"powers": {}, "granted": {}, "used": {}, "active": {}, "peeks": {}}
+		"powers": {}, "granted": {}, "used": {}, "active": {}, "peeks": {},
+		"vote_order": [], "vote_i": 0, "votes": {}, "best": {}, "vote_end": 0.0, "best_end": 0.0}
 	st.deadline = E.round_deadline(plan[0], now, -1.0)
 	if s.powerups:
 		for n in seats:
@@ -159,10 +166,34 @@ static func tick(st: Dictionary, present: Array, now: float) -> bool:
 					if not st.lockins.has(str(n)):
 						all_in = false
 			if now >= float(st.deadline) or (anyone and all_in):
-				st.phase = "reveal"
-				st.reveal_end = now + REVEAL_TIME
 				st.flags = {}
-				st.awards = resolve(st)
+				if spec(st).judge == "vote" and not st.lockins.is_empty():
+					_start_votes(st, now)
+				else:
+					_to_reveal(st, now)
+				_bump(st)
+				return true
+		"vote":
+			var cur := str(st.vote_order[int(st.vote_i)])
+			var done := true
+			for n in present:
+				if str(n) != cur and st.scores.has(str(n)) and not st.votes.get(cur, {}).has(str(n)):
+					done = false
+			if now >= float(st.vote_end) or done:
+				st.vote_i = int(st.vote_i) + 1
+				if int(st.vote_i) >= st.vote_order.size():
+					_start_best(st, now)
+				else:
+					st.vote_end = now + VOTE_TIME
+				_bump(st)
+				return true
+		"best":
+			var all_best := true
+			for n in present:
+				if st.scores.has(str(n)) and not st.best.has(str(n)) and _best_choices(st, int(n)).size() > 0:
+					all_best = false
+			if now >= float(st.best_end) or all_best:
+				_to_reveal(st, now)
 				_bump(st)
 				return true
 		"reveal":
@@ -171,14 +202,95 @@ static func tick(st: Dictionary, present: Array, now: float) -> bool:
 	return false
 
 
-## The awards for the current round, given the flags so far.
+static func _to_reveal(st: Dictionary, now: float) -> void:
+	st.phase = "reveal"
+	st.reveal_end = now + REVEAL_TIME
+	st.awards = resolve(st)
+
+
+# ---------- Object rounds: the players judge (hue_hunt_judge.gd) ----------
+
+## One photo at a time, earliest lock-in first, VOTE_TIME each.
+static func _start_votes(st: Dictionary, now: float) -> void:
+	var keys: Array = st.lockins.keys()
+	keys.sort_custom(func(a, b): return float(st.lockins[a].t) < float(st.lockins[b].t))
+	st.phase = "vote"
+	st.vote_order = keys
+	st.vote_i = 0
+	st.votes = {}
+	st.best = {}
+	st.vote_end = now + VOTE_TIME
+
+
+static func _start_best(st: Dictionary, now: float) -> void:
+	st.phase = "best"
+	st.best_end = now + BEST_TIME
+	var anyone := false
+	for k in st.scores:
+		if _best_choices(st, int(k)).size() > 0:
+			anyone = true
+	if not anyone:
+		_to_reveal(st, now)
+
+
+## The photo being voted on now ("" when not voting).
+static func voting_on(st: Dictionary) -> String:
+	if st.phase != "vote":
+		return ""
+	return str(st.vote_order[int(st.vote_i)])
+
+
+## "Is this a teacup?" -- yes / no on the current photo; not on your own.
+static func vote(st: Dictionary, voter: int, target: int, yes: bool) -> bool:
+	var key := str(target)
+	if voting_on(st) != key or voter == target or not st.scores.has(str(voter)):
+		return false
+	var v: Dictionary = st.votes.get(key, {})
+	if v.has(str(voter)):
+		return false
+	v[str(voter)] = yes
+	st.votes[key] = v
+	_bump(st)
+	return true
+
+
+static func valid(st: Dictionary, key: String) -> bool:
+	return bool(Judge.judge(str(spec(st).prompt), null, st.get("votes", {}).get(key, {})).valid) and not flagged(st, int(key))
+
+
+## Photos n may pick as the best find: valid ones, not n's own.
+static func _best_choices(st: Dictionary, n: int) -> Array:
+	var out := []
+	for k in st.lockins:
+		if str(k) != str(n) and valid(st, str(k)):
+			out.append(str(k))
+	return out
+
+
+static func best_vote(st: Dictionary, voter: int, target: int) -> bool:
+	if st.phase != "best" or st.best.has(str(voter)) or not _best_choices(st, voter).has(str(target)):
+		return false
+	st.best[str(voter)] = target
+	_bump(st)
+	return true
+
+
+## The awards for the current round, given the flags (and votes) so far.
 static func resolve(st: Dictionary) -> Array:
 	var voters: int = maxi(0, st.seats.size() - 1)
 	var list := []
+	var best_count := {}
+	for v in st.get("best", {}).values():
+		best_count[str(int(v))] = int(best_count.get(str(int(v)), 0)) + 1
 	for key in st.lockins:
 		var e: Dictionary = st.lockins[key].duplicate()
 		e.player = key
 		e.flagged = E.flag_majority(st.flags.get(key, []).size(), voters)
+		if spec(st).judge == "vote":
+			var j := Judge.judge(str(spec(st).prompt), null, st.get("votes", {}).get(key, {}))
+			e.yes = j.yes
+			e.no = j.no
+			e.best_votes = int(best_count.get(str(key), 0))
 		list.append(e)
 	return E.resolve(spec(st), list).awards
 
@@ -187,7 +299,7 @@ static func resolve(st: Dictionary) -> Array:
 ## flag themselves or vote twice. Awards are worked out again at once.
 static func flag(st: Dictionary, voter: int, target: int) -> bool:
 	var key := str(target)
-	if st.phase != "reveal" or voter == target or not st.lockins.has(key) or not st.scores.has(str(voter)):
+	if st.phase not in ["reveal", "vote", "best"] or voter == target or not st.lockins.has(key) or not st.scores.has(str(voter)):
 		return false
 	var votes: Array = st.flags.get(key, [])
 	for v in votes:
@@ -195,7 +307,8 @@ static func flag(st: Dictionary, voter: int, target: int) -> bool:
 			return false
 	votes.append(voter)
 	st.flags[key] = votes
-	st.awards = resolve(st)
+	if st.phase == "reveal":
+		st.awards = resolve(st)
 	_bump(st)
 	return true
 
@@ -217,6 +330,10 @@ static func end_reveal(st: Dictionary, now: float) -> bool:
 		st.phase = "round"
 		st.lockins = {}
 		st.flags = {}
+		st.votes = {}
+		st.best = {}
+		st.vote_order = []
+		st.vote_i = 0
 		st.first_close_t = -1.0
 		st.started = now
 		st.deadline = E.round_deadline(spec(st), now, -1.0)

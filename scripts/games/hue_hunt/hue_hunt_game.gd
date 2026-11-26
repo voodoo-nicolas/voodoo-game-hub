@@ -498,6 +498,8 @@ func _fill_target() -> void:
 		E.T_OPPOSITE:
 			target_name.text = tr("The opposite of %s") % names[0]
 			_add_swatch(Color.html(E.color_by_id(sp.colors[0])[3]))
+		E.T_OBJECT:
+			target_name.text = "📦 " + tr("Find: %s") % E.object_text(str(sp.prompt), _es())
 		E.T_SUPERLATIVE:
 			match sp.superlative:
 				"darkest":
@@ -529,7 +531,7 @@ func _show_phase(p: String) -> void:
 	next_btn.visible = p == "result" or (p in ["reveal", "final"] and mp and _am_acting_host())
 	frozen.visible = p in ["frozen", "preview", "result", "waiting"]
 	result_box.visible = p in ["result", "end"]
-	reveal_scroll.visible = p in ["reveal", "final"]
+	reveal_scroll.visible = p in ["reveal", "final", "vote", "best"]
 	if p == "reveal":
 		next_btn.text = tr("Next") + " ▶"
 	elif p == "final":
@@ -538,7 +540,10 @@ func _show_phase(p: String) -> void:
 	marks.queue_redraw()
 	match p:
 		"live":
-			hint.text = tr("Point the camera at something that matches, then 📸.")
+			if spec().get("judge", "") == "vote":
+				hint.text = tr("Find it and 📸. No people in the photo, please!")
+			else:
+				hint.text = tr("Point the camera at something that matches, then 📸.")
 		"frozen":
 			if int(spec().taps) == 1:
 				hint.text = tr("Tap the spot to sample.")
@@ -629,7 +634,10 @@ func _on_shutter() -> void:
 	samples = []
 	cam.stop()
 	cam.visible = false
-	_show_phase("frozen")
+	if int(spec().get("taps", 1)) == 0:
+		_show_preview()   # Object rounds: the photo itself is judged, no sample
+	else:
+		_show_phase("frozen")
 
 
 func _on_retake() -> void:
@@ -684,7 +692,9 @@ func _draw_marks() -> void:
 func _show_preview() -> void:
 	_show_phase("preview")
 	var p := E.solo_pct(spec(), samples)
-	if spec().judge == "superlative":
+	if spec().judge == "vote":
+		hint.text = tr("The others will vote on it. Lock it in or retake.")
+	elif spec().judge == "superlative":
 		hint.text = tr("Your sample: %d%%. Lock it in or retake.") % p
 	else:
 		hint.text = tr("Your sample: %d%% match. Lock it in or retake.") % p
@@ -1048,6 +1058,9 @@ func _open_mp_setup() -> void:
 	body.add_child(home.section("Power-ups"))
 	body.add_child(home.choice_row(["On", "Off"], 0 if mp_settings.get("powerups", true) else 1, _pick_powerups))
 	body.add_child(_small(tr("Everyone starts with one; whoever is last after a round gets another (3 at most per match).")))
+	body.add_child(home.section("Object rounds"))
+	body.add_child(home.choice_row(["On", "Off"], 0 if mp_settings.get("objects", true) else 1, _pick_objects))
+	body.add_child(_small(tr("In Mixed and Chaos: find a teacup, something round, a pentagon... The players vote whether each photo counts.")))
 	var go := _big_button("▶ " + tr("Open the table"), _host_now.bind(parts[0]))
 	go.modulate = Color(0.6, 1.0, 0.6)
 	body.add_child(go)
@@ -1072,6 +1085,10 @@ func _pick_rounds(i: int) -> void:
 
 func _pick_selection(i: int) -> void:
 	mp_settings.selection = ["classic", "mixed", "chaos"][i]
+
+
+func _pick_objects(i: int) -> void:
+	mp_settings.objects = i == 0
 
 
 func _pick_powerups(i: int) -> void:
@@ -1184,6 +1201,14 @@ func _on_remote_event(event: String, from: int, p: Dictionary) -> void:
 	match event:
 		"state":
 			_take_state(p)
+		"vote":
+			if _am_acting_host() and Room.vote(st, from, int(p.get("target", 0)), bool(p.get("yes", false))):
+				_broadcast()
+				_draw_state()
+		"best":
+			if _am_acting_host() and Room.best_vote(st, from, int(p.get("target", 0))):
+				_broadcast()
+				_draw_state()
 		"power":
 			if _am_acting_host() and Room.use_power(st, from, str(p.get("id", "")), _now()):
 				_broadcast()
@@ -1224,7 +1249,9 @@ func _mp_lock() -> void:
 		labs.append([s.x, s.y, s.z])
 	var me: int = tbl.my_player
 	# Thumbnail: 128 px JPEG of the frozen photo, sent once, dropped after the reveal.
-	var jpg: PackedByteArray = load(CAM_PATH).thumbnail_jpg(photo, 128, 0.7)
+	# Object rounds send 256 px so the others can tell what it is.
+	var side := 256 if spec().get("judge", "") == "vote" else 128
+	var jpg: PackedByteArray = load(CAM_PATH).thumbnail_jpg(photo, side, 0.7)
 	var b64 := Marshalls.raw_to_base64(jpg)
 	_store_thumb(str(me), b64)
 	tbl.send_event("thumb", {"n": me, "jpg": b64})
@@ -1265,7 +1292,11 @@ func _mp_process() -> void:
 		left = float(st.deadline) - _now()
 	elif st.phase == "reveal":
 		left = float(st.reveal_end) - _now()
-	timer_label.text = ("%d" % maxi(0, ceili(left))) if st.phase in ["round", "reveal"] else ""
+	elif st.phase == "vote":
+		left = float(st.vote_end) - _now()
+	elif st.phase == "best":
+		left = float(st.best_end) - _now()
+	timer_label.text = ("%d" % maxi(0, ceili(left))) if st.phase in ["round", "reveal", "vote", "best"] else ""
 	if st.phase == "round" and float(st.first_close_t) >= 0.0 and phase in ["live", "frozen", "preview"]:
 		hint.text = tr("Someone is close! %d s left.") % maxi(0, ceili(left))
 
@@ -1274,7 +1305,7 @@ func _mp_process() -> void:
 func _draw_state(soft: bool = false) -> void:
 	if st.is_empty():
 		return
-	var key := "%s:%d:%s" % [str(st.started), int(st.round_i), str(st.phase)]
+	var key := "%s:%d:%s:%d" % [str(st.started), int(st.round_i), str(st.phase), int(st.get("vote_i", 0))]
 	var changed := key != shown_phase
 	shown_phase = key
 	match st.phase:
@@ -1291,6 +1322,15 @@ func _draw_state(soft: bool = false) -> void:
 				if phase == "waiting" and not st.lockins.has(str(tbl.my_player)):
 					photo = null   # Second Chance: shoot again
 					_start_round_mp()
+		"vote", "best":
+			if cam:
+				cam.stop()
+			_show_phase(st.phase)
+			bar_top.visible = true
+			if st.phase == "vote":
+				_draw_vote()
+			else:
+				_draw_best()
 		"reveal":
 			if cam:
 				cam.stop()
@@ -1322,6 +1362,10 @@ func _award_icons(key: String) -> String:
 					out += " 🥇"
 				"superlative":
 					out += " 🏆"
+				"first_find":
+					out += " 🔎"
+				"best_find":
+					out += " 😂"
 	return out
 
 
@@ -1387,7 +1431,11 @@ func _reveal_row(key: String) -> HBoxContainer:
 		name_l.text = "%s\n🚩 %s" % [who, tr("Flagged: out this round")]
 		th.texture = null
 	else:
-		name_l.text = "%s\n%d%%%s" % [who, int(e.pct), _award_icons(key)]
+		if spec().judge == "vote":
+			var ok_find := Room.valid(st, key)
+			name_l.text = "%s\n%s%s" % [who, ("✅ " + tr("Counts")) if ok_find else ("❌ " + tr("Voted down")), _award_icons(key)]
+		else:
+			name_l.text = "%s\n%d%%%s" % [who, int(e.pct), _award_icons(key)]
 	row.add_child(name_l)
 	if int(key) != tbl.my_player and not out and st.phase == "reveal":
 		var votes: Array = st.flags.get(key, [])
@@ -1489,3 +1537,114 @@ func _use_power(id: String) -> void:
 	if id == "hot_cold":
 		_meter_t = 0.0
 		hint.text = tr("Hot / Cold: aim the middle of the screen.")
+
+
+# ---------- Object rounds: the players' vote (phase 6) ----------
+
+func _draw_vote() -> void:
+	for ch in reveal_box.get_children():
+		ch.queue_free()
+	var key := Room.voting_on(st)
+	if key == "":
+		return
+	var prompt := E.object_text(str(spec().prompt), _es())
+	var q := Label.new()
+	q.text = tr("Is this %s?") % prompt
+	q.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	q.add_theme_font_size_override("font_size", 34)
+	reveal_box.add_child(q)
+	reveal_box.add_child(_small("%s · %d / %d" % [tbl.name_of(int(key)), int(st.vote_i) + 1, st.vote_order.size()]))
+	var pic := TextureRect.new()
+	pic.custom_minimum_size = Vector2(0, 380)
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	pic.texture = thumbs.get(key)
+	reveal_box.add_child(pic)
+	var out := Room.flagged(st, int(key))
+	if out:
+		pic.texture = null
+		reveal_box.add_child(_small("🚩 " + tr("Flagged: out this round")))
+	var votes: Dictionary = st.votes.get(key, {})
+	var me := str(tbl.my_player)
+	if key == me:
+		reveal_box.add_child(_small(tr("The others are voting on your photo.")))
+	elif votes.has(me):
+		reveal_box.add_child(_small(tr("Voted. Waiting for the others…")))
+	else:
+		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 16)
+		var yes := _big_button("👍 " + tr("Yes"), _on_vote.bind(int(key), true))
+		yes.modulate = Color(0.6, 1.0, 0.6)
+		row.add_child(yes)
+		row.add_child(_big_button("👎 " + tr("No"), _on_vote.bind(int(key), false)))
+		reveal_box.add_child(row)
+	if key != me and not out:
+		reveal_box.add_child(_small(tr("A person in it, or something that shouldn't be here? Tap 🚩.")))
+		var fb := _big_button("🚩 " + tr("Flag"), _on_flag.bind(int(key)))
+		for v in st.flags.get(key, []):
+			if int(v) == tbl.my_player:
+				fb.disabled = true
+		reveal_box.add_child(fb)
+
+
+func _on_vote(target: int, yes: bool) -> void:
+	_sfx("tap")
+	if _am_acting_host():
+		if Room.vote(st, tbl.my_player, target, yes):
+			_broadcast()
+			_draw_state()
+	else:
+		tbl.send_event("vote", {"target": target, "yes": yes})
+		# Shown as voted at once; the host's next state confirms it.
+		var v: Dictionary = st.votes.get(str(target), {})
+		v[str(tbl.my_player)] = yes
+		st.votes[str(target)] = v
+		_draw_vote()
+
+
+func _draw_best() -> void:
+	for ch in reveal_box.get_children():
+		ch.queue_free()
+	var q := Label.new()
+	q.text = "😂 " + tr("Best find? Pick your favourite.")
+	q.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	q.add_theme_font_size_override("font_size", 32)
+	reveal_box.add_child(q)
+	var me := str(tbl.my_player)
+	var choices := Room._best_choices(st, tbl.my_player)
+	if st.best.has(me):
+		reveal_box.add_child(_small(tr("Voted. Waiting for the others…")))
+		return
+	if choices.is_empty():
+		reveal_box.add_child(_small(tr("No other photo counts this round.")))
+		return
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	reveal_box.add_child(grid)
+	for k in choices:
+		var b := Button.new()
+		b.custom_minimum_size = Vector2(240, 260)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.icon = thumbs.get(k)
+		b.expand_icon = true
+		b.text = tbl.name_of(int(k))
+		b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		b.pressed.connect(_on_best.bind(int(k)))
+		grid.add_child(b)
+
+
+func _on_best(target: int) -> void:
+	_sfx("tap")
+	if _am_acting_host():
+		if Room.best_vote(st, tbl.my_player, target):
+			_broadcast()
+			_draw_state()
+	else:
+		tbl.send_event("best", {"target": target})
+		st.best[str(tbl.my_player)] = target
+		_draw_best()
