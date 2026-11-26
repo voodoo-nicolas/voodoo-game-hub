@@ -515,6 +515,8 @@ fits the game. Purpose: bring players back daily, without ads.
 - Online matches and scored tests never offer helps (they would change someone else's result or the score's
   meaning): Voodoo IQ is exempt. Party games with nothing to help with are exempt too; the exempt list is in
   `tools/hub.py` (`NO_HELPS`) with the reason for each.
+  In-match **power-ups** that every player gets by the match's own rules (Camera Hunter: max 3 per match, extras to
+  trailing players) are game mechanics, not helps, and don't use the kit pool (owner 2026-11-26).
 - Cross-device sync and the anonymous "who sits at 3 / who waits" counter are not built (APP_BUILD_BACKLOG).
 
 ## 18. Cloud progress, level select, no level counts [NEW 2026-11-24, owner]
