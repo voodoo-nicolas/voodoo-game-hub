@@ -13,6 +13,7 @@ const ChessProgress = preload("res://scripts/games/chess/chess_progress.gd")
 const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STANDARDS §18; APK-side, load() guarded
 var cloud: Node = null
 const BoardView = preload("res://scripts/games/chess/chess_board_view.gd")
+const ChessArchive = preload("res://scripts/games/chess/chess_archive.gd")
 const SoundLib = preload("res://scripts/games/chess/sound_lib.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
@@ -36,6 +37,10 @@ const CPU_DELAY := 0.35
 ## (0 = no limit: the clocks count the time each side has used).
 const TIME_CONTROLS := [0, 300, 600, 1800]
 const TIME_NAMES := ["No limit", "5 min", "10 min", "30 min"]
+## [Phase A 2026-11-25] The clock choices now: [seconds each, seconds added
+## after every move]. TIME_CONTROLS above only maps the old saved choice.
+const CLOCK_PRESETS := [[0, 0], [60, 0], [120, 1], [180, 0], [180, 2], [300, 0], [300, 3],
+	[600, 0], [600, 5], [900, 10], [1800, 0], [3600, 0]]
 ## Below this many seconds left a clock turns red and ticks.
 const LOW_TIME := 10.0
 ## Pause before Black answers in a mate-in-two lesson, and before a wrong
@@ -51,6 +56,8 @@ const RESULT_MESSAGES := {
 	"draw_repetition": "Draw — same position 3 times",
 	"timeout": "Out of time!",
 	"draw_timeout": "Draw — out of time, but no mating material left",
+	"resign": "Resigned",
+	"draw_agreed": "Draw agreed",
 }
 
 ## Set before going 🏠 Home from a finished lesson: the Landing then opens
@@ -71,6 +78,24 @@ var dest_map: Dictionary = {}  # Vector2i(dest) -> move dict
 var pending_promotion: Dictionary = {}  # {from, to} awaiting a piece choice
 var san_moves: Array = []  # the game's moves in notation ("e4", "Nf3"...)
 var last_move: Array = []  # [from, to]
+## [Phase A 2026-11-25] The game's moves as UCI ("e2e4"), from start_fen
+## ("" = the usual start): takebacks, PGN and the replay rebuild from these.
+var ucis: Array = []
+var start_fen: String = ""
+## Seconds added to a clock after each of that side's moves.
+var increment: int = 0
+## Takebacks in this game (a game with any gets no rating change or points).
+var takebacks_used: int = 0
+## Online: we offered a draw and wait for the answer.
+var draw_offered := false
+## A tap on the picked piece unpicks it when the finger lifts (so it can be dragged).
+var _deselect_on_release := false
+var action_row: HBoxContainer
+var takeback_btn: Button
+var draw_btn: Button
+var resign_btn: Button
+var flip_btn: Button
+var copy_btn: Button
 
 var board_view  # chess_board_view.gd
 var status_label: Label
@@ -264,6 +289,8 @@ func _build_ui() -> void:
 	board_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	board_view.custom_minimum_size = Vector2(0, 240)
 	board_view.square_pressed.connect(_on_square_pressed)
+	board_view.square_released.connect(_on_square_released)
+	board_view.drag_dropped.connect(_on_drag_dropped)
 	# [2026-11-23] board row: on wide windows the info panels move to a column beside the board.
 	_mid = HBoxContainer.new()
 	_mid.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -292,6 +319,8 @@ func _build_ui() -> void:
 	moves_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	moves_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	moves_scroll.add_child(moves_label)
+
+	_build_action_row(root)
 
 	get_viewport().size_changed.connect(_fit_layout)
 	call_deferred("_fit_layout")
@@ -353,7 +382,7 @@ func _build_home() -> void:
 			{"text": "📚 Lessons", "sub": "The pieces, the rules, checkmate", "action": _open_lessons, "card": true},
 			{"text": "📅 Daily Lesson", "sub": "Three new boards every day", "action": _start_daily},
 		],
-		"more": [["🛒 Shop", HomeKit.BUTTON, _open_shop]],
+		"more": [["📜 My Games", HomeKit.BUTTON, _open_archive], ["🛒 Shop", HomeKit.BUTTON, _open_shop]],
 		"extra": _add_clock_picker,
 		"options": _add_panel_options,
 		"save_path": SAVE_PATH,
@@ -370,13 +399,44 @@ func _build_home() -> void:
 # ---------- setup screens and Options ----------
 
 ## Setup screens: the clock for the next game.
+## [Phase A] 12 presets in rows of 4: "3+2" = 3 minutes each, 2 seconds added per move.
 func _add_clock_picker(box: Control) -> void:
 	box.add_child(home.section("⏱ Clock"))
-	box.add_child(home.choice_row(TIME_NAMES, clampi(progress.clock_index(), 0, TIME_CONTROLS.size() - 1), _on_clock_pick))
-	box.add_child(HomeKit.label(tr("5 min is blitz, 10 min rapid, 30 min classical. Run out of time and you lose. No limit: the clocks just count. Online games have no limit."), 21, HomeKit.DIM, true))
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	var group := ButtonGroup.new()
+	var current := _clock_choice()
+	for i in CLOCK_PRESETS.size():
+		var b := HomeKit.neon_button(_clock_name(i), HomeKit.BUTTON, 24, 58)
+		b.toggle_mode = true
+		b.button_group = group
+		b.button_pressed = i == current
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		home._style_toggle(b, HomeKit.BUTTON)
+		b.pressed.connect(_on_clock_pick.bind(i))
+		grid.add_child(b)
+	box.add_child(grid)
+	box.add_child(HomeKit.label(tr("Minutes each + seconds added after every move. Bullet: 1+0, 2+1. Blitz: 3+0 to 5+3. Rapid: 10+0 to 15+10. Classical: 30 and 60. Run out of time and you lose. No limit: the clocks just count. Online games have no limit."), 21, HomeKit.DIM, true))
+
+func _clock_name(i: int) -> String:
+	var p: Array = CLOCK_PRESETS[i]
+	return tr("No limit") if p[0] == 0 else "%d+%d" % [p[0] / 60, p[1]]
+
+## The picked preset; a choice saved before the presets maps to the same minutes.
+func _clock_choice() -> int:
+	var i: int = progress.clock_preset()
+	if i >= 0 and i < CLOCK_PRESETS.size():
+		return i
+	var secs: int = TIME_CONTROLS[clampi(progress.clock_index(), 0, TIME_CONTROLS.size() - 1)]
+	for k in CLOCK_PRESETS.size():
+		if CLOCK_PRESETS[k][0] == secs and CLOCK_PRESETS[k][1] == 0:
+			return k
+	return 0
 
 func _on_clock_pick(i: int) -> void:
-	progress.set_clock_index(i)
+	progress.set_clock_preset(i)
 
 ## ⚙ Options → Show: each panel around the board on or off.
 func _add_panel_options(body: Control) -> void:
@@ -384,6 +444,9 @@ func _add_panel_options(body: Control) -> void:
 	for key in ChessProgress.PANELS:
 		body.add_child(HomeKit.label(tr(ChessProgress.PANEL_NAMES[key]), 24, HomeKit.WHITE, true))
 		body.add_child(home.choice_row(["On", "Off"], 0 if progress.panel_on(key) else 1, _on_panel_pick.bind(key)))
+	body.add_child(HomeKit.label(tr("⟲ Takebacks"), 24, HomeKit.WHITE, true))
+	body.add_child(home.choice_row(["On", "Off"], 0 if progress.panel_on("takebacks") else 1, _on_panel_pick.bind("takebacks")))
+	body.add_child(HomeKit.label(tr("Takebacks work against the computer and on one phone. A game with a takeback doesn't change your rating or earn points."), 21, HomeKit.DIM, true))
 	body.add_child(HomeKit.label(tr("The evaluation bar shows who stands better (+ for White, − for Black). It is hidden in online games and lessons."), 21, HomeKit.DIM, true))
 
 func _on_panel_pick(i: int, key: String) -> void:
@@ -405,6 +468,8 @@ func _apply_panels() -> void:
 	eval_bar.visible = progress.panel_on("eval") and not lessons and not _is_online()
 	moves_scroll.get_parent().visible = progress.panel_on("moves") and not lessons
 	lesson_panel.visible = lessons
+	if action_row:
+		action_row.visible = not lessons
 	status_label.visible = not lessons
 	board_view.coords = progress.panel_on("coords")
 	_update_info()
@@ -582,12 +647,16 @@ func _new_two_player() -> void:
 	_begin()
 
 ## A fresh game in the current mode, with the clock picked on setup.
-func _begin() -> void:
+func _begin(fen: String = "") -> void:
 	flipped = false
-	clock_limit = TIME_CONTROLS[clampi(progress.clock_index(), 0, TIME_CONTROLS.size() - 1)]
+	var preset: Array = CLOCK_PRESETS[_clock_choice()]
+	clock_limit = preset[0]
+	increment = preset[1] if clock_limit > 0 else 0
+	start_fen = fen
 	started = true
 	_reset_board()
 	_start_music()
+	_maybe_cpu()  # a pasted position with Black (the computer) to move
 
 func _vs_cpu() -> bool:
 	return mode == "cpu" and cpu_level >= 0 and not _is_online()
@@ -754,7 +823,15 @@ func _on_remote_new_game() -> void:
 	_reset_board()
 
 func _reset_board() -> void:
-	engine.reset()
+	if start_fen != "" and ChessEngine.is_valid_fen(start_fen):
+		engine.load_fen(start_fen)
+	else:
+		start_fen = ""
+		engine.reset()
+	ucis = []
+	takebacks_used = 0
+	draw_offered = false
+	_deselect_on_release = false
 	cpu_token += 1
 	cpu_busy = false
 	cpu_timer.stop()
@@ -798,9 +875,9 @@ func _on_square_pressed(r: int, c: int) -> void:
 		return
 
 	if pos == selected:
-		selected = Vector2i(-1, -1)
-		_render()
+		_deselect_on_release = true  # unpicked when the finger lifts, unless it drags
 		return
+	_deselect_on_release = false
 
 	var piece: int = engine.board[r][c]
 	if piece != 0 and engine.owner_of(piece) == engine.current_player:
@@ -828,6 +905,10 @@ func _apply_move(from: Vector2i, to: Vector2i, promotion_piece: int) -> void:
 	if not result.valid:
 		return
 	san_moves.append(san + engine.san_suffix())
+	ucis.append(ChessEngine.uci(from, to, promotion_piece if result.promotes else 0))
+	var mover: int = -engine.current_player
+	if increment > 0 and clock_limit > 0 and not _is_online() and not result.game_over:
+		clocks[mover] += increment
 	if _is_online() and engine.current_player != my_color:  # it was our move
 		online.send_move({"from": [from.x, from.y], "to": [to.x, to.y], "promo": promotion_piece})
 	selected = Vector2i(-1, -1)
@@ -882,6 +963,7 @@ func _online_state() -> Dictionary:
 		"halfmove_clock": engine.halfmove_clock, "position_counts": engine.position_counts,
 		"game_over": engine.game_over, "winner": engine.winner, "result_reason": engine.result_reason,
 		"sans": san_moves,
+		"ucis": ucis,
 	}
 
 func _on_online_started(my_player: int) -> void:
@@ -890,12 +972,18 @@ func _on_online_started(my_player: int) -> void:
 	cpu_level = -1
 	mode = "online"
 	clock_limit = 0
+	increment = 0
+	start_fen = ""
 	started = true
 	home.hide_home()
 	_reset_board()
 	_start_music()
 
 func _on_remote_move(p: Dictionary) -> void:
+	var kind := str(p.get("kind", ""))
+	if kind != "":
+		_on_remote_action(kind, p)
+		return
 	if not game_active or engine.current_player == my_color:
 		return
 	var f: Array = p.get("from", [-1, -1])
@@ -933,6 +1021,11 @@ func _on_remote_state(st: Dictionary) -> void:
 	san_moves = []
 	for s in st.get("sans", []):
 		san_moves.append(str(s))
+	ucis = []
+	for u in st.get("ucis", []):
+		ucis.append(str(u))
+	if ucis.size() != san_moves.size():
+		ucis = []  # an older app's state: PGN and replay then read the notation
 	game_active = not engine.game_over
 	selected = Vector2i(-1, -1)
 	last_move = []
@@ -957,7 +1050,11 @@ func _show_result() -> void:
 	elif decisive:
 		msg += tr("\n%s wins!") % (tr("White") if engine.winner == ChessEngine.WHITE else tr("Black"))
 	result_label.text = msg
-	if just_ended and _vs_cpu():
+	if just_ended:
+		_archive_game()
+	if just_ended and _vs_cpu() and takebacks_used > 0:
+		result_label.text += "\n" + tr("No rating change: takebacks were used.")
+	elif just_ended and _vs_cpu():
 		var score: float = 0.5 if not decisive else (1.0 if engine.winner == ChessEngine.WHITE else 0.0)
 		var change: int = progress.rate(cpu_level, score)
 		result_label.text += "\n" + tr("Rating %d (%s)") % [progress.rating(), ("+%d" % change) if change >= 0 else str(change)]
@@ -979,8 +1076,10 @@ func _show_result() -> void:
 			if decisive:
 				info.celebrate(result_label.text.split("\n")[0])
 			result_label.text += "\n" + info.summary(["White wins", "Black wins"])
-	_set_result_buttons([["Play Again", HomeKit.GO, _on_play_again], ["🏠 Chess Home", HomeKit.BUTTON, _go_home]])
+	_set_result_buttons([["Play Again", HomeKit.GO, _on_play_again], ["▶ Replay", HomeKit.BUTTON, _replay_last],
+		["📋 Copy PGN", HomeKit.BUTTON, _copy_pgn], ["🏠 Chess Home", HomeKit.BUTTON, _go_home]])
 	result_dialog.visible = true
+	_update_actions()
 
 ## Points for the 🛒 Shop, also counted in 📊 Statistics.
 func _earn(pts: int) -> void:
@@ -1051,6 +1150,7 @@ func _render() -> void:
 	board_view.stars = star_squares
 	board_view.queue_redraw()
 	_update_info()
+	_update_actions()
 
 	if not game_active or _in_lesson():
 		return
@@ -1525,6 +1625,7 @@ func _save_game() -> void:
 		"last": [[last_move[0].x, last_move[0].y], [last_move[1].x, last_move[1].y]] if last_move.size() == 2 else [],
 		"clock_limit": clock_limit,
 		"clocks": [clocks[ChessEngine.WHITE], clocks[ChessEngine.BLACK]],
+		"ucis": ucis, "start_fen": start_fen, "increment": increment, "takebacks": takebacks_used,
 	})
 
 func _load_saved_game() -> bool:
@@ -1575,6 +1676,15 @@ func _load_saved_game() -> bool:
 	if last.size() == 2:
 		last_move = [Vector2i(int(last[0][0]), int(last[0][1])), Vector2i(int(last[1][0]), int(last[1][1]))]
 	clock_limit = int(data.get("clock_limit", 0))
+	increment = int(data.get("increment", 0))
+	start_fen = str(data.get("start_fen", ""))
+	takebacks_used = int(data.get("takebacks", 0))
+	draw_offered = false
+	ucis = []
+	for u in data.get("ucis", []):
+		ucis.append(str(u))
+	if ucis.size() != san_moves.size():
+		ucis = []  # a save from before Phase A: no takebacks in it
 	var saved_clocks: Array = data.get("clocks", [])
 	_reset_clocks()
 	if saved_clocks.size() == 2:
@@ -1659,6 +1769,484 @@ class EvalBar extends Control:
 		var on_white: bool = white_ahead
 		draw_string(font, Vector2(x, size.y / 2.0 + font.get_ascent(fs) * 0.38), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs,
 			Color(0.1, 0.1, 0.1) if on_white else Color(0.95, 0.93, 0.88))
+
+# ---------- Phase A (2026-11-25): game actions, takeback, resign / draw, copy, My Games, replay ----------
+
+const BRAND_PATH := "res://scripts/common/brand.gd"
+
+## The row under the board: ⟲ Undo, ½ Draw, 🏳 Resign, ⇅ Flip, 📋 Copy.
+func _build_action_row(root: Control) -> void:
+	action_row = HBoxContainer.new()
+	action_row.add_theme_constant_override("separation", 8)
+	root.add_child(action_row)
+	takeback_btn = _action_button("⟲ Undo", _on_takeback)
+	draw_btn = _action_button("½ Draw", _on_draw)
+	resign_btn = _action_button("🏳 Resign", _on_resign)
+	flip_btn = _action_button("⇅ Flip", _on_flip)
+	copy_btn = _action_button("📋 Copy", _on_copy)
+
+func _action_button(text: String, cb: Callable) -> Button:
+	var b := HomeKit.neon_button(tr(text), HomeKit.BUTTON, 20, 52)
+	b.custom_minimum_size.x = 0
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.clip_text = true
+	b.pressed.connect(cb)
+	action_row.add_child(b)
+	return b
+
+func _update_actions() -> void:
+	if action_row == null or takeback_btn == null:
+		return
+	var playing: bool = game_active and started and not _in_lesson()
+	takeback_btn.visible = (mode == "cpu" or mode == "local") and progress.panel_on("takebacks")
+	takeback_btn.disabled = not _can_takeback()
+	draw_btn.disabled = not playing or draw_offered
+	resign_btn.disabled = not playing
+
+# --- picking and dragging ---
+
+## The finger lifted on the piece it pressed without dragging: a second tap
+## on the picked piece unpicks it.
+func _on_square_released(r: int, c: int) -> void:
+	if _deselect_on_release and Vector2i(r, c) == selected:
+		_deselect_on_release = false
+		selected = Vector2i(-1, -1)
+		_render()
+
+## The picked piece was dragged to `to`: played if legal, else it goes back.
+func _on_drag_dropped(from: Vector2i, to: Vector2i) -> void:
+	_deselect_on_release = false
+	if selected != from:
+		return
+	if dest_map.has(to):
+		_on_square_pressed(to.x, to.y)
+	else:
+		_render()
+
+# --- takeback ---
+
+func _can_takeback() -> bool:
+	return game_active and started and (mode == "cpu" or mode == "local") and not _is_online() \
+		and progress.panel_on("takebacks") and not ucis.is_empty() and ucis.size() == san_moves.size() \
+		and not promotion_dialog.visible
+
+## Against the computer: your last move and its answer; on one phone: the last move.
+func _on_takeback() -> void:
+	if not _can_takeback():
+		return
+	var n := 2 if _vs_cpu() and engine.current_player == ChessEngine.WHITE else 1
+	n = mini(n, ucis.size())
+	takebacks_used += 1
+	_rebuild_to(ucis.size() - n)
+	SoundLib.play(self, "impact/wood_light", -6.0)
+	_maybe_cpu()
+
+## Plays the game again from its start up to move `k` (in plies).
+func _rebuild_to(k: int) -> void:
+	var keep: Array = ucis.slice(0, k)
+	if start_fen != "":
+		engine.load_fen(start_fen)
+	else:
+		engine.reset()
+	ucis = []
+	san_moves = []
+	last_move = []
+	for u in keep:
+		var m: Dictionary = ChessEngine.parse_uci(str(u))
+		if m.is_empty():
+			break
+		var promo: int = m.promo if m.promo > 0 else ChessEngine.QUEEN
+		var s: String = engine.san(m.from, m.to, promo)
+		if not engine.move(m.from, m.to, promo).valid:
+			break
+		san_moves.append(s + engine.san_suffix())
+		ucis.append(str(u))
+		last_move = [m.from, m.to]
+	cpu_token += 1
+	cpu_busy = false
+	cpu_timer.stop()
+	selected = Vector2i(-1, -1)
+	pending_promotion = {}
+	_deselect_on_release = false
+	game_active = true
+	_render()
+
+# --- a question on the result card ---
+
+## Shows `text` with buttons [[English text, colour, callable], ...].
+func _ask(text: String, specs: Array) -> void:
+	result_label.text = text
+	_set_result_buttons(specs)
+	result_dialog.visible = true
+
+## Closes a question; after the game it shows the result again.
+func _close_ask() -> void:
+	if engine.game_over and not _in_lesson():
+		_show_result()
+	else:
+		result_dialog.visible = false
+
+# --- resign and draw ---
+
+## Who gives up from this phone: you (vs computer, online), else the side to move.
+func _resigner() -> int:
+	if _is_online():
+		return my_color
+	if _vs_cpu():
+		return ChessEngine.WHITE
+	return engine.current_player
+
+func _on_resign() -> void:
+	if not game_active or not started or _in_lesson():
+		return
+	var q := tr("Resign this game?") if (_is_online() or _vs_cpu()) else tr("Resign for %s?") % _side_name(_resigner())
+	_ask(q, [["🏳 Resign", HomeKit.PINK, _do_resign], ["Cancel", HomeKit.BUTTON, _close_ask]])
+
+func _do_resign() -> void:
+	if not game_active:
+		return
+	var side := _resigner()
+	engine.resign(side)
+	if _is_online():
+		online.send_move({"kind": "resign", "by": side, "from": [-1, -1], "to": [-1, -1]})
+	_render()
+	_show_result()
+
+func _on_draw() -> void:
+	if not game_active or not started or _in_lesson() or draw_offered:
+		return
+	if _is_online():
+		draw_offered = true
+		online.send_move({"kind": "draw_offer", "from": [-1, -1], "to": [-1, -1]})
+		home.help_toast(tr("Draw offered. Waiting for an answer…"))
+		_update_actions()
+	elif _vs_cpu():
+		# The computer takes a draw when it stands worse, or late in a level game.
+		var score: float = float(engine.evaluation(150).get("score", 0.0))
+		if score >= 1.0 or (san_moves.size() >= 60 and absf(score) <= 0.3):
+			_do_draw()
+		else:
+			home.help_toast(tr("The computer declines the draw: it wants to play on."))
+	else:
+		_ask(tr("Do both players agree to a draw?"), [["½ Draw", HomeKit.GO, _do_draw], ["Cancel", HomeKit.BUTTON, _close_ask]])
+
+func _do_draw() -> void:
+	if not game_active:
+		return
+	engine.agree_draw()
+	_render()
+	_show_result()
+
+func _accept_online_draw() -> void:
+	if not game_active:
+		result_dialog.visible = false
+		return
+	engine.agree_draw()
+	online.send_move({"kind": "draw_accept", "from": [-1, -1], "to": [-1, -1]})
+	_render()
+	_show_result()
+
+func _decline_online_draw() -> void:
+	result_dialog.visible = false
+	if _is_online():
+		online.send_move({"kind": "draw_decline", "from": [-1, -1], "to": [-1, -1]})
+
+## Resign / draw messages from the other phone.
+func _on_remote_action(kind: String, p: Dictionary) -> void:
+	match kind:
+		"resign":
+			if engine.game_over:
+				return
+			engine.resign(int(p.get("by", -my_color)))
+			_render()
+			_show_result()
+		"draw_offer":
+			if not game_active:
+				return
+			var who: String = online.opponent_name() if online.has_method("opponent_name") else tr("Your opponent")
+			_ask(tr("%s offers a draw.") % who, [["½ Accept draw", HomeKit.GO, _accept_online_draw], ["Decline", HomeKit.BUTTON, _decline_online_draw]])
+		"draw_accept":
+			if draw_offered and not engine.game_over:
+				draw_offered = false
+				engine.agree_draw()
+				_render()
+				_show_result()
+		"draw_decline":
+			draw_offered = false
+			home.help_toast(tr("Draw declined."))
+			_update_actions()
+
+# --- flip ---
+
+func _on_flip() -> void:
+	flipped = not flipped
+	_render()
+
+# --- PGN / FEN ---
+
+func _on_copy() -> void:
+	_ask(tr("Copy this game"), [["📋 Copy PGN", HomeKit.BUTTON, _copy_pgn], ["📋 Copy FEN", HomeKit.BUTTON, _copy_fen],
+		["Cancel", HomeKit.BUTTON, _close_ask]])
+
+func _copy_pgn() -> void:
+	DisplayServer.clipboard_set(_pgn_for(_current_entry()))
+	home.help_toast(tr("PGN copied: paste it into any chess app."))
+	_close_ask()
+
+func _copy_fen() -> void:
+	DisplayServer.clipboard_set(engine.to_fen(san_moves.size() / 2 + 1))
+	home.help_toast(tr("FEN copied: the position as one line of text."))
+	_close_ask()
+
+## This game as a My Games entry (also what PGN is made from).
+func _current_entry() -> Dictionary:
+	return {
+		"date": Time.get_date_string_from_system(),
+		"white": _side_name(ChessEngine.WHITE), "black": _side_name(ChessEngine.BLACK),
+		"result": engine.result_token(), "reason": engine.result_reason,
+		"fen": start_fen, "ucis": ucis.duplicate() if ucis.size() == san_moves.size() else [],
+		"sans": san_moves.duplicate(), "mode": mode, "cpu": cpu_level,
+	}
+
+func _pgn_for(e: Dictionary) -> String:
+	var site := "-"
+	if ResourceLoader.exists(BRAND_PATH):
+		var b = load(BRAND_PATH)
+		site = str(b.get("NAME")) if b.get("NAME") != null else "-"
+	var headers := {"Event": "Casual game", "Site": site, "Date": str(e.get("date", "")).replace("-", "."),
+		"White": str(e.get("white", "White")), "Black": str(e.get("black", "Black"))}
+	return ChessEngine.make_pgn(headers, e.get("sans", []), str(e.get("result", "*")), str(e.get("fen", "")))
+
+# --- 📜 My Games ---
+
+func _archive_game() -> void:
+	if san_moves.is_empty():
+		return
+	ChessArchive.add(_current_entry())
+
+var archive_card: Control
+var archive_body: VBoxContainer
+
+func _open_archive() -> void:
+	var parts: Array = home.card(tr("📜 My Games"))
+	archive_card = parts[0]
+	archive_body = parts[1]
+	_fill_archive("")
+	home.show_card(archive_card)
+
+func _fill_archive(note: String) -> void:
+	for c in archive_body.get_children():
+		c.queue_free()
+	archive_body.add_child(HomeKit.label(tr("Your last 50 finished games on this phone. Tap one to replay it move by move, or paste a game (PGN) or a position (FEN) copied from another chess app."), 21, HomeKit.DIM, true))
+	var paste := HomeKit.neon_button(tr("📥 Paste PGN or FEN"), HomeKit.BUTTON, 24, 62)
+	paste.pressed.connect(_on_paste)
+	archive_body.add_child(paste)
+	if note != "":
+		archive_body.add_child(HomeKit.label(note, 22, HomeKit.GOLD, true))
+	var games := ChessArchive.load_all()
+	if games.is_empty():
+		archive_body.add_child(HomeKit.label(tr("No finished games yet."), 24, HomeKit.WHITE, true))
+	for e in games:
+		if not (e is Dictionary):
+			continue
+		var moves: int = int(ceil((e.get("sans", []) as Array).size() / 2.0))
+		var b := HomeKit.neon_button("%s   %s – %s   %s · %s" % [str(e.get("date", "")), str(e.get("white", "")),
+			str(e.get("black", "")), str(e.get("result", "*")), tr("%d moves") % moves], HomeKit.BUTTON, 21, 58)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.custom_minimum_size.x = 0
+		b.pressed.connect(_open_replay.bind(e))
+		archive_body.add_child(b)
+
+func _on_paste() -> void:
+	var text := DisplayServer.clipboard_get().strip_edges()
+	if text == "":
+		_fill_archive(tr("The clipboard is empty: copy a PGN or a FEN first."))
+		return
+	if not "\n" in text and ChessEngine.is_valid_fen(text):
+		var probe = ChessEngine.new()
+		probe.load_fen(text)
+		if probe.get_all_legal_moves(probe.current_player).is_empty():
+			_fill_archive(tr("No legal move in that position: nothing to play."))
+			return
+		_fill_archive(tr("Position read. Play it:"))
+		var specs := [["🙂 vs Computer: Easy", 0], ["😐 vs Computer: Medium", 1], ["😈 vs Computer: Hard", 2], ["👥 2 Players", -1]]
+		for s in specs:
+			var b := HomeKit.neon_button(tr(s[0]), HomeKit.GO, 24, 62)
+			b.pressed.connect(_start_from_fen.bind(text, s[1]))
+			archive_body.add_child(b)
+			archive_body.move_child(b, 3 + specs.find(s))
+		return
+	var g: Dictionary = ChessEngine.parse_pgn(text)
+	if g.is_empty():
+		_fill_archive(tr("That isn't a game (PGN) or a position (FEN) this app can read."))
+		return
+	var h: Dictionary = g.headers
+	var e := {"date": str(h.get("Date", Time.get_date_string_from_system())).replace(".", "-"),
+		"white": str(h.get("White", "White")), "black": str(h.get("Black", "Black")),
+		"result": str(g.result), "reason": "", "fen": str(g.fen), "ucis": g.ucis, "sans": g.sans, "mode": "import", "cpu": -1}
+	ChessArchive.add(e)
+	var note := tr("Game added.")
+	if str(g.error) != "":
+		note = tr("Game added up to the move it couldn't read: %s") % str(g.error)
+	_fill_archive(note)
+	_open_replay(e)
+
+func _start_from_fen(fen: String, level: int) -> void:
+	if archive_card and is_instance_valid(archive_card):
+		home.close_card(archive_card)
+	home.play_now(_begin_fen.bind(fen, level))
+
+func _begin_fen(fen: String, level: int) -> void:
+	mode = "cpu" if level >= 0 else "local"
+	cpu_level = level
+	SaveUtil.delete(SAVE_PATH)
+	_begin(fen)
+
+# --- ▶ Replay ---
+
+## The open replay: {entry, positions, i, view, moves, count, timer, play}.
+var rp: Dictionary = {}
+
+func _replay_last() -> void:
+	_open_replay(_current_entry())
+
+func _open_replay(e: Dictionary) -> void:
+	var positions := _positions_for(e)
+	var parts: Array = home.card(tr("▶ Replay"))
+	var card: Control = parts[0]
+	var body: VBoxContainer = parts[1]
+	var col: VBoxContainer = parts[2]
+	body.add_child(HomeKit.label("%s – %s   %s" % [str(e.get("white", "")), str(e.get("black", "")), str(e.get("result", "*"))], 26, HomeKit.WHITE, true, true))
+	var view = BoardView.new()
+	view.interactive = false
+	var vp := get_viewport_rect().size
+	var side: float = maxf(240.0, minf(vp.x - 72.0, vp.y * 0.5))
+	view.custom_minimum_size = Vector2(side, side)
+	view.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	view.board_style = _board_style()
+	view.piece_style = _piece_style()
+	view.voodoo = skin == "voodoo"
+	view.coords = progress.panel_on("coords")
+	view.flipped = flipped
+	body.add_child(view)
+	view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var count := HomeKit.label("", 22, HomeKit.DIM, false, true)
+	body.add_child(count)
+	var moves := HomeKit.label("", 22, Color(0.9, 0.88, 0.82), true)
+	body.add_child(moves)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	col.add_child(row)
+	var play: Button
+	for spec in [["⏮", _replay_go.bind(-1000)], ["◀", _replay_go.bind(-1)], ["⏯", _replay_toggle], ["▶", _replay_go.bind(1)], ["⏭", _replay_go.bind(1000)]]:
+		var b := HomeKit.neon_button(spec[0], HomeKit.BUTTON, 28, 64)
+		b.custom_minimum_size.x = 0
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(spec[1])
+		row.add_child(b)
+		if spec[0] == "⏯":
+			play = b
+	var row2 := HBoxContainer.new()
+	row2.add_theme_constant_override("separation", 8)
+	col.add_child(row2)
+	for spec in [["📋 PGN", _replay_copy_pgn], ["📋 FEN", _replay_copy_fen], ["⇅ Flip", _replay_flip]]:
+		var b := HomeKit.neon_button(tr(spec[0]), HomeKit.BUTTON, 22, 56)
+		b.custom_minimum_size.x = 0
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(spec[1])
+		row2.add_child(b)
+	var timer := Timer.new()
+	timer.wait_time = 1.0
+	timer.timeout.connect(_replay_go.bind(1))
+	card.add_child(timer)
+	rp = {"entry": e, "positions": positions, "i": 0, "view": view, "moves": moves, "count": count, "timer": timer, "play": play}
+	_replay_show(0)
+	home.show_card(card)
+
+## Every position of a game, from its start: {board, last, check, fen}.
+## Played from the UCI moves when there are all of them, else from the notation.
+func _positions_for(e: Dictionary) -> Array:
+	var eng = ChessEngine.new()
+	var fen := str(e.get("fen", ""))
+	if fen != "" and ChessEngine.is_valid_fen(fen):
+		eng.load_fen(fen)
+	else:
+		eng.reset()
+	var out: Array = [_snap(eng, [], 0)]
+	var u: Array = e.get("ucis", [])
+	var sans: Array = e.get("sans", [])
+	var by_uci: bool = not u.is_empty() and u.size() == sans.size()
+	var list: Array = u if by_uci else sans
+	for i in list.size():
+		var m: Dictionary = ChessEngine.parse_uci(str(list[i])) if by_uci else eng.move_from_san(str(list[i]))
+		if m.is_empty():
+			break
+		var promo: int = m.promo if m.promo > 0 else ChessEngine.QUEEN
+		if not eng.move(m.from, m.to, promo).valid:
+			break
+		out.append(_snap(eng, [m.from, m.to], i + 1))
+	return out
+
+func _snap(eng, last: Array, ply: int) -> Dictionary:
+	var chk := Vector2i(-1, -1)
+	if eng.is_in_check(eng.current_player):
+		chk = eng.find_king(eng.current_player)
+	return {"board": eng.board.duplicate(true), "last": last, "check": chk, "fen": eng.to_fen(ply / 2 + 1)}
+
+func _replay_ok() -> bool:
+	return not rp.is_empty() and is_instance_valid(rp.get("view"))
+
+func _replay_show(i: int) -> void:
+	if not _replay_ok():
+		return
+	var positions: Array = rp.positions
+	i = clampi(i, 0, positions.size() - 1)
+	rp.i = i
+	var p: Dictionary = positions[i]
+	var view = rp.view
+	view.board = p.board
+	view.last_move = p.last
+	view.check_sq = p.check
+	view.queue_redraw()
+	var sans: Array = rp.entry.get("sans", [])
+	var parts: PackedStringArray = []
+	for k in mini(sans.size(), positions.size() - 1):
+		if k % 2 == 0:
+			parts.append("%d." % (k / 2 + 1))
+		parts.append(("▸" + str(sans[k])) if k == i - 1 else str(sans[k]))
+	rp.moves.text = " ".join(parts)
+	rp.count.text = tr("Move %d of %d") % [i, positions.size() - 1]
+	if i >= positions.size() - 1 and rp.timer.time_left > 0:
+		rp.timer.stop()
+
+func _replay_go(step: int) -> void:
+	if _replay_ok():
+		_replay_show(int(rp.i) + step)
+
+func _replay_toggle() -> void:
+	if not _replay_ok():
+		return
+	if not rp.timer.is_stopped():
+		rp.timer.stop()
+		return
+	if int(rp.i) >= rp.positions.size() - 1:
+		_replay_show(0)
+	rp.timer.start()
+
+func _replay_flip() -> void:
+	if _replay_ok():
+		rp.view.flipped = not rp.view.flipped
+		rp.view.queue_redraw()
+
+func _replay_copy_pgn() -> void:
+	if _replay_ok():
+		DisplayServer.clipboard_set(_pgn_for(rp.entry))
+		home.help_toast(tr("PGN copied: paste it into any chess app."))
+
+func _replay_copy_fen() -> void:
+	if _replay_ok():
+		DisplayServer.clipboard_set(str(rp.positions[rp.i].fen))
+		home.help_toast(tr("FEN copied: the position as one line of text."))
 
 # ---------- helps (STANDARDS §17) ----------
 

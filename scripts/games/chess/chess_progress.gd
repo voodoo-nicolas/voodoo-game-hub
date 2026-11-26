@@ -219,3 +219,12 @@ func clock_index() -> int:
 func set_clock_index(i: int) -> void:
 	data["clock"] = i
 	save()
+
+## [Phase A 2026-11-25] Clock preset (an index into the game's CLOCK_PRESETS);
+## -1 = never picked yet (the game then maps the old clock_index()).
+func clock_preset() -> int:
+	return int(data.get("clock2", -1))
+
+func set_clock_preset(i: int) -> void:
+	data["clock2"] = i
+	save()

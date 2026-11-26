@@ -8,6 +8,10 @@ extends Control
 ## board terms (row 0 = rank 8), already turned round when `flipped`.
 
 signal square_pressed(r: int, c: int)
+## [Phase A 2026-11-25] Drag-to-move: a picked piece dragged to another square
+## and let go there. A press-and-let-go without dragging sends square_released.
+signal drag_dropped(from: Vector2i, to: Vector2i)
+signal square_released(r: int, c: int)
 
 const ChessPieces = preload("res://scripts/games/chess/chess_pieces.gd")
 
@@ -31,6 +35,15 @@ var anim_t: float = 1.0:
 		anim_t = v
 		queue_redraw()
 var _tween: Tween
+## Dragging: where the press began, the pointer now, and whether it moved far
+## enough to count as a drag. A dropped piece doesn't slide (it is already there).
+var _press_sq := Vector2i(-1, -1)
+var _press_pos := Vector2.ZERO
+var _drag_pos := Vector2.ZERO
+var dragging := false
+var _skip_anim := false
+## Off on boards that only show (the replay viewer).
+var interactive := true
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -38,6 +51,9 @@ func _ready() -> void:
 
 ## The piece now on `to` slides there from `from`.
 func animate(from: Vector2i, to: Vector2i) -> void:
+	if _skip_anim:
+		anim_t = 1.0
+		return
 	_anim_from = from
 	_anim_to = to
 	if _tween:
@@ -62,17 +78,53 @@ func square_rect(sq: Vector2i) -> Rect2:
 	var vc: int = 7 - sq.y if flipped else sq.y
 	return Rect2(m.inner + Vector2(vc, vr) * m.cell, Vector2(m.cell, m.cell))
 
+## The board square under a point in this Control, or (-1, -1).
+func square_at(pos: Vector2) -> Vector2i:
+	var m := _metrics()
+	var p: Vector2 = (pos - m.inner) / m.cell
+	if p.x < 0 or p.y < 0 or p.x >= 8 or p.y >= 8:
+		return Vector2i(-1, -1)
+	var vr := int(p.y)
+	var vc := int(p.x)
+	return Vector2i(7 - vr if flipped else vr, 7 - vc if flipped else vc)
+
 func _gui_input(event: InputEvent) -> void:
+	if not interactive:
+		return
 	# Phones send each tap twice (touch + emulated mouse): the mouse one only.
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		var m := _metrics()
-		var p: Vector2 = (event.position - m.inner) / m.cell
-		if p.x < 0 or p.y < 0 or p.x >= 8 or p.y >= 8:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		var sq := square_at(event.position)
+		if event.pressed:
+			dragging = false
+			_press_sq = sq
+			_press_pos = event.position
+			if sq.x < 0:
+				return
+			accept_event()
+			square_pressed.emit(sq.x, sq.y)
 			return
-		var vr := int(p.y)
-		var vc := int(p.x)
-		accept_event()
-		square_pressed.emit(7 - vr if flipped else vr, 7 - vc if flipped else vc)
+		# Let go.
+		var from := _press_sq
+		_press_sq = Vector2i(-1, -1)
+		if dragging:
+			dragging = false
+			queue_redraw()
+			if sq.x >= 0 and sq != from:
+				_skip_anim = true
+				drag_dropped.emit(from, sq)
+				_skip_anim = false
+			accept_event()
+		elif sq.x >= 0 and sq == from:
+			square_released.emit(sq.x, sq.y)
+	elif event is InputEventMouseMotion and _press_sq.x >= 0 and (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
+		if not dragging:
+			var far: bool = event.position.distance_to(_press_pos) > _metrics().cell * 0.25
+			if far and selected == _press_sq and board.size() == 8 and board[_press_sq.x][_press_sq.y] != 0:
+				dragging = true
+		if dragging:
+			_drag_pos = event.position
+			queue_redraw()
+			accept_event()
 
 func _draw() -> void:
 	if board.size() != 8:
@@ -124,7 +176,7 @@ func _draw() -> void:
 	for r in range(8):
 		for c in range(8):
 			var v: int = board[r][c]
-			if v == 0 or (anim_t < 1.0 and Vector2i(r, c) == _anim_to):
+			if v == 0 or (anim_t < 1.0 and Vector2i(r, c) == _anim_to) or (dragging and Vector2i(r, c) == _press_sq):
 				continue
 			_draw_piece(v, square_rect(Vector2i(r, c)))
 	if anim_t < 1.0 and _anim_to.x >= 0 and board[_anim_to.x][_anim_to.y] != 0:
@@ -139,6 +191,13 @@ func _draw() -> void:
 			draw_arc(dr.get_center(), dr.size.x * 0.44, 0, TAU, 32, dot, maxf(3.0, dr.size.x * 0.08), true)
 		else:
 			draw_circle(dr.get_center(), dr.size.x * 0.15, dot)
+	# The dragged piece, a little bigger, under the finger (drawn last, on top).
+	if dragging and _press_sq.x >= 0 and board[_press_sq.x][_press_sq.y] != 0:
+		var hover := square_at(_drag_pos)
+		if hover.x >= 0:
+			draw_rect(square_rect(hover), Color(1, 1, 1, 0.18))
+		var big: float = m.cell * 1.25
+		_draw_piece(board[_press_sq.x][_press_sq.y], Rect2(_drag_pos - Vector2(big, big * 1.25) / 2.0, Vector2(big, big)))
 
 func _draw_piece(v: int, rect: Rect2) -> void:
 	var white: bool = v > 0

@@ -7,11 +7,14 @@ const TITLE := "Chess"
 const GOAL := "Checkmate your opponent's king: attack it so it has no way to escape."
 const HOW := [
 	"Play the computer (Easy, Medium or Hard) or a friend on one phone. White moves first; against the computer you are White.",
-	"Tap a piece to see where it can go, then tap a highlighted square.",
+	"Tap a piece to see where it can go, then tap a highlighted square. Or drag the piece there.",
 	"King: one square any way. Queen: any distance in any direction. Rook: straight lines. Bishop: diagonals. Knight: an L-shape, jumping over pieces. Pawn: one square forward (two on its first move), capturing diagonally.",
 	"Castling, en passant and pawn promotion are all allowed.",
 	"You can never leave your own king in check. No legal move while not in check is stalemate — a draw. So are repeating a position 3 times, 50 moves without a capture or pawn move, and too few pieces to checkmate.",
-	"Clock: pick one on the setup screen (5, 10 or 30 minutes each). Run out of time and you lose, unless your opponent has nothing left that could checkmate: then it's a draw.",
+	"Clock: pick one on the setup screen. 3+2 means 3 minutes each, and 2 seconds are added after each of your moves. Run out of time and you lose, unless your opponent has nothing left that could checkmate: then it's a draw.",
+	"Under the board: ⟲ Undo takes back a move (against the computer: your move and its answer; turn it off in ⚙ Options), ½ Draw offers a draw, 🏳 Resign gives up, ⇅ Flip turns the board round, 📋 Copy copies the game (PGN) or the position (FEN).",
+	"A game with a takeback doesn't change your rating or earn points. The computer accepts a draw only when it stands worse, or late in an even game.",
+	"📜 My Games keeps your last 50 finished games: replay them move by move. Paste a PGN to replay a game from another app, or a FEN to play from that position.",
 	"📚 Lessons teach each piece, the rules and checkmate on short boards. 📅 Daily Lesson gives three new boards every day. Lessons aren't saved halfway: a board starts again.",
 	"Solving lesson boards (the first time), the daily lesson and beating the computer earn ⭐ points. Spend them in the 🛒 Shop on new boards and piece sets.",
 	"Around the board: names and ratings, captured pieces with the material lead (+3 = three pawns' worth ahead), clocks, the move list in chess notation, and the evaluation bar. Turn each on or off in ⚙ Options.",

@@ -966,3 +966,211 @@ func _checking_mate(side: int) -> bool:
 		if mate:
 			return true
 	return false
+
+# ---------- Phase A (2026-11-25): resign, draw by agreement, FEN out, SAN in, PGN ----------
+
+const START_FEN := "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+## `player` gives up: the other side wins.
+func resign(player: int) -> void:
+	game_over = true
+	winner = -player
+	result_reason = "resign"
+
+## Both players agreed to a draw.
+func agree_draw() -> void:
+	game_over = true
+	winner = 0
+	result_reason = "draw_agreed"
+
+## The current position as FEN. `fullmove` is the move number to write.
+func to_fen(fullmove: int = 1) -> String:
+	var ranks: PackedStringArray = []
+	for r in range(8):
+		var s := ""
+		var empty := 0
+		for c in range(8):
+			var v: int = board[r][c]
+			if v == 0:
+				empty += 1
+				continue
+			if empty > 0:
+				s += str(empty)
+				empty = 0
+			var letter: String = "pnbrqk"[absi(v) - 1]
+			s += letter.to_upper() if v > 0 else letter
+		if empty > 0:
+			s += str(empty)
+		ranks.append(s)
+	var cr := ""
+	for k in ["K", "Q", "k", "q"]:
+		if castling_rights.get(k, false):
+			cr += k
+	return "%s %s %s %s %d %d" % ["/".join(ranks), "w" if current_player == WHITE else "b",
+		cr if cr != "" else "-", square_name(en_passant_target), halfmove_clock, maxi(1, fullmove)]
+
+## Is this text a FEN this engine can play from (both kings, 8 ranks)?
+static func is_valid_fen(fen: String) -> bool:
+	var parts := fen.strip_edges().split(" ", false)
+	if parts.is_empty():
+		return false
+	var ranks := parts[0].split("/")
+	if ranks.size() != 8:
+		return false
+	var kings := {"K": 0, "k": 0}
+	for rank in ranks:
+		var n := 0
+		for ch in rank:
+			if ch.is_valid_int():
+				n += int(ch)
+			elif FEN_PIECES.has(ch.to_lower()):
+				n += 1
+				if kings.has(ch):
+					kings[ch] += 1
+			else:
+				return false
+		if n != 8:
+			return false
+	if parts.size() > 1 and not parts[1] in ["w", "b"]:
+		return false
+	return kings.K == 1 and kings.k == 1
+
+## The legal move a SAN token names ("Nf3", "exd5", "O-O", "e8=Q+"), as
+## {from, to, promo}; {} if no legal move matches.
+func move_from_san(token: String) -> Dictionary:
+	var want := token.strip_edges().replace("0-0-0", "O-O-O").replace("0-0", "O-O")
+	for ch in ["+", "#", "!", "?"]:
+		want = want.replace(ch, "")
+	if want == "":
+		return {}
+	for e in get_all_legal_moves(current_player):
+		var promo: int = QUEEN
+		if e.move.promotes:
+			var eq := want.find("=")
+			var letter: String = want.substr(eq + 1, 1) if eq >= 0 else want.right(1)
+			promo = int(FEN_PIECES.get(letter.to_lower(), QUEEN))
+		var s := san(e.from, e.move.to, promo)
+		if s == want or (e.move.promotes and s.replace("=", "") == want.replace("=", "")):
+			return {"from": e.from, "to": e.move.to, "promo": promo if e.move.promotes else 0}
+	return {}
+
+## PGN result token for a finished (or unfinished) game.
+func result_token() -> String:
+	if not game_over:
+		return "*"
+	return "1-0" if winner == WHITE else ("0-1" if winner == BLACK else "1/2-1/2")
+
+## A PGN game: `headers` {name: value} (Seven Tag Roster filled in if
+## missing), the moves in SAN, the result token. `fen` = the start position
+## when it isn't the usual one.
+static func make_pgn(headers: Dictionary, sans: Array, result: String, fen: String = "") -> String:
+	var h := {"Event": "Casual game", "Site": "-", "Date": "????.??.??", "Round": "-",
+		"White": "White", "Black": "Black", "Result": result}
+	for k in headers:
+		h[k] = str(headers[k])
+	var black_first := false
+	if fen != "" and fen != START_FEN:
+		h["SetUp"] = "1"
+		h["FEN"] = fen
+		var fp := fen.split(" ", false)
+		black_first = fp.size() > 1 and fp[1] == "b"
+	var lines: PackedStringArray = []
+	for k in h:
+		lines.append("[%s \"%s\"]" % [k, str(h[k]).replace("\"", "'")])
+	lines.append("")
+	var parts: PackedStringArray = []
+	var n := 1
+	var fp2 := fen.split(" ", false) if fen != "" else PackedStringArray()
+	if fp2.size() > 5 and fp2[5].is_valid_int():
+		n = maxi(1, int(fp2[5]))
+	var white_turn := not black_first
+	if black_first and not sans.is_empty():
+		parts.append("%d..." % n)
+	for s in sans:
+		if white_turn:
+			parts.append("%d." % n)
+		parts.append(str(s))
+		if not white_turn:
+			n += 1
+		white_turn = not white_turn
+	parts.append(result)
+	# Wrap the movetext at ~80 characters, as PGN asks.
+	var line := ""
+	for p in parts:
+		if line.length() + p.length() + 1 > 80:
+			lines.append(line)
+			line = p
+		else:
+			line = p if line == "" else line + " " + p
+	if line != "":
+		lines.append(line)
+	return "\n".join(lines) + "\n"
+
+## Reads the first game of a PGN: {headers, fen, ucis: ["e2e4"...], sans,
+## result} with every move checked by playing it; {} if no move could be
+## read and there is no FEN either. Stops at the first move it can't play
+## ("error" then says which).
+static func parse_pgn(text: String) -> Dictionary:
+	var headers := {}
+	var body := ""
+	for raw in text.split("\n"):
+		var ln := raw.strip_edges()
+		if ln.begins_with("[") and ln.ends_with("]"):
+			var inner := ln.substr(1, ln.length() - 2)
+			var sp := inner.find(" ")
+			if sp > 0:
+				headers[inner.substr(0, sp)] = inner.substr(sp + 1).strip_edges().trim_prefix("\"").trim_suffix("\"")
+		elif not ln.begins_with("%"):
+			body += ln + " "
+	# Drop {comments}, ;comments and (variations).
+	var clean := ""
+	var depth := 0
+	var in_brace := false
+	for ch in body:
+		if in_brace:
+			in_brace = ch != "}"
+		elif ch == "{":
+			in_brace = true
+		elif ch == "(":
+			depth += 1
+		elif ch == ")":
+			depth = maxi(0, depth - 1)
+		elif depth == 0:
+			clean += ch
+	var semi := clean.find(";")
+	if semi >= 0:
+		clean = clean.substr(0, semi)
+	var e = load("res://scripts/games/chess/chess_engine.gd").new()
+	var fen := str(headers.get("FEN", ""))
+	if fen != "" and is_valid_fen(fen):
+		e.load_fen(fen)
+	else:
+		fen = ""
+		e.reset()
+	var ucis: Array = []
+	var sans: Array = []
+	var result := str(headers.get("Result", "*"))
+	var error := ""
+	for tok in clean.split(" ", false):
+		var t: String = tok
+		if t in ["1-0", "0-1", "1/2-1/2", "*"]:
+			result = t
+			break
+		if t.begins_with("$"):
+			continue
+		var dot := t.rfind(".")
+		if dot >= 0:
+			t = t.substr(dot + 1)
+		if t == "":
+			continue
+		var m: Dictionary = e.move_from_san(t)
+		if m.is_empty():
+			error = t
+			break
+		var s: String = e.san(m.from, m.to, m.promo if m.promo > 0 else QUEEN)
+		e.move(m.from, m.to, m.promo if m.promo > 0 else QUEEN)
+		sans.append(s + e.san_suffix())
+		ucis.append(uci(m.from, m.to, m.promo))
+	if ucis.is_empty() and fen == "":
+		return {}
+	return {"headers": headers, "fen": fen, "ucis": ucis, "sans": sans, "result": result, "error": error}
