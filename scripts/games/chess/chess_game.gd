@@ -15,6 +15,7 @@ var cloud: Node = null
 const BoardView = preload("res://scripts/games/chess/chess_board_view.gd")
 const ChessArchive = preload("res://scripts/games/chess/chess_archive.gd")
 const ChessSlots = preload("res://scripts/games/chess/chess_slots.gd")
+const ChessPuzzles = preload("res://scripts/games/chess/chess_puzzle_bank.gd")
 const SoundLib = preload("res://scripts/games/chess/sound_lib.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
@@ -389,6 +390,7 @@ func _build_home() -> void:
 		"modes": modes,
 		"play": [
 			{"text": "♟ Ongoing Games", "sub": "Up to 6 games at once: pick one up", "action": _open_ongoing, "card": true},
+			{"text": "🧩 Puzzles", "sub": "Rated, Rush, Survival, Puzzle of the Day", "action": _open_puzzles, "card": true},
 			{"text": "📮 Daily Games", "sub": "Friends, one move at a time, several games at once", "action": _open_daily, "card": true},
 			{"text": "📚 Lessons", "sub": "The pieces, the rules, checkmate", "action": _open_lessons, "card": true},
 			{"text": "📅 Daily Lesson", "sub": "Three new boards every day", "action": _start_daily},
@@ -467,7 +469,7 @@ func _on_panel_pick(i: int, key: String) -> void:
 ## Shows or hides the panels around the board for the player's choices
 ## and the kind of game (lessons have their own panel instead).
 func _apply_panels() -> void:
-	var lessons := _in_lesson()
+	var lessons := _in_lesson() or _in_puzzle()  # puzzles share the lesson panel
 	var show_players: bool = progress.panel_on("players") and not lessons
 	var show_captured: bool = progress.panel_on("captured") and not lessons
 	var show_clocks: bool = progress.panel_on("clocks") and not lessons
@@ -561,7 +563,7 @@ func _side_rating(side: int) -> String:
 
 ## Names, captured pieces, material, clocks, evaluation and the move list.
 func _update_info() -> void:
-	if strips.size() < 2 or engine == null or engine.board.size() != 8 or _in_lesson():
+	if strips.size() < 2 or engine == null or engine.board.size() != 8 or _in_lesson() or _in_puzzle():
 		return
 	var lead: int = engine.material(ChessEngine.WHITE) - engine.material(ChessEngine.BLACK)
 	for i in 2:
@@ -623,6 +625,15 @@ func _update_eval() -> void:
 	eval_bar.queue_redraw()
 
 func _process(delta: float) -> void:
+	if _in_puzzle():
+		if pz_kind == "rush" and not pz_done and started:
+			var before := int(ceil(run_left))
+			run_left = maxf(0.0, run_left - delta)
+			if int(ceil(run_left)) != before:
+				_pz_panel()
+			if run_left <= 0.0:
+				_end_run()
+		return
 	if not game_active or not started or _in_lesson() or engine.game_over:
 		return
 	var side: int = engine.current_player
@@ -835,6 +846,10 @@ func _in_lesson() -> bool:
 func _start_new_game() -> void:
 	if _in_daily():
 		return  # a Daily game can't start again: it lives on the server
+	if _in_puzzle():
+		if not pz_busy:
+			_load_puzzle(pz)
+		return
 	if _in_lesson():
 		_load_lesson_board(board_i)
 		return
@@ -889,6 +904,8 @@ func _on_square_pressed(r: int, c: int) -> void:
 		return  # the computer is thinking
 	if _in_daily() and (engine.current_player != my_color or daily_busy):
 		return  # their move, or ours is on its way
+	if _in_puzzle() and (engine.current_player != pz_color or pz_busy or pz_done):
+		return
 	var pos := Vector2i(r, c)
 
 	if dest_map.has(pos):
@@ -922,6 +939,9 @@ func _on_promotion_chosen(piece_type: int) -> void:
 	pending_promotion = {}
 
 func _apply_move(from: Vector2i, to: Vector2i, promotion_piece: int) -> void:
+	if _in_puzzle():
+		_puzzle_move(from, to, promotion_piece)
+		return
 	if _in_lesson():
 		_lesson_move(from, to, promotion_piece)
 		return
@@ -1189,7 +1209,7 @@ func _render() -> void:
 	_update_info()
 	_update_actions()
 
-	if not game_active or _in_lesson():
+	if not game_active or _in_lesson() or _in_puzzle():
 		return
 	var check_suffix := tr(" — Check!") if checked_king.x >= 0 else ""
 	var side := tr("White") if engine.current_player == ChessEngine.WHITE else tr("Black")
@@ -1500,6 +1520,9 @@ func _board_done(full: bool) -> void:
 	next_btn.visible = true
 
 func _on_next_board() -> void:
+	if _in_puzzle():
+		_pz_next()
+		return
 	if board_i + 1 < lesson.boards.size():
 		_load_lesson_board(board_i + 1)
 	else:
@@ -1545,6 +1568,9 @@ func _back_to_lessons() -> void:
 	home.go_home()
 
 func _on_hint() -> void:
+	if _in_puzzle():
+		_pz_hint()
+		return
 	if not _in_lesson() or board_solved or lesson_busy:
 		return
 	var b: Dictionary = lesson.boards[board_i]
@@ -1574,6 +1600,9 @@ func _on_hint() -> void:
 	_render()
 
 func _on_retry() -> void:
+	if _in_puzzle():
+		_pz_retry()
+		return
 	_load_lesson_board(board_i)
 
 # ---------- 🛒 Shop ----------
@@ -1651,7 +1680,7 @@ func _draw_swatch(pic: Control, kind: String, id: String) -> void:
 ## Games against the computer and on one phone are saved; online games and
 ## lessons are not (a lesson board takes a minute: it starts again).
 func _save_game() -> void:
-	if not started or not game_active or _is_online() or _in_lesson() or mode == "online" or _in_daily():
+	if not started or not game_active or _is_online() or _in_lesson() or mode == "online" or _in_daily() or _in_puzzle():
 		return
 	if slot_id == "" and not ChessSlots.is_full():
 		slot_id = ChessSlots.new_id()  # Play Again after a finished game
@@ -2829,11 +2858,401 @@ func _on_daily_ended(ok: bool, result: Variant, what: String) -> void:
 		_render()
 		_show_result()
 
+# ---------- Phase C (2026-11-25): 🧩 Puzzles (Lichess puzzle database, CC0) ----------
+# Modes: "rated" (near your puzzle rating, optional theme), "rush" (3 min,
+# 3 mistakes, harder each time), "survival" (until the first mistake),
+# "daily" (Puzzle of the Day). Shares the lesson panel under the board.
+
+const PUZZLE_REPLY_DELAY := 0.45
+
+var pz: Array = []             # the puzzle on the board
+var pz_kind: String = ""       # "rated" | "rush" | "survival" | "daily"
+var pz_theme: String = ""
+var pz_moves: Array = []       # uci, moves[0] = the opponent's first move
+var pz_step: int = 0           # index of the next move in pz_moves
+var pz_color: int = ChessEngine.WHITE
+var pz_failed := false         # a wrong move, hint or solution on this puzzle
+var pz_scored := false         # the rating / run already counted this puzzle
+var pz_busy := false           # the opponent is about to move
+var pz_done := false
+var pz_showing := false        # 👁 solution playing out
+var pz_timer: Timer
+## Rush / Survival run: score, mistakes, seconds left, puzzle rating to aim at.
+var run_score := 0
+var run_strikes := 0
+var run_left := 0.0
+var run_level := 0
+var run_seen: Dictionary = {}
+var puzzles_body: VBoxContainer
+
+func _in_puzzle() -> bool:
+	return mode == "puzzle"
+
+# --- the 🧩 card ---
+
+func _open_puzzles() -> void:
+	var parts: Array = home.card(tr("🧩 Puzzles"))
+	puzzles_body = parts[1]
+	_fill_puzzles()
+	home.show_card(parts[0])
+
+func _fill_puzzles() -> void:
+	for c in puzzles_body.get_children():
+		c.queue_free()
+	var d := ChessPuzzles.record(progress)
+	if ChessPuzzles.all().is_empty():
+		puzzles_body.add_child(HomeKit.label(tr("The puzzles didn't load. Update the game and try again."), 24, HomeKit.WHITE, true))
+		return
+	puzzles_body.add_child(HomeKit.label(tr("Puzzle rating %d · best %d · streak %d") % [int(d.rating), int(d.best_rating), int(d.streak)], 26, HomeKit.GOLD, true))
+	puzzles_body.add_child(HomeKit.label(tr("Find the best move. The other side moves first, then it's your turn; keep going until the puzzle is solved. Puzzles from the Lichess puzzle database (CC0)."), 21, HomeKit.DIM, true))
+	var specs := [
+		["🧩 Rated puzzle", tr("Near your rating. Solve to climb."), HomeKit.GO, _start_puzzle.bind("rated", "")],
+		["⚡ Puzzle Rush", tr("3 minutes, 3 mistakes. Best: %d") % int(d.best_rush), HomeKit.BUTTON, _start_run.bind("rush")],
+		["♾ Survival", tr("Until your first mistake. Best: %d") % int(d.best_survival), HomeKit.BUTTON, _start_run.bind("survival")],
+		["📅 Puzzle of the Day", (tr("Solved today ✓ · streak %d") if str(d.daily_last) == _today() else tr("The same puzzle for everyone · streak %d")) % int(d.daily_streak), HomeKit.BUTTON, _start_puzzle.bind("daily", "")],
+	]
+	for s in specs:
+		var b := HomeKit.neon_button(tr(s[0]) + "\n" + s[1], s[2], 22, 76)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.custom_minimum_size.x = 0
+		b.pressed.connect(s[3])
+		puzzles_body.add_child(b)
+	puzzles_body.add_child(home.section("Themes"))
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	for t in ChessPuzzles.THEME_ORDER:
+		var b := HomeKit.neon_button(tr(ChessPuzzles.THEME_NAMES[t]), HomeKit.BUTTON, 21, 56)
+		b.custom_minimum_size.x = 0
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(_start_puzzle.bind("rated", t))
+		grid.add_child(b)
+	puzzles_body.add_child(grid)
+	var hist: Array = d.history
+	if not hist.is_empty():
+		puzzles_body.add_child(home.section("Recent"))
+		var parts: PackedStringArray = []
+		for h in hist.slice(0, 20):
+			parts.append(("✓ " if h[1] else "✗ ") + str(int(h[2])))
+		puzzles_body.add_child(HomeKit.label("  ".join(parts), 22, HomeKit.WHITE, true))
+
+func _today() -> String:
+	return Time.get_date_string_from_system()
+
+func _yesterday() -> String:
+	return Time.get_date_string_from_unix_time(int(Time.get_unix_time_from_system()) - 86400 + _tz_offset())
+
+# --- starting ---
+
+func _start_puzzle(kind: String, theme: String) -> void:
+	home.play_now(_begin_puzzle.bind(kind, theme))
+
+func _start_run(kind: String) -> void:
+	home.play_now(_begin_run.bind(kind))
+
+func _begin_run(kind: String) -> void:
+	run_score = 0
+	run_strikes = 0
+	run_left = float(ChessPuzzles.RUSH_SECONDS)
+	run_level = ChessPuzzles.RUSH_START
+	run_seen = {}
+	_begin_puzzle(kind, "")
+
+func _begin_puzzle(kind: String, theme: String) -> void:
+	_save_game()  # a local game on the board keeps its slot
+	var p: Array
+	if kind == "daily":
+		p = ChessPuzzles.daily(_today())
+	elif kind == "rated":
+		p = ChessPuzzles.pick(int(ChessPuzzles.record(progress).rating), rng, ChessPuzzles.seen_set(progress), theme)
+	else:
+		p = ChessPuzzles.pick(run_level, rng, run_seen)
+	if p.is_empty():
+		return
+	pz_kind = kind
+	pz_theme = theme
+	_load_puzzle(p)
+
+func _load_puzzle(p: Array) -> void:
+	if pz_timer == null:
+		pz_timer = Timer.new()
+		pz_timer.one_shot = true
+		pz_timer.timeout.connect(_on_pz_timer)
+		add_child(pz_timer)
+	pz = p
+	pz_moves = ChessPuzzles.moves_of(p)
+	pz_step = 0
+	pz_failed = false
+	pz_scored = false
+	pz_done = false
+	pz_showing = false
+	mode = "puzzle"
+	cpu_level = -1
+	slot_id = ""
+	clock_limit = 0
+	increment = 0
+	start_fen = ""
+	started = true
+	engine.load_fen(str(p[1]))
+	pz_color = -engine.current_player  # the player answers the first move
+	flipped = pz_color == ChessEngine.BLACK
+	san_moves = []
+	ucis = []
+	last_move = []
+	selected = Vector2i(-1, -1)
+	board_view.hint = []
+	game_active = true
+	result_dialog.visible = false
+	promotion_dialog.visible = false
+	title_label.text = tr("Chess")
+	if pz_kind in ["rush", "survival"]:
+		run_seen[str(p[0])] = true
+	_apply_panels()
+	_pz_panel()
+	_feedback(tr("%s moves first. Then find the best move for %s.") % [tr("Black") if pz_color == ChessEngine.WHITE else tr("White"), tr("White") if pz_color == ChessEngine.WHITE else tr("Black")], Color(0.8, 0.85, 0.95))
+	_render()
+	_start_music()
+	pz_busy = true
+	pz_timer.start(PUZZLE_REPLY_DELAY + 0.3)
+
+## The panel text: what kind of puzzle, its rating and themes, the run score.
+func _pz_panel() -> void:
+	var head := ""
+	match pz_kind:
+		"rated":
+			head = tr("🧩 Rated puzzle · your rating %d") % int(ChessPuzzles.record(progress).rating)
+			if pz_theme != "":
+				head += " · " + tr(ChessPuzzles.THEME_NAMES.get(pz_theme, pz_theme))
+		"rush":
+			var s := int(ceil(run_left))
+			head = tr("⚡ Rush · %d solved · %s · %d:%02d") % [run_score, "✗".repeat(run_strikes) + "·".repeat(ChessPuzzles.RUSH_STRIKES - run_strikes), s / 60, s % 60]
+		"survival":
+			head = tr("♾ Survival · %d solved") % run_score
+		"daily":
+			head = tr("📅 Puzzle of the Day · %s") % _today()
+	lesson_head.text = head
+	var themes: PackedStringArray = []
+	for t in str(pz[4]).split(" ", false):
+		if ChessPuzzles.THEME_NAMES.has(t):
+			themes.append(tr(ChessPuzzles.THEME_NAMES[t]))
+	var rated: bool = pz_done or pz_kind != "rated"
+	lesson_task.text = (tr("Puzzle rated %d") % int(pz[3]) + ("  ·  " + ", ".join(themes) if rated and not themes.is_empty() else "")) \
+		if pz_kind != "rush" else tr("Puzzle rated %d") % int(pz[3])
+	hint_btn.text = tr("💡 Hint")
+	hint_btn.disabled = pz_done or pz_kind in ["rush", "survival"]
+	retry_btn.text = tr("👁 Solution") if not pz_done else tr("↺ Retry")
+	retry_btn.disabled = pz_kind in ["rush", "survival"] and not pz_done
+	next_btn.text = tr("Next ›")
+	next_btn.visible = pz_done
+	if pz_kind == "daily" and pz_done:
+		next_btn.text = tr("🧩 Puzzles")
+
+# --- moves ---
+
+## The player's move: right (or any mate in one) goes on; wrong is taken back.
+func _puzzle_move(from: Vector2i, to: Vector2i, promo: int) -> void:
+	if pz_done or pz_busy or pz_step >= pz_moves.size():
+		return
+	var expected: String = pz_moves[pz_step]
+	var want := ChessEngine.parse_uci(expected)
+	var is_promo: bool = engine.is_promotion_move(from, to)
+	var mine := ChessEngine.uci(from, to, promo if is_promo else 0)
+	var right: bool = mine == expected or (from == want.from and to == want.to and not is_promo)
+	var probe = engine.clone()
+	var res: Dictionary = probe.move(from, to, promo)
+	if not res.get("valid", false):
+		return
+	if not right and res.get("game_over", false) and probe.result_reason == "checkmate":
+		right = true  # another mate in one is just as good
+	if not right:
+		_pz_wrong()
+		return
+	_pz_play(from, to, promo if is_promo else ChessEngine.QUEEN)
+	if engine.game_over or pz_step >= pz_moves.size():
+		_pz_solved()
+		return
+	pz_busy = true
+	pz_timer.start(PUZZLE_REPLY_DELAY)
+
+func _pz_play(from: Vector2i, to: Vector2i, promo: int) -> void:
+	var s: String = engine.san(from, to, promo)
+	var res: Dictionary = engine.move(from, to, promo)
+	if not res.get("valid", false):
+		return
+	san_moves.append(s + engine.san_suffix())
+	ucis.append(ChessEngine.uci(from, to, promo if res.promotes else 0))
+	pz_step += 1
+	selected = Vector2i(-1, -1)
+	board_view.hint = []
+	last_move = [from, to]
+	board_view.animate(from, to)
+	_move_sound(res)
+	_render()
+
+## The opponent's move (the first one, or a reply), or the next step of 👁.
+func _on_pz_timer() -> void:
+	if not _in_puzzle():
+		return
+	pz_busy = false
+	if pz_step >= pz_moves.size():
+		return
+	var m := ChessEngine.parse_uci(pz_moves[pz_step])
+	_pz_play(m.from, m.to, m.promo if m.promo > 0 else ChessEngine.QUEEN)
+	if pz_showing:
+		if pz_step < pz_moves.size():
+			pz_busy = true
+			pz_timer.start(PUZZLE_REPLY_DELAY + 0.25)
+		else:
+			pz_showing = false
+			pz_done = true
+			_feedback(tr("That was the solution."), Color(0.8, 0.85, 0.95))
+			_pz_panel()
+		return
+	if pz_step >= pz_moves.size():
+		_pz_solved()
+	else:
+		_feedback(tr("Your move."), Color(0.8, 0.85, 0.95))
+
+func _pz_wrong() -> void:
+	_sfx("error")
+	selected = Vector2i(-1, -1)
+	_render()
+	match pz_kind:
+		"rush":
+			run_strikes += 1
+			_feedback(tr("✗ Not this one."), COLOR_CHECK)
+			ChessPuzzles.note(progress, pz, false)
+			if run_strikes >= ChessPuzzles.RUSH_STRIKES:
+				_end_run()
+			else:
+				_next_run_puzzle(false)
+			return
+		"survival":
+			ChessPuzzles.note(progress, pz, false)
+			_feedback(tr("✗ Not this one."), COLOR_CHECK)
+			_end_run()
+			return
+	_pz_fail_once()
+	_feedback(tr("✗ Not this one. Try again, or tap 👁 Solution."), COLOR_CHECK)
+
+## A rated puzzle counts as missed once (wrong move, hint or solution).
+func _pz_fail_once() -> void:
+	if pz_failed:
+		return
+	pz_failed = true
+	if pz_kind == "rated" and not pz_scored:
+		pz_scored = true
+		var change := ChessPuzzles.rate(progress, pz, false)
+		lesson_head.text = tr("🧩 Rating %d (%d)") % [int(ChessPuzzles.record(progress).rating), change]
+		if info:
+			info.high("Puzzle rating", int(ChessPuzzles.record(progress).rating))
+
+func _pz_solved() -> void:
+	pz_done = true
+	game_active = false
+	_sfx("record")
+	var text := tr("✓ Solved!")
+	match pz_kind:
+		"rated":
+			if not pz_scored:
+				pz_scored = true
+				var change := ChessPuzzles.rate(progress, pz, true)
+				text += "  " + tr("Rating %d (+%d)") % [int(ChessPuzzles.record(progress).rating), change]
+				if info:
+					info.add("Puzzles solved")
+					info.high("Puzzle rating", int(ChessPuzzles.record(progress).rating))
+					info.high("Best puzzle streak", int(ChessPuzzles.record(progress).best_streak))
+			else:
+				text += "  " + tr("(no rating change after a miss)")
+		"daily":
+			if not pz_failed:
+				var streak := ChessPuzzles.finish_daily(progress, _today(), _yesterday())
+				text += "  " + tr("Daily streak %d") % streak
+				if info:
+					info.add("Puzzles solved")
+			ChessPuzzles.note(progress, pz, not pz_failed)
+		"rush", "survival":
+			run_score += 1
+			ChessPuzzles.note(progress, pz, true)
+			if info:
+				info.add("Puzzles solved")
+			_feedback(text, Color("7dff3a"))
+			_next_run_puzzle(true)
+			return
+	_feedback(text, Color("7dff3a"))
+	_pz_panel()
+
+func _next_run_puzzle(solved: bool) -> void:
+	if solved:
+		run_level += ChessPuzzles.RUSH_STEP
+	var p := ChessPuzzles.pick(run_level, rng, run_seen)
+	if p.is_empty():
+		_end_run()
+		return
+	_load_puzzle(p)
+
+func _end_run() -> void:
+	pz_done = true
+	game_active = false
+	pz_busy = false
+	if pz_timer:
+		pz_timer.stop()
+	var d := ChessPuzzles.record(progress)
+	var key := "best_rush" if pz_kind == "rush" else "best_survival"
+	var best := run_score > int(d[key])
+	if best:
+		d[key] = run_score
+		progress.save()
+	if info:
+		info.high("Best Puzzle Rush" if pz_kind == "rush" else "Best Survival", run_score)
+	var title := tr("⚡ Puzzle Rush over") if pz_kind == "rush" else tr("♾ Survival over")
+	var msg := title + "\n" + tr("%d puzzles solved") % run_score + ("\n" + tr("New best!") if best and run_score > 0 else "\n" + tr("Best: %d") % int(d[key]))
+	_ask(msg, [["Play Again", HomeKit.GO, _run_again], ["🧩 Puzzles", HomeKit.BUTTON, _back_to_puzzles], ["🏠 Chess Home", HomeKit.BUTTON, _go_home]])
+
+func _run_again() -> void:
+	result_dialog.visible = false
+	_begin_run(pz_kind)
+
+func _back_to_puzzles() -> void:
+	result_dialog.visible = false
+	home.show_home()
+	_open_puzzles()
+
+# --- the panel buttons in puzzle mode ---
+
+func _pz_hint() -> void:
+	if pz_done or pz_busy or pz_step >= pz_moves.size():
+		return
+	_pz_fail_once()
+	var m := ChessEngine.parse_uci(pz_moves[pz_step])
+	board_view.hint = [m.from]
+	_feedback(tr("Hint: move the highlighted piece."), Color(0.8, 0.85, 0.95))
+	_render()
+
+## 👁 plays the rest of the solution; after the end it's ↺ Retry.
+func _pz_retry() -> void:
+	if pz_done:
+		_load_puzzle(pz)
+		return
+	if pz_busy or pz_kind in ["rush", "survival"]:
+		return
+	_pz_fail_once()
+	pz_showing = true
+	pz_busy = true
+	pz_timer.start(0.2)
+
+func _pz_next() -> void:
+	if pz_kind == "daily":
+		_back_to_puzzles()
+		return
+	_begin_puzzle(pz_kind, pz_theme)
+
 # ---------- helps (STANDARDS §17) ----------
 
 ## 💡 help: the computer plays the move it thinks best for your side.
 func _help_move() -> bool:
-	if not game_active or _in_lesson() or _is_online() or promotion_dialog.visible or lesson_busy:
+	if not game_active or _in_lesson() or _in_puzzle() or _is_online() or promotion_dialog.visible or lesson_busy:
 		return false
 	if _vs_cpu() and (engine.current_player != ChessEngine.WHITE or cpu_busy):
 		return false

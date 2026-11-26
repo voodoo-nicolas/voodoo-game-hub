@@ -16,6 +16,7 @@ const HOW := [
 	"A game with a takeback doesn't change your rating or earn points. The computer accepts a draw only when it stands worse, or late in an even game.",
 	"♟ Ongoing Games keeps up to 6 games against the computer or on one phone. Starting a new game keeps the others; ▶ Resume opens the last one you played. When all 6 are in use, a new game asks which one to replace.",
 	"📮 Daily Games: challenge a friend to a game played one move at a time, whenever you like (1, 3 or 7 days a move). Up to 10 at once. Miss your deadline and your friend can claim the win. Needs an account and friends.",
+	"🧩 Puzzles: find the best move (the other side moves first). Rated puzzles move your puzzle rating; pick a theme (forks, pins, mates…) to practise one idea. ⚡ Puzzle Rush: as many as you can in 3 minutes, 3 mistakes allowed. ♾ Survival: until your first mistake. 📅 Puzzle of the Day: the same for everyone. A wrong move, 💡 hint or 👁 solution counts a rated puzzle as missed. Puzzles come from the Lichess puzzle database (CC0).",
 	"📜 My Games keeps your last 50 finished games: replay them move by move. Paste a PGN to replay a game from another app, or a FEN to play from that position.",
 	"📚 Lessons teach each piece, the rules and checkmate on short boards. 📅 Daily Lesson gives three new boards every day. Lessons aren't saved halfway: a board starts again.",
 	"Solving lesson boards (the first time), the daily lesson and beating the computer earn ⭐ points. Spend them in the 🛒 Shop on new boards and piece sets.",
@@ -31,16 +32,19 @@ const TIPS := [
 	"Count the material: a queen is worth 9 pawns, a rook 5, a bishop or knight 3.",
 ]
 const STATS := ["Wins", "Losses", "Draws", "Best streak", "White wins", "Black wins",
-	"Lessons solved", "Daily lessons", "Points earned"]
+	"Lessons solved", "Daily lessons", "Points earned",
+	"Puzzles solved", "Puzzle rating", "Best puzzle streak", "Best Puzzle Rush", "Best Survival"]
 ## Owner 2026-11-08 (STANDARDS §3b, 1000 points per game): these counters get no tier
 ## badges (app v0.40+; badges already earned keep their XP).
-const NO_TIER_BADGES := ["Points earned"]
+const NO_TIER_BADGES := ["Points earned", "Puzzles solved", "Puzzle rating", "Best puzzle streak", "Best Puzzle Rush", "Best Survival"]
 
 const ACHIEVEMENTS := [
 	{"id": "lessons10", "icon": "🎓", "title": "Good Student", "key": "Lessons solved", "at": 10},
 	{"id": "lessons43", "icon": "📜", "title": "Rule Master", "key": "Lessons solved", "at": 43},
 	{"id": "daily7", "icon": "📅", "title": "Daily Habit", "key": "Daily lessons", "at": 7},
 	{"id": "points500", "icon": "⭐", "title": "Collector", "key": "Points earned", "at": 500},
+	{"id": "puzzles100", "icon": "🧩", "title": "Puzzle Solver", "key": "Puzzles solved", "at": 100},
+	{"id": "puzzle1600", "icon": "🧠", "title": "Sharp Eye", "key": "Puzzle rating", "at": 1600},
 ]
 
 ## Learning hook (STANDARDS §15): one shows on the Home screen's
