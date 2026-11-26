@@ -185,7 +185,7 @@ const STRINGS := {
 		"Wearing": "Puesto",
 		"Wearing now": "Lo que lleva puesto",
 		"Whatever you start from a setup screen becomes Quick Play.": "Lo último que empieces desde una pantalla de preparación pasa a ser el Juego rápido.",
-		"Where it hits matters: head ×2 damage, body ×1, legs ×0.6. Both assassins start with 100 health.": "Importa dónde pega: cabeza ×2 de daño, cuerpo ×1, piernas ×0,6. Las dos asesinas empiezan con 100 de salud.",
+		"Where it hits matters: head ×2 damage, body ×1, legs ×0.6. Both assassins start with 125 health.": "Importa dónde pega: cabeza ×2 de daño, cuerpo ×1, piernas ×0,6. Las dos asesinas empiezan con 125 de salud.",
 		"While you hold, the striped ribbon shows the first stretch of the arc. It does not show the wind: that part is up to you.": "Mientras mantienes, la cinta a rayas muestra el primer tramo del arco. No muestra el viento: eso queda en tus manos.",
 		"Win fights to earn stars: Easy 3, Normal 5, Hard 7, Expert 9, +2 flawless; online win 5; a loss 1.": "Gana combates para ganar estrellas: Fácil 3, Normal 5, Difícil 7, Experto 9, +2 sin daño; victoria en línea 5; una derrota 1.",
 		"Win rate": "Porcentaje de victorias",

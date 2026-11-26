@@ -58,14 +58,14 @@ const CHARS := [
 ]
 ## The 8 Contracts: place, computer level, distance (m), strongest crosswind (m/s²), map style, rival health.
 const CONTRACTS := [
-	{"place": "The Lagoon", "level": 0, "dist": 22.0, "wind": 0.8, "style": 0, "hp": 70},
-	{"place": "The Tall Grass", "level": 1, "dist": 23.0, "wind": 1.1, "style": 1, "hp": 80},
-	{"place": "The Red Cliffs", "level": 1, "dist": 24.0, "wind": 1.3, "style": 2, "hp": 90},
-	{"place": "The River Bend", "level": 2, "dist": 25.0, "wind": 1.5, "style": 1, "hp": 100},
-	{"place": "The Stone Islands", "level": 2, "dist": 26.0, "wind": 1.7, "style": 0, "hp": 100},
-	{"place": "The Sun Hills", "level": 2, "dist": 27.0, "wind": 1.9, "style": 2, "hp": 100},
-	{"place": "The Waterfall", "level": 3, "dist": 28.0, "wind": 2.0, "style": 1, "hp": 100},
-	{"place": "The Great Falls", "level": 3, "dist": 30.0, "wind": 2.2, "style": 2, "hp": 100},
+	{"place": "The Lagoon", "level": 0, "dist": 22.0, "wind": 0.8, "style": 0, "hp": 88},
+	{"place": "The Tall Grass", "level": 1, "dist": 23.0, "wind": 1.1, "style": 1, "hp": 100},
+	{"place": "The Red Cliffs", "level": 1, "dist": 24.0, "wind": 1.3, "style": 2, "hp": 113},
+	{"place": "The River Bend", "level": 2, "dist": 25.0, "wind": 1.5, "style": 1, "hp": 125},
+	{"place": "The Stone Islands", "level": 2, "dist": 26.0, "wind": 1.7, "style": 0, "hp": 125},
+	{"place": "The Sun Hills", "level": 2, "dist": 27.0, "wind": 1.9, "style": 2, "hp": 125},
+	{"place": "The Waterfall", "level": 3, "dist": 28.0, "wind": 2.0, "style": 1, "hp": 125},
+	{"place": "The Great Falls", "level": 3, "dist": 30.0, "wind": 2.2, "style": 2, "hp": 125},
 ]
 ## The Shop (2026-11-25): wins pay ⭐ stars (the wallet, not the Contract ★ ratings),
 ## spent on outfits, hair dyes and upgrades. Upgrades count only against the computer
@@ -1020,7 +1020,7 @@ func _game_over() -> void:
 		if mode == "contract":
 			msg = tr("Contract %d of 8") % (contract + 1) + " · " + tr(CONTRACTS[contract].place) + "\n" + msg
 			if won:
-				var stars := 1 + (1 if hp >= 50 else 0) + (1 if hp >= AaEngine.MAX_HP else 0)
+				var stars := 1 + (1 if hp >= AaEngine.MAX_HP / 2 else 0) + (1 if hp >= AaEngine.MAX_HP else 0)
 				progress.stars[contract] = maxi(int(progress.stars[contract]), stars)
 				_save_progress()
 				msg += "\n" + "★".repeat(stars) + "☆".repeat(3 - stars)
@@ -1062,7 +1062,7 @@ func _game_over() -> void:
 	end_stars = 0
 	if mode == "contract" and w == 0:
 		var hp0: int = engine.fighters[0].hp
-		end_stars = 1 + (1 if hp0 >= 50 else 0) + (1 if hp0 >= AaEngine.MAX_HP else 0)
+		end_stars = 1 + (1 if hp0 >= AaEngine.MAX_HP / 2 else 0) + (1 if hp0 >= AaEngine.MAX_HP else 0)
 	stars_t = 0.0
 	world.celebrate(w, true)
 	_layout_end()

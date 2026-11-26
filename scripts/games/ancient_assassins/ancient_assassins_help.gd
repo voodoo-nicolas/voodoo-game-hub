@@ -11,7 +11,7 @@ const HOW := [
 	"On your turn, hold anywhere and drag up or down to set the angle (the ruler on the left). Your aim always faces your rival and the power is the weapon's own: the angle is all you choose. Let go to throw.",
 	"While you hold, the striped ribbon shows the first stretch of the arc. It does not show the wind: that part is up to you.",
 	"After your first throw, its flight stays on screen as a see-through arc, with its angle on the ruler: aim a little higher or lower from there.",
-	"Where it hits matters: head ×2 damage, body ×1, legs ×0.6. Both assassins start with 100 health.",
+	"Where it hits matters: head ×2 damage, body ×1, legs ×0.6. Both assassins start with 125 health.",
 	"Weapons, at the bottom: 🗡 Javelin (34, unlimited), 🪓 Throwing Axe (46, 2 per fight; heavy, the wind barely moves it, but it doesn't fly far) and ⭕ Chakram (26, 3 per fight; fast and flat, the wind throws it around).",
 	"Columns and rocks block throws; a throw that falls short lands in the water.",
 	"📜 Contracts: 8 rivals in a row, each tougher than the last, with stars for the health you keep. vs Computer: Easy, Normal, Hard or Expert. 2 Players: pass the phone each turn. 🌐 Online: play a friend on another phone.",

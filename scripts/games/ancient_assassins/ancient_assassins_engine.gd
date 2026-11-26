@@ -21,7 +21,7 @@ extends RefCounted
 const DT := 1.0 / 120.0
 ## Hit tests per tick (a 25 m/s throw moves 0.2 m a tick; a head is 0.24 m across).
 const SUB := 3
-const MAX_HP := 100
+const MAX_HP := 125   # 100 until 2026-11-26 (owner: +25% for everyone)
 ## Crosswind: sideways acceleration in m/s², times the weapon's "wind" factor.
 const WIND_MAX := 2.0
 ## The assassins (Quaternius' female base, 1.78 m): hit zones, from the feet.
