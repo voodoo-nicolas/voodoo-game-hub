@@ -285,7 +285,6 @@ const STRINGS := {
 		"Rose Garden": "Jardín de rosas",
 		"Ruby & Sapphire": "Rubí y zafiro",
 		"Rule Master": "Maestro de las reglas",
-		"Rush Hour": "Hora punta",
 		"Sacrifice": "Sacrificio",
 		"Same again: capture the pawn that just moved past.": "Otra vez: captura el peón que acaba de pasar.",
 		"Screen": "Pantalla",
