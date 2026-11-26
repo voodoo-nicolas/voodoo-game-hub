@@ -155,7 +155,8 @@
       {"id": "fastest_finger", "quick": true, "title": "Fastest Finger", "icon": "👆", "title_es": "Dedo veloz", "modes": "local,party", "board": "none", "skins": "classic,voodoo", "learn": ["math"], "content": {"min_age": 3, "descriptors": [], "notes": ""}, "category": "party", "tags": ["multiplayer", "offline", "quick"], "added": "2026-10-07"},
       {"id": "emoji_guess", "quick": true, "title": "Emoji Guess", "icon": "🤔", "title_es": "Adivina el emoji", "modes": "local,party", "skins": "classic,voodoo", "learn": ["vocab"], "content": {"min_age": 3, "descriptors": [], "notes": ""}, "category": "party", "tags": ["multiplayer", "offline", "quick"], "added": "2026-10-07"},
       {"id": "who_am_i", "quick": true, "title": "Who Am I?", "icon": "🕵️", "title_es": "¿Quién soy?", "modes": "local,party", "skins": "classic,voodoo", "learn": ["science"], "content": {"min_age": 3, "descriptors": [], "notes": ""}, "category": "party", "tags": ["multiplayer", "offline", "quick"], "added": "2026-10-07"},
-      {"id": "tarot", "tile_art": "res://media/hub/game_art/tarot/tile.webp", "hero_art": "res://media/hub/game_art/tarot/hero.webp", "original": true, "title": "Tarot of Destiny", "icon": "🃏", "title_es": "Tarot del destino", "board": "Readings given", "skins": "classic,voodoo", "learn": ["art"], "content": {"min_age": 12, "descriptors": [], "notes": "Tarot readings for fun (occult theme): owner to confirm the rating"}, "category": "party", "tags": ["offline", "original"], "added": "2026-11-13"}
+      {"id": "tarot", "tile_art": "res://media/hub/game_art/tarot/tile.webp", "hero_art": "res://media/hub/game_art/tarot/hero.webp", "original": true, "title": "Tarot of Destiny", "icon": "🃏", "title_es": "Tarot del destino", "board": "Readings given", "skins": "classic,voodoo", "learn": ["art"], "content": {"min_age": 12, "descriptors": [], "notes": "Tarot readings for fun (occult theme): owner to confirm the rating"}, "category": "party", "tags": ["offline", "original"], "added": "2026-11-13"},
+      {"id": "hue_hunt", "title": "Camera Hunter", "icon": "📷", "category": "party", "tags": ["offline", "original"], "added": "2026-11-26", "original": true, "title_es": "Cazador con cámara", "skins": "classic,voodoo", "learn": ["art", "science"], "content": {"min_age": 12, "descriptors": ["online_interaction", "user_generated_content"], "notes": "Uses the camera. Online: players see each other's 128 px photo thumbnails during the reveal (never stored; flag vote removes one)."}, "modes": "online"}
     ]}
   ],
   "games": {
@@ -294,6 +295,7 @@
     "truco": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/truco.pck", "scene": "res://scenes/games/truco/truco.tscn"},
     "el_9": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/el_9.pck", "scene": "res://scenes/games/el_9/el_9.tscn"},
     "chinchon": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/chinchon.pck", "scene": "res://scenes/games/chinchon/chinchon.tscn"},
-    "arrow_cube": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/arrow_cube.pck", "scene": "res://scenes/games/arrow_cube/arrow_cube.tscn", "updated": "2026-11-24"}
+    "arrow_cube": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/arrow_cube.pck", "scene": "res://scenes/games/arrow_cube/arrow_cube.tscn", "updated": "2026-11-24"},
+    "hue_hunt": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hue_hunt.pck", "scene": "res://scenes/games/hue_hunt/hue_hunt.tscn", "min_build": 65}
   }
 }
