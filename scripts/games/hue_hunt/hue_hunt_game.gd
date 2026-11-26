@@ -32,6 +32,8 @@ const Orientation = preload("res://scripts/common/orientation.gd")
 const SaveUtil = preload("res://scripts/common/save_util.gd")
 const HomeKit = preload("res://scripts/games/hue_hunt/home_kit.gd")
 const Help = preload("res://scripts/games/hue_hunt/hue_hunt_help.gd")
+## Recorded sounds from the shared library (docs/claude/sfx-library.md).
+const SoundLib = preload("res://scripts/games/hue_hunt/sound_lib.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const CAM_PATH := "res://scripts/common/camera_service.gd"
 const ONLINE_TABLE_PATH := "res://scripts/common/online_table.gd"
@@ -367,6 +369,17 @@ func _on_pause() -> void:
 	home.pause()
 
 
+## Music only from the shared Music autoload (guarded: older apps).
+func _music(what: String, style: String, index: int = 0, fade: float = 1.5) -> void:
+	var m = get_node_or_null("/root/Music")
+	if m == null:
+		return
+	if what == "play":
+		m.play(style, self, index, fade)
+	elif m.has_method("stop"):
+		m.stop(fade)
+
+
 func _sfx(sound: String) -> void:
 	var s = get_node_or_null("/root/Sfx")
 	if s:
@@ -407,6 +420,7 @@ func _begin(m: String, p: Array) -> void:
 	run_on = true
 	if info:
 		info.add("Hunts played")
+	_music("play", "lively")
 	if not prefs.safety_ok:
 		_show_safety()
 	_start_round()
@@ -624,7 +638,7 @@ func _on_settings() -> void:
 func _on_shutter() -> void:
 	if cam == null or phase != "live":
 		return
-	_sfx("tap")
+	SoundLib.play(self, "ui/click")
 	var img: Image = await cam.snapshot()
 	if img == null or phase != "live":
 		return
@@ -738,8 +752,25 @@ func _book_from(sp: Dictionary, p: int, day: String) -> void:
 		for i in sp.colors.size():
 			E.book_add(book, sp.colors[i], p, E.to_rgb(samples[mini(i, samples.size() - 1)]).to_html(false), day)
 		SaveUtil.write(BOOK_PATH, book)
-		if info:
-			info.high("Colors found", book.size())
+		_book_stats()
+
+
+## Colour Book counts for the badges (hue_hunt_help.gd ACHIEVEMENTS).
+func _book_stats() -> void:
+	if not info:
+		return
+	var easy := 0
+	var families := {}
+	for id in book:
+		var c := E.color_by_id(id)
+		if c.is_empty():
+			continue
+		if c[4] == "easy":
+			easy += 1
+		families[c[5]] = true
+	info.high("Colors found", book.size())
+	info.high("Easy colors found", easy)
+	info.high("Color families found", families.size())
 
 
 func _show_result(p: int) -> void:
@@ -1156,6 +1187,7 @@ func _on_table_started(my_player: int) -> void:
 	run_on = true
 	result_done = false
 	home.hide_home()
+	_music("play", "lively")
 	if not prefs.safety_ok:
 		_show_safety()
 	if my_player == 1 and not tbl.adopting:
@@ -1334,6 +1366,8 @@ func _draw_state(soft: bool = false) -> void:
 		"reveal":
 			if cam:
 				cam.stop()
+			if changed:
+				_count_object_win()
 			_show_phase("reveal")
 			_draw_reveal(changed)
 		"final":
@@ -1491,6 +1525,8 @@ func _draw_final() -> void:
 		result_done = true
 		var mine := int(st.scores.get(str(tbl.my_player), 0))
 		info.result("win" if mine == top and winners == 1 else ("draw" if mine == top else "loss"))
+		if mine == top and winners == 1 and int(st.get("used", {}).get(str(tbl.my_player), 0)) == 0:
+			info.add("Wins without power-ups")
 	if not _am_acting_host():
 		reveal_box.add_child(_small(tr("The host can start another match.")))
 	reveal_box.add_child(_big_button("🏠 " + tr("Home"), _go_home))
@@ -1648,3 +1684,20 @@ func _on_best(target: int) -> void:
 		tbl.send_event("best", {"target": target})
 		st.best[str(tbl.my_player)] = target
 		_draw_best()
+
+
+## An Object-round award for me (First or Best Find) counts once per round.
+var _object_win_round := ""
+
+
+func _count_object_win() -> void:
+	if not info or spec().get("judge", "") != "vote":
+		return
+	var key := "%s:%d" % [str(st.get("match_id", 0)), int(st.round_i)]
+	if key == _object_win_round:
+		return
+	for a in st.awards:
+		if str(a.player) == str(tbl.my_player):
+			_object_win_round = key
+			info.add("Object rounds won")
+			return

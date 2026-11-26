@@ -24,5 +24,26 @@ const TIPS := [
 	"Good, even daylight gives the truest colours.",
 	"Avoid shiny spots and shadows: tap a flat, evenly lit part.",
 	"Photos never leave your phone and are never saved.",
+	"▶ Resume brings back a Time Attack. Free Hunt and Daily Color are one photo each, so there is nothing to resume.",
 ]
-const STATS := ["Best score", "Best match", "Colors found", "Best daily match", "Hunts played"]
+const STATS := ["Best score", "Best match", "Colors found", "Easy colors found", "Color families found",
+	"Best daily match", "Hunts played", "Wins without power-ups", "Object rounds won"]
+
+## Our own badges below cover these, so no generic tier badges for them
+## (keeps the game within 1000 points, STANDARDS §3b).
+const NO_TIER_BADGES := ["Colors found", "Easy colors found", "Color families found", "Best match",
+	"Best daily match", "Wins without power-ups", "Object rounds won"]
+
+## Owner's list (2026-11-26): 10/50/100 colours, a 95%+ match, all easy
+## colours (35 of them), one colour per family (10: nine hues + neutrals),
+## win a match without a power-up, win an Object round (First or Best Find).
+const ACHIEVEMENTS := [
+	{"id": "found10", "icon": "🎨", "title": "Colour Spotter", "desc": "Find 10 colours for your Color Book", "key": "Colors found", "at": 10},
+	{"id": "found50", "icon": "📖", "title": "Colour Collector", "desc": "Find 50 colours for your Color Book", "key": "Colors found", "at": 50},
+	{"id": "found100", "icon": "🌈", "title": "Colour Hunter", "desc": "Find 100 colours for your Color Book", "key": "Colors found", "at": 100},
+	{"id": "match95", "icon": "🎯", "title": "Spot On", "desc": "Get a 95% match or better", "key": "Best match", "at": 95},
+	{"id": "all_easy", "icon": "✅", "title": "Easy Does It", "desc": "Find every easy colour", "key": "Easy colors found", "at": 35},
+	{"id": "rainbow", "icon": "🌈", "title": "Rainbow", "desc": "Find a colour in every family", "key": "Color families found", "at": 10},
+	{"id": "no_powers", "icon": "💪", "title": "No Help Needed", "desc": "Win a match with friends without using a power-up", "key": "Wins without power-ups", "at": 1},
+	{"id": "object_win", "icon": "🔎", "title": "Sharp Eyes", "desc": "Win First Find or Best Find in an Object round", "key": "Object rounds won", "at": 1},
+]
