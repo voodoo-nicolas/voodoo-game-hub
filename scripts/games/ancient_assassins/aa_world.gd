@@ -236,6 +236,8 @@ var rock_mat_cache: Dictionary = {}
 var level: Node3D              # rebuilt each fight
 var scenery: Node3D            # cliffs, mountains, boat, gulls
 var cam: Camera3D
+var aim_wide := 0.0   # 0 shoulder cam .. 1 pulled back while you aim
+var win_side := 0.0   # winner view: shift the look so she stands clear of the side panel (+1 / -1)
 var chase_p := Vector3.ZERO     # the throw's head (then where it landed)
 var chase_dir := Vector3.ZERO   # its flat heading
 var proj: Node3D
@@ -1280,17 +1282,23 @@ func _quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, col: Color) -> void:
 		ribbon_mesh.surface_set_color(col)
 		ribbon_mesh.surface_add_vertex(p)
 
-func _shoulder(view: int, aim_yaw: bool) -> Array:
+func _shoulder(view: int, aim_yaw: bool, wide: float = 0.0) -> Array:
 	var f: Vector3 = engine.feet(view)
 	var fw: Vector3 = engine.direction(view, engine.yaw_of(view) * 0.85, 0.0) if aim_yaw else engine.forward(view)
 	var right := fw.cross(Vector3.UP).normalized()
-	return [f + Vector3(0, 2.4, 0) + right * 1.0 - fw * 3.7, f + Vector3(0, 1.0, 0) + fw * 20.0 + right * 0.3]
+	var pos := f + Vector3(0, 2.4, 0) + right * 1.0 - fw * 3.7
+	var look := f + Vector3(0, 1.0, 0) + fw * 20.0 + right * 0.3
+	# Aiming (owner, 2026-11-26): pulled back and lower so ~80% of her body shows.
+	var wpos := f + Vector3(0, 1.7, 0) + right * 1.25 - fw * 5.0
+	var wlook := f + Vector3(0, 0.8, 0) + fw * 9.0 + right * 0.3
+	return [pos.lerp(wpos, wide), look.lerp(wlook, wide)]
 
 func _camera(delta: float, st: Dictionary, view: int) -> void:
 	var kill: int = st.get("kill", -1)
 	var winner: int = st.get("winner", -1)
 	var zoom: float = st.get("zoom", 0.0)
-	var sh := _shoulder(view, st.get("aiming", -1) == view)
+	aim_wide = move_toward(aim_wide, 1.0 if st.get("my_aim", false) else 0.0, delta * 2.5)
+	var sh := _shoulder(view, st.get("aiming", -1) == view, aim_wide)
 	var want_pos: Vector3 = sh[0]
 	var want_look: Vector3 = sh[1]
 	var k := minf(1.0, delta * 5.0)
@@ -1335,6 +1343,9 @@ func _camera(delta: float, st: Dictionary, view: int) -> void:
 		var dirw := wfw.rotated(Vector3.UP, orbit)
 		want_pos = wf + Vector3(0, 1.45, 0) + dirw * 3.4 + dirw.cross(Vector3.UP) * 0.8
 		want_look = wf + Vector3(0, 1.05, 0)
+		# The results sit at the side (owner, 2026-11-26): keep the dance clear of them.
+		if win_side != 0.0:
+			want_look += dirw.cross(Vector3.UP).normalized() * 0.9 * win_side
 		k = minf(1.0, delta * 2.0)
 	else:
 		# Breathing: the shoulder cam drifts a hand's width, so the view never feels frozen.
@@ -1345,7 +1356,7 @@ func _camera(delta: float, st: Dictionary, view: int) -> void:
 	cam.position = cam_pos + jolt
 	if cam_pos.distance_to(cam_look) > 0.01:
 		cam.look_at(cam_look + jolt, Vector3.UP)
-	cam.fov = lerpf(52.0, 44.0, zoom) if kill >= 0 else 52.0
+	cam.fov = lerpf(52.0, 44.0, zoom) if kill >= 0 else lerpf(52.0, 58.0, aim_wide)
 
 ## Jumps the camera straight to where it's going (new fight, new view).
 func snap_camera(view: int) -> void:

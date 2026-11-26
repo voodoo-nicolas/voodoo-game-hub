@@ -194,6 +194,7 @@ var pause_btn: Button
 var weapon_row: HBoxContainer
 var weapon_btns: Array = []
 var end_panel: Control
+var end_margin: MarginContainer
 var end_label: Label
 var end_next: Button
 var results_chip: Button
@@ -388,7 +389,9 @@ func _find(list: Array, id: String) -> Dictionary:
 
 func _build_end_panel() -> void:
 	end_panel = ColorRect.new()
-	(end_panel as ColorRect).color = Color(0, 0, 0, 0.45)
+	# No dimming and no bubble (owner, 2026-11-26): the victory dance stays in full view;
+	# the results stand at the side as outlined text (_layout_end).
+	(end_panel as ColorRect).color = Color(0, 0, 0, 0)
 	end_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	end_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	end_panel.visible = false
@@ -396,28 +399,17 @@ func _build_end_panel() -> void:
 	# safety net (APK 0.41.1+) not to add a second "See board".
 	end_panel.set_meta("_tamed", true)
 	add_child(end_panel)
-	# Docked low, so the winner (front view, centre) stays in sight.
-	var m := MarginContainer.new()
-	m.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	m.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	m.add_theme_constant_override("margin_left", 18)
-	m.add_theme_constant_override("margin_right", 18)
-	m.add_theme_constant_override("margin_bottom", 26)
-	end_panel.add_child(m)
-	var pc := PanelContainer.new()
-	var ps := StyleBoxFlat.new()
-	ps.bg_color = Color(0.07, 0.05, 0.04, 0.88)
-	ps.border_color = Color(GOLD, 0.85)
-	ps.set_border_width_all(2)
-	ps.set_corner_radius_all(18)
-	ps.shadow_color = Color(0, 0, 0, 0.5)
-	ps.shadow_size = 18
-	ps.set_content_margin_all(20)
-	pc.add_theme_stylebox_override("panel", ps)
-	m.add_child(pc)
+	end_margin = MarginContainer.new()
+	end_margin.add_theme_constant_override("margin_left", 18)
+	end_margin.add_theme_constant_override("margin_right", 18)
+	end_margin.add_theme_constant_override("margin_bottom", 26)
+	end_margin.add_theme_constant_override("margin_top", 26)
+	end_panel.add_child(end_margin)
+	end_panel.resized.connect(_layout_end)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
-	pc.add_child(box)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	end_margin.add_child(box)
 	end_title = Label.new()
 	end_title.add_theme_font_size_override("font_size", 44)
 	if title_font:
@@ -437,6 +429,8 @@ func _build_end_panel() -> void:
 	if ui_bold:
 		end_label.add_theme_font_override("font", ui_bold)
 	end_label.add_theme_color_override("font_color", Color("f3e6c8"))
+	end_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	end_label.add_theme_constant_override("outline_size", 7)
 	end_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	end_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(end_label)
@@ -461,6 +455,27 @@ func _build_end_panel() -> void:
 	results_chip.position.y -= 30
 	results_chip.visible = false
 	results_chip.pressed.connect(_show_results)
+
+## Results beside the dancer: a column on the right in landscape (the camera
+## shifts her left), a strip along the bottom in portrait.
+func _layout_end() -> void:
+	if end_margin == null:
+		return
+	var sz := end_panel.size
+	var wide := sz.x > sz.y
+	if wide:
+		end_margin.anchor_left = 0.6
+		end_margin.anchor_top = 0.0
+	else:
+		end_margin.anchor_left = 0.0
+		end_margin.anchor_top = 0.58
+	end_margin.anchor_right = 1.0
+	end_margin.anchor_bottom = 1.0
+	end_margin.offset_left = 0
+	end_margin.offset_top = 0
+	end_margin.offset_right = 0
+	end_margin.offset_bottom = 0
+	world.win_side = -1.0 if wide else 0.0
 
 # ---------- setup: pick your assassin (a turning 3D preview) ----------
 
@@ -843,6 +858,7 @@ func _process(delta: float) -> void:
 		"eagle": eagle, "kill": kill_target, "zoom": kill_zoom,
 		"chase": phase in ["fly", "settle"] and not engine.is_over(),
 		"ghost": engine.turn if phase == "aim" and _my_turn() else -1,
+		"my_aim": phase == "aim" and _my_turn(),
 		"winner": engine.winner if phase == "over" and kill_zoom <= 0.01 else -1})
 	hud.queue_redraw()
 
@@ -887,6 +903,7 @@ func _on_landed(ev: Dictionary, v: Vector3, w: int) -> void:
 			hitstop = 0.11 if head else 0.07
 			bar_shake[f] = 1.0
 			world.chars[f].flash()
+			world.chars[f].knock(1.5 if head else 1.0, int(engine.fighters[f].hp) <= 0)
 			if int(engine.fighters[f].hp) <= 0:
 				world._delay(0.9, world.burst.bind(engine.feet(f) + Vector3(0, 0.1, 0), "ko"))
 			world.chars[f].play("hit_head" if head else "hit", 0.05, true)
@@ -1048,6 +1065,7 @@ func _game_over() -> void:
 		end_stars = 1 + (1 if hp0 >= 50 else 0) + (1 if hp0 >= AaEngine.MAX_HP else 0)
 	stars_t = 0.0
 	world.celebrate(w, true)
+	_layout_end()
 	end_panel.visible = true
 	end_panel.modulate.a = 0.0
 	var tw := end_panel.create_tween()

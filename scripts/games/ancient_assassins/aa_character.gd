@@ -270,6 +270,12 @@ var weapon_holder: Node3D
 var cape_mat: ShaderMaterial
 var current := ""
 var _flash_t := 0.0
+# Knockback (owner, 2026-11-26: a hit must shove her, not leave a statue).
+var _knock_t := -1.0
+var _knock_s := 0.0
+var _knock_side := 1.0
+var _knock_ko := false
+var _model_base := Transform3D.IDENTITY
 
 func build(ch: Dictionary, skull: bool = false) -> void:
 	if _body_shader == null:
@@ -282,6 +288,7 @@ func build(ch: Dictionary, skull: bool = false) -> void:
 		_anims = load(ANIMS)
 	model = (load(BODY) as PackedScene).instantiate()
 	add_child(model)
+	_model_base = model.transform
 	skel = model.find_child("Skeleton3D", true, false)
 	# Body: the recolouring shader.
 	body_mat = ShaderMaterial.new()
@@ -790,7 +797,34 @@ func set_wind(w: float) -> void:
 func flash() -> void:
 	_flash_t = 0.25
 
+## Knocked back by a hit: she's shoved a step back, rocks back and wobbles
+## sideways, then steps in again (a KO keeps the shove; the death clip falls).
+## strength ~1 for a body hit, ~1.5 for the head.
+func knock(strength: float, ko: bool = false) -> void:
+	_knock_t = 0.0
+	_knock_s = strength
+	_knock_side = -1.0 if randf() < 0.5 else 1.0
+	_knock_ko = ko
+
+func _apply_knock(delta: float) -> void:
+	if _knock_t < 0.0 or model == null:
+		return
+	_knock_t += delta
+	var t := _knock_t
+	var s := _knock_s
+	# She faces +Z: back is -Z. Shove out fast, ease back in.
+	var back := 0.55 * s * (1.0 - exp(-t * 16.0)) * (1.0 if _knock_ko else exp(-t * 2.2))
+	var lean := -0.42 * s * exp(-t * 4.5) * cos(t * 9.0)
+	var wob := 0.16 * s * _knock_side * exp(-t * 4.0) * sin(t * 13.0)
+	var dip := -0.08 * s * exp(-t * 6.0) * sin(minf(t * 12.0, PI))
+	var b := Basis(Vector3.RIGHT, lean) * Basis(Vector3.BACK, wob)
+	model.transform = Transform3D(b, Vector3(0, dip, -back)) * _model_base
+	if t > 2.0 and not _knock_ko:
+		_knock_t = -1.0
+		model.transform = _model_base
+
 func _process(delta: float) -> void:
+	_apply_knock(delta)
 	if _flash_t > 0.0 and body_mat:
 		_flash_t = maxf(0.0, _flash_t - delta)
 		body_mat.set_shader_parameter("flash", Color(1, 1, 1, _flash_t * 2.4))
