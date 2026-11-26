@@ -62,6 +62,12 @@ uniform float glove_x = 9.0;
 uniform vec4 shoe_col : source_color = vec4(0.0);
 uniform float shoe_y = 0.0;
 uniform int decal = 0;
+// corset: 1 = boning seams and a lace-up front. sheen: satin rim light on the garment.
+// stock_net: 1 = fishnet stockings. seams: a seam up the back of each stocking.
+uniform int corset = 0;
+uniform float sheen = 0.0;
+uniform int stock_net = 0;
+uniform bool seams = false;
 uniform vec4 decal_col : source_color = vec4(1.0);
 varying vec3 rp;
 void vertex() {
@@ -119,8 +125,22 @@ void fragment() {
 	if (boot_col.a > 0.0 && leg && r.y < boot_y) { g = vec4(boot_col.rgb, 1.0); grough = 0.12; }
 	if (stock_col.a > 0.0 && leg && r.y < stock_y && g.a == 0.0) {
 		float lace = stock_y - 0.05 + 0.008 * sin(atan(r.z + 0.03, r.x - sign(r.x) * 0.11) * 14.0);
-		if (r.y > lace && band_col.a > 0.0) { g = vec4(band_col.rgb, 1.0); grough = 0.7; }
-		else { col = mix(col, stock_col.rgb * (0.55 + 0.45 * lum), stock_col.a); rough = 0.4; }
+		if (r.y > lace && band_col.a > 0.0) {
+			// The lace top: an open floral weave over the skin.
+			float holes = step(0.55, fract((r.y + atan(r.z + 0.03, r.x - sign(r.x) * 0.11) * 0.02) / 0.009)) * step(0.5, fract(r.y / 0.014 + 0.25));
+			g = vec4(band_col.rgb, 1.0);
+			grough = 0.7;
+			if (holes > 0.5 && r.y < stock_y - 0.012) g = vec4(0.0);
+		} else if (stock_net == 1) {
+			float u = atan(r.z + 0.03, r.x - sign(r.x) * 0.11) * 0.06;
+			float d1 = abs(fract((r.y + u) / 0.016) - 0.5);
+			float d2 = abs(fract((r.y - u) / 0.016) - 0.5);
+			if (min(d1, d2) < 0.09) { g = vec4(stock_col.rgb, 1.0); grough = 0.5; }
+		} else {
+			col = mix(col, stock_col.rgb * (0.55 + 0.45 * lum), stock_col.a);
+			rough = 0.32;
+		}
+		if (seams && abs(ax - 0.11) < 0.0035 && r.z < -0.05 && r.y < lace) g = vec4(stock_col.rgb * 0.6, 1.0);
 	}
 	if (bot_col.a > 0.0 && ((torso && r.y < bot_top) || (leg && r.y > bot_y))) { g = vec4(bot_col.rgb, 1.0); grough = 0.45; }
 	bool covered = false;
@@ -134,6 +154,16 @@ void fragment() {
 			bool edge = (torso && (r.y - top_y.x < 0.014 || (top_y.y - r.y < 0.014 && neck_v == 0.0))) || (arm && sleeve_x - ax < 0.018);
 			if (neck_v > 0.0 && front && torso && r.y > v0 - 0.01 && ax < (r.y - v0) * 0.6 + 0.02) edge = true;
 			if (trim_col.a > 0.0 && edge) g = vec4(trim_col.rgb, 1.0);
+			if (corset == 1 && torso && !edge) {
+				// Boning seams (four in front, four behind) and a lace-up front.
+				float bx = min(abs(ax - 0.05), abs(ax - 0.1));
+				if (bx < 0.0035) g.rgb *= 0.55;
+				if (front && ax < 0.022 && r.y < top_y.y - 0.02) {
+					float cross = abs(fract(r.y / 0.028) - 0.5) * 0.044;
+					if (abs(ax - cross) < 0.0035) g = vec4(trim_col.a > 0.0 ? trim_col.rgb : vec3(0.9), 1.0);
+					else g.rgb *= 0.6;
+				}
+			}
 		}
 	}
 	if (decal == 4 && torso && top_col.a > 0.0 && r.y > top_y.y - 0.01 && r.y < 1.47 && abs(ax - 0.1) < 0.012) g = vec4(trim_col.rgb, 1.0);
@@ -146,13 +176,17 @@ void fragment() {
 		}
 	}
 	if (glove_col.a > 0.0 && arm && ax > glove_x) { g = vec4(glove_col.rgb, 1.0); grough = 0.3; }
+	float rim = 0.0;
 	if (g.a > 0.0) {
 		col = g.rgb * gshade;
 		rough = grough;
 		cloth = 1.0;
+		rim = sheen;
 	}
 	ALBEDO = mix(col, flash.rgb, flash.a);
 	ROUGHNESS = rough;
+	RIM = rim;
+	RIM_TINT = 0.7;
 	SPECULAR = 0.45;
 	NORMAL_MAP = texture(normal_tex, UV).rgb;
 	EMISSION = fabric * cloth * glow + flash.rgb * flash.a * 0.6;
@@ -450,18 +484,67 @@ func _paint(p: Dictionary) -> void:
 	for k in p:
 		body_mat.set_shader_parameter(k, p[k])
 
-## A flared skirt of pleats: length, flare, colours a / b, an optional hem colour.
-func _skirt(hips: Node3D, length: float, flare: float, a: Color, b: Color, hem: Color = Color(0, 0, 0, 0), top_y: float = 0.97, n: int = 22) -> void:
-	flare *= 0.6   # a soft flare: wide pleats read as a lampshade
-	for k in n:
-		var ang := TAU * k / n
-		var out := Vector3(sin(ang) * 0.165, 0, cos(ang) * 0.13)
-		var bs := Basis(Vector3.UP, ang).rotated(Vector3(cos(ang), 0, -sin(ang)), flare)
-		var centre := Vector3(0, top_y - length * 0.5, -0.03) + out
-		_place(hips, _box(Vector3(0.07, length, 0.01), _mat(a if k % 2 == 0 else b, 0.75)), "pelvis", Transform3D(bs, centre))
-		if hem.a > 0.0:
-			var down := bs * Vector3(0, -length * 0.5 - 0.012, 0.002)
-			_place(hips, _box(Vector3(0.08, 0.026, 0.012), _mat(hem, 0.8)), "pelvis", Transform3D(bs, centre + down))
+## A skirt: one continuous cloth mesh round her hips (rest pose; hips are ~0.40 m wide
+## and 0.24 m deep at y 0.94, centre z -0.04). length (m), flare 0..1, soft pleats in
+## colour a (b = the shade in the folds), an optional hem band (scalloped lace when lace).
+func _skirt(hips: Node3D, length: float, flare: float, a: Color, b: Color, hem: Color = Color(0, 0, 0, 0), top_y: float = 1.0, lace: bool = false, pleats: int = 18) -> void:
+	_place(hips, _flare_mesh(top_y, length, 0.19, 0.135, 0.205 + flare * 0.07, 0.15 + flare * 0.06, pleats, 0.035 + flare * 0.05, 0.0, TAU, false, a, b), "pelvis", Transform3D.IDENTITY)
+	if hem.a > 0.0:
+		var rx := 0.205 + flare * 0.07
+		var rz := 0.15 + flare * 0.06
+		_place(hips, _flare_mesh(top_y - length + 0.004, 0.03 if lace else 0.022, rx + 0.002, rz + 0.002, rx + 0.012, rz + 0.01, pleats, 0.035 + flare * 0.05, 0.0, TAU, lace, hem, hem.darkened(0.15)), "pelvis", Transform3D.IDENTITY)
+
+## A cloth that hangs from a ring: an ellipse rx0 x rz0 at y_top widening to rx1 x rz1 at the
+## bottom, with soft pleats (pleats, amp), over the angles a0..a1 (0 = her front, +x = her left);
+## scallop = a lace-scalloped bottom edge. Colours: a on the crests, b in the folds.
+func _flare_mesh(y_top: float, length: float, rx0: float, rz0: float, rx1: float, rz1: float, pleats: int, amp: float, a0: float, a1: float, scallop: bool, a: Color, b: Color) -> MeshInstance3D:
+	var seg := 72
+	var rows := 8
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var full := absf(a1 - a0 - TAU) < 0.001
+	var pts: Array = []
+	for r in rows + 1:
+		var t := float(r) / rows
+		var row: Array = []
+		for k in seg + 1:
+			var ang := lerpf(a0, a1, float(k) / seg) if not full else TAU * k / seg
+			var wave := sin(ang * pleats)
+			var grow := 1.0 + amp * pow(t, 0.8) * wave / maxf(rx0, 0.01)
+			var rx := lerpf(rx0, rx1, t) * grow
+			var rz := lerpf(rz0, rz1, t) * grow
+			var y := y_top - length * t
+			if scallop and r == rows:
+				y += absf(sin(ang * pleats * 2.0)) * 0.012
+			row.append([Vector3(sin(ang) * rx, y, -0.04 + cos(ang) * rz), a.lerp(b, clampf(0.5 - 0.5 * wave, 0.0, 1.0) * t * 0.9 + (0.0 if t > 0.0 else 0.0))])
+		pts.append(row)
+	for r in rows:
+		for k in seg:
+			var q := [pts[r][k], pts[r][k + 1], pts[r + 1][k + 1], pts[r + 1][k]]
+			for i in [0, 1, 2, 0, 2, 3]:
+				st.set_color(q[i][1])
+				st.add_vertex(q[i][0])
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	var m := _cloth_mat(Color.WHITE, 0.62)
+	m.vertex_color_use_as_albedo = true
+	m.vertex_color_is_srgb = true
+	m.rim = 0.12
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	return mi
+
+## Two-sided cloth with a soft sheen at the edges (satin catches the light).
+func _cloth_mat(col: Color, rough: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.roughness = rough
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.rim_enabled = true
+	m.rim = 0.25
+	m.rim_tint = 0.6
+	return m
 
 func _costume(id: String) -> void:
 	var hips := _attach("pelvis")
@@ -477,14 +560,13 @@ func _costume(id: String) -> void:
 			# with a white lace hem, white apron with a bow, sheer black stockings with lace tops,
 			# a frilled headpiece and a choker with a bow.
 			_paint({"top_col": Color("141418"), "top_y": Vector2(0.96, 1.37), "trim_col": Color("f4f2ee"), "decal": 4,
+				"corset": 1, "sheen": 0.35, "top_rough": 0.4, "seams": true,
 				"stock_col": Color(0.05, 0.05, 0.06, 0.72), "stock_y": 0.72, "band_col": Color("101012"),
 				"shoe_col": Color("101012"), "shoe_y": 0.09})
-			_skirt(hips, 0.2, 0.55, Color("16161a"), Color("202026"), Color("f4f2ee"))
-			_place(hips, _box(Vector3(0.21, 0.2, 0.008), white), "pelvis", Transform3D(Basis(Vector3.RIGHT, -0.3), Vector3(0, 0.865, 0.175)))
-			for k in 8:
-				_place(hips, _ball(0.016, white), "pelvis", Transform3D(Basis.IDENTITY.scaled(Vector3(1, 0.7, 0.5)), Vector3(-0.095 + k * 0.027, 0.765, 0.205)))
-			for sx in [-1.0, 1.0]:
-				_place(hips, _box(Vector3(0.06, 0.03, 0.012), black), "pelvis", Transform3D(Basis(Vector3.BACK, sx * 0.4), Vector3(sx * 0.035, 0.955, 0.16)))
+			_skirt(hips, 0.21, 0.75, Color("18181c"), Color("060608"), Color("f4f2ee"), 1.0, true, 20)
+			# A curved white apron over the front of the skirt, lace-edged, with a waistband.
+			_place(hips, _flare_mesh(0.995, 0.17, 0.205, 0.15, 0.27, 0.23, 7, 0.012, -0.6, 0.6, true, Color("f6f4f0"), Color("d8d6d2")), "pelvis", Transform3D.IDENTITY)
+			_place(hips, _flare_mesh(1.005, 0.022, 0.193, 0.14, 0.195, 0.142, 1, 0.0, 0.0, TAU, false, Color("f6f4f0"), Color("f6f4f0")), "pelvis", Transform3D.IDENTITY)
 			_place(head, _box(Vector3(0.17, 0.04, 0.025), white), "Head", Transform3D(Basis(Vector3.RIGHT, -0.5), Vector3(0, 1.755, 0.03)))
 			for k in 6:
 				_place(head, _ball(0.018, white), "Head", Transform3D(Basis.IDENTITY, Vector3(-0.07 + k * 0.028, 1.78, 0.03)))
@@ -495,7 +577,7 @@ func _costume(id: String) -> void:
 		"secretary":
 			# White satin blouse with long sleeves, a deep open V and buttons; a black pencil
 			# skirt above the knee, black heels, glasses and pearls.
-			_paint({"top_col": Color("f2f0ec"), "top_y": Vector2(0.93, 1.5), "sleeve_x": 0.62, "neck_v": 0.2, "top_rough": 0.3,
+			_paint({"top_col": Color("f2f0ec"), "top_y": Vector2(0.93, 1.5), "sleeve_x": 0.62, "neck_v": 0.2, "top_rough": 0.22, "sheen": 0.6,
 				"decal": 1, "decal_col": Color("d8d4cc"), "shoe_col": Color("0e0e10"), "shoe_y": 0.1,
 				"bot_col": Color("16161a"), "bot_y": 0.6, "bot_top": 1.0})
 			# The skirt is painted on her hips and thighs; this fills the gap between her legs.
@@ -511,11 +593,11 @@ func _costume(id: String) -> void:
 			# Black long-sleeve crop top with a zip and a gold badge, black shorts, glossy
 			# thigh-high boots, gloves, a belt with handcuffs, police cap and sunglasses.
 			_paint({"top_col": Color("121216"), "top_y": Vector2(1.18, 1.5), "sleeve_x": 0.62, "top_rough": 0.45,
-				"decal": 2, "decal_col": Color("c8ccd4"), "bot_col": Color("121216"), "bot_y": 0.8, "bot_top": 1.06,
+				"decal": 2, "decal_col": Color("c8ccd4"), "sheen": 0.5, "bot_col": Color("121216"), "bot_y": 0.8, "bot_top": 1.06,
 				"boot_col": Color("0a0a0c"), "boot_y": 0.72, "glove_col": Color("0a0a0c"), "glove_x": 0.6})
 			_place(chest, _box(Vector3(0.035, 0.042, 0.008), gold), "spine_03", Transform3D(Basis.IDENTITY, Vector3(-0.075, 1.4, 0.115)))
-			_place(hips, _torus(0.16, 0.18, black), "pelvis", Transform3D(Basis.IDENTITY.scaled(Vector3(1.05, 1.0, 0.85)), Vector3(0, 1.02, -0.03)))
-			_place(hips, _box(Vector3(0.05, 0.035, 0.012), silver), "pelvis", Transform3D(Basis.IDENTITY, Vector3(0, 1.02, 0.125)))
+			_place(hips, _flare_mesh(1.045, 0.035, 0.19, 0.135, 0.195, 0.138, 1, 0.0, 0.0, TAU, false, Color("0a0a0c"), Color("0a0a0c")), "pelvis", Transform3D.IDENTITY)
+			_place(hips, _box(Vector3(0.05, 0.035, 0.012), silver), "pelvis", Transform3D(Basis.IDENTITY, Vector3(0, 1.027, 0.1)))
 			for k in 2:
 				_place(hips, _torus(0.02, 0.027, silver), "pelvis", Transform3D(Basis(Vector3.FORWARD, PI / 2), Vector3(0.18, 0.925 - k * 0.045, 0.05)))
 			_place(head, _cyl(0.118, 0.1, 0.075, black), "Head", Transform3D(Basis(Vector3.RIGHT, -0.15), Vector3(0, 1.785, 0.0)))
@@ -532,18 +614,17 @@ func _costume(id: String) -> void:
 				"trim_col": Color("d42a2a"), "decal": 3, "decal_col": Color("d42a2a"), "shoe_col": Color("f4f2ee"), "shoe_y": 0.1})
 			for sx in [-1.0, 1.0]:
 				_place(chest, _box(Vector3(0.05, 0.06, 0.012), white), "spine_03", Transform3D(Basis(Vector3.BACK, sx * 0.6), Vector3(sx * 0.03, 1.19, 0.12)))
-			_place(chest, _ball(0.02, white), "spine_03", Transform3D(Basis.IDENTITY, Vector3(0, 1.215, 0.125)))
-			_skirt(hips, 0.19, 0.5, Color("f6f4f0"), Color("e8e6e2"), Color("d42a2a"))
+			_skirt(hips, 0.19, 0.55, Color("f6f4f0"), Color("c8c6c2"), Color("d42a2a"), 1.0, false, 24)
 			_place(head, _box(Vector3(0.16, 0.06, 0.1), white), "Head", Transform3D(Basis(Vector3.RIGHT, -0.3), Vector3(0, 1.765, 0.03)))
 			_place(head, _box(Vector3(0.05, 0.016, 0.004), red), "Head", Transform3D(Basis(Vector3.RIGHT, -0.3), Vector3(0, 1.775, 0.083)))
 			_place(head, _box(Vector3(0.016, 0.05, 0.004), red), "Head", Transform3D(Basis(Vector3.RIGHT, -0.3), Vector3(0, 1.775, 0.083)))
 		"angel":
 			# White corset with gold trim, white lace stockings, a soft white skirt, a glowing
 			# halo and feathered wings.
-			_paint({"top_col": Color("f8f6f0"), "top_y": Vector2(0.96, 1.37), "trim_col": Color("e8b84a"),
+			_paint({"top_col": Color("f8f6f0"), "top_y": Vector2(0.96, 1.37), "trim_col": Color("e8b84a"), "corset": 1, "sheen": 0.5, "top_rough": 0.35,
 				"stock_col": Color(0.97, 0.96, 0.93, 0.55), "stock_y": 0.72, "band_col": Color("f4f2ee"),
 				"shoe_col": Color("f4f2ee"), "shoe_y": 0.09})
-			_skirt(hips, 0.22, 0.5, Color("f8f6f0"), Color("ece8de"), Color("e8b84a"))
+			_skirt(hips, 0.23, 0.85, Color("fbfaf6"), Color("d6d2c8"), Color("e8b84a"), 1.0, true, 16)
 			var halo := _mat(Color("ffd76a"), 0.2, 0.6)
 			halo.emission_enabled = true
 			halo.emission = Color("ffc84a")
@@ -555,10 +636,11 @@ func _costume(id: String) -> void:
 			# Red corset with black trim, sheer black stockings, a black skirt, curved horns,
 			# a tail with a spade tip and webbed demon wings.
 			var red := _mat(Color("c01818"), 0.3, 0.2)
-			_paint({"top_col": Color("b01418"), "top_y": Vector2(0.96, 1.37), "top_rough": 0.35, "trim_col": Color("101012"),
+			_paint({"top_col": Color("b01418"), "top_y": Vector2(0.96, 1.37), "top_rough": 0.25, "trim_col": Color("101012"),
+				"corset": 1, "sheen": 0.6, "stock_net": 1,
 				"stock_col": Color(0.05, 0.03, 0.03, 0.7), "stock_y": 0.72, "band_col": Color("101012"),
 				"shoe_col": Color("a01016"), "shoe_y": 0.09})
-			_skirt(hips, 0.18, 0.45, Color("16161a"), Color("2a0c10"), Color("b01418"))
+			_skirt(hips, 0.18, 0.6, Color("1a0a0c"), Color("050203"), Color("b01418"), 1.0, true, 20)
 			for sx in [-1.0, 1.0]:
 				var pts := [Vector3(sx * 0.055, 1.79, 0.04), Vector3(sx * 0.075, 1.84, 0.03), Vector3(sx * 0.08, 1.885, 0.0), Vector3(sx * 0.07, 1.915, -0.03)]
 				var rad := [0.022, 0.016, 0.01, 0.004, 0.0]
