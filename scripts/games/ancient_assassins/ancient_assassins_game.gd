@@ -12,7 +12,8 @@ extends Control
 ## Six assassins, 8 Contracts, vs Computer (Easy-Expert), 2 Players on one
 ## phone, Online. A finishing blow plays in slow motion beside the victim.
 ##
-## Landing menu style: S4 Monument (docs/MENU_STYLES.md) -- not used by the last
+## Landing (2026-11-26): own animated Landing, aa_landing.gd (owner: Single player /
+## Multiplayer drawers, Shop, Game Options). Was: S4 Monument (docs/MENU_STYLES.md) -- not used by the last
 ## 2 games (Arrow Pop and Block Escape use S10 Bento); the hero art is a render
 ## of the game (games/ancient_assassins/landing_bg.jpg, tools/shot_ancient_assassins.gd).
 ## Shared pieces: Landing kit, GameInfo, OnlineMatch, SoundLib, Music. Own 3D:
@@ -313,9 +314,12 @@ func _build_ui() -> void:
 	if online:
 		modes.append({"text": "🌐 Online", "sub": "Fight a friend on another phone", "multi": true, "key": "online", "action": online.open_lobby})
 	var cfg := {
-		# Menu style (docs/MENU_STYLES.md): S4 Monument; sunlit gold + crimson.
-		"landing": "monument",
-		"landing_style": MenuStyles,
+		# Menu style (docs/MENU_STYLES.md): was S4 Monument; since 2026-11-26 the game's own
+		# animated Landing (aa_landing.gd, owner's four rows). Sunlit gold + crimson kept.
+		#"landing": "monument",
+		#"landing_style": MenuStyles,
+		"landing": "amazonia",
+		"landing_style": load("res://scripts/games/ancient_assassins/aa_landing.gd"),
 		"title_font": TITLE_FONT,
 		"title_colors": [Color("ffd77a"), Color("e8452f")],
 		"landing_colors": [Color("0d2a44"), Color("2f78d0")],
@@ -326,7 +330,12 @@ func _build_ui() -> void:
 		"solo_heading": "Single player",
 		"subtitle": "Hold, aim, release. Mind the wind.",
 		"modes": modes,
-		"extra": _add_char_picker,
+		# Own animated Landing (owner, 2026-11-26): aa_landing.gd. The char picker moved
+		# from the setup screen ("extra") into ⚙ Game Options, with the difficulty.
+		"options": _add_game_options,
+		"aa_shop": _open_shop,
+		"aa_wallet": _wallet,
+		"aa_quick": _quick_key,
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
@@ -355,9 +364,10 @@ func _defs() -> Array:
 	return out
 
 ## A character with the outfit and hair dye picked in the Shop (only on this phone).
-func _dressed(d: Dictionary) -> Dictionary:
-	var o := _find(OUTFITS, str(progress.get("outfit", "")))
-	var h := _find(HAIR_DYES, str(progress.get("hair", "")))
+## `look` ({"outfit": id} / {"hair": id}) overrides what she wears: the Shop's try-on.
+func _dressed(d: Dictionary, look: Dictionary = {}) -> Dictionary:
+	var o := _find(OUTFITS, str(look.get("outfit", progress.get("outfit", ""))))
+	var h := _find(HAIR_DYES, str(look.get("hair", progress.get("hair", ""))))
 	if o.is_empty() and h.is_empty():
 		return d
 	var c := d.duplicate()
@@ -454,13 +464,54 @@ func _build_end_panel() -> void:
 
 # ---------- setup: pick your assassin (a turning 3D preview) ----------
 
+## ⚙ Game Options (owner, 2026-11-26): your amazon (turning 3D preview + six names)
+## and the single-player difficulty (Quick Play's level), above the kit's usual options.
+func _add_game_options(box: VBoxContainer) -> void:
+	_add_char_picker(box)
+	box.add_child(home.section("Single player difficulty"))
+	box.add_child(home.choice_row(["🙂 Easy", "😐 Normal", "😈 Hard", "👑 Expert"], int(progress.get("level", 1)), _pick_level))
+	var n := HomeKit.label(tr("Quick Play fights the computer at this level."), 20, Color(1, 1, 1, 0.7))
+	n.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(n)
+
+func _pick_level(i: int) -> void:
+	progress["level"] = i
+	_save_progress()
+
+func _wallet() -> int:
+	return int(progress.get("wallet", 0))
+
+func _quick_key() -> String:
+	return "cpu_%d" % int(progress.get("level", 1))
+
 func _add_char_picker(box: VBoxContainer) -> void:
-	box.add_child(home.section("Your assassin"))
+	box.add_child(home.section("Your amazon"))
+	_preview_box(box, 300)
+	# Two rows of three names (six don't fit across a phone).
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	box.add_child(grid)
+	var group := ButtonGroup.new()
+	for i in CHARS.size():
+		var b := HomeKit.neon_button(str(CHARS[i].name), HomeKit.BUTTON, 22, 54)
+		b.toggle_mode = true
+		b.button_group = group
+		b.button_pressed = i == my_char
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if home.has_method("_style_toggle"):
+			home._style_toggle(b, HomeKit.BUTTON)   # the kit's picked look, as its own choice rows
+		b.pressed.connect(_pick_char.bind(i))
+		grid.add_child(b)
+
+## A turning 3D preview of your amazon (Options and the Shop); sets picker_view.
+func _preview_box(parent: Control, h: float) -> Control:
 	var vc := SubViewportContainer.new()
 	vc.stretch = true
-	vc.custom_minimum_size = Vector2(0, 300)
+	vc.custom_minimum_size = Vector2(0, h)
 	vc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(vc)
+	parent.add_child(vc)
 	picker_view = SubViewport.new()
 	picker_view.own_world_3d = true
 	picker_view.transparent_bg = true
@@ -505,29 +556,10 @@ func _add_char_picker(box: VBoxContainer) -> void:
 	picker_view.add_child(cam)
 	cam.look_at(Vector3(0, 0.95, 0))
 	_show_picker_char()
-	# Two rows of three names (six don't fit across a phone).
-	var grid := GridContainer.new()
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
-	box.add_child(grid)
-	var group := ButtonGroup.new()
-	for i in CHARS.size():
-		var b := HomeKit.neon_button(str(CHARS[i].name), HomeKit.BUTTON, 22, 54)
-		b.toggle_mode = true
-		b.button_group = group
-		b.button_pressed = i == my_char
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		if home.has_method("_style_toggle"):
-			home._style_toggle(b, HomeKit.BUTTON)   # the kit's picked look, as its own choice rows
-		b.pressed.connect(_pick_char.bind(i))
-		grid.add_child(b)
-	shop_btn = HomeKit.neon_button("", HomeKit.BUTTON, 24, 60)
-	shop_btn.pressed.connect(_open_shop)
-	box.add_child(shop_btn)
-	_update_shop_btn()
+	return vc
 
-func _show_picker_char() -> void:
+## `look` = an outfit / hair dye to try on (the Shop's preview), else what she wears.
+func _show_picker_char(look: Dictionary = {}) -> void:
 	if picker_view == null or not is_instance_valid(picker_view):
 		return
 	weapon_row.visible = kill_zoom < 0.05 and world.intro_t < 0.0
@@ -535,7 +567,7 @@ func _show_picker_char() -> void:
 		picker_char.queue_free()
 	picker_char = AaCharacter.new()
 	picker_view.add_child(picker_char)
-	picker_char.build(_dressed(CHARS[my_char]), skin == "voodoo")
+	picker_char.build(_dressed(CHARS[my_char], look), skin == "voodoo")
 	picker_char.set_weapon(0, world.weapon_mesh)
 	picker_char.play("ready", 0.0)
 
@@ -1214,7 +1246,8 @@ func _load_progress() -> void:
 				up[str(k)] = maxi(0, int(du[k]))
 		progress = {"stars": st, "char": clampi(int(d.get("char", 0)), 0, CHARS.size() - 1),
 			"wallet": maxi(0, int(d.get("wallet", 0))), "earned": maxi(0, int(d.get("earned", 0))),
-			"owned": owned, "outfit": str(d.get("outfit", "")), "hair": str(d.get("hair", "")), "up": up}
+			"owned": owned, "outfit": str(d.get("outfit", "")), "hair": str(d.get("hair", "")), "up": up,
+			"level": clampi(int(d.get("level", 1)), 0, LEVELS.size() - 1)}
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
@@ -1259,48 +1292,69 @@ func _update_shop_btn() -> void:
 	if shop_btn and is_instance_valid(shop_btn):
 		shop_btn.text = tr("🛒 Shop") + "   ⭐ %d" % int(progress.get("wallet", 0))
 
+## The Shop (owner, 2026-11-26): a turning preview of your amazon stays at the top.
+## Tapping a row's name (left) puts that outfit / hair dye on her in the preview;
+## only the price button (right) buys, after a "Buy ... for N ⭐?" confirmation.
 var shop_body: VBoxContainer
 var shop_wallet: Label
+var shop_overlay: Control
+var shop_try := {}             # {"outfit": id} / {"hair": id}: what the preview wears
+var shop_try_label: Label
+var shop_group: ButtonGroup
+var shop_confirm: Control
 
 func _open_shop() -> void:
 	var parts: Array = home._overlay(tr("🛒 Shop"), GOLD, true)
-	var overlay: Control = parts[0]
+	shop_overlay = parts[0]
 	shop_body = parts[1]
-	(overlay.get_meta("nav") as Button).text = tr("‹ Back")
-	overlay.tree_exited.connect(_after_shop)
-	overlay.show()
+	var col: VBoxContainer = parts[2]
+	(shop_overlay.get_meta("nav") as Button).text = tr("‹ Back")
+	shop_overlay.tree_exited.connect(_after_shop)
+	shop_try = {}
+	# the preview, pinned between the title bar and the scrolling list
+	var pv := VBoxContainer.new()
+	pv.add_theme_constant_override("separation", 2)
+	col.add_child(pv)
+	col.move_child(pv, 1)
+	_preview_box(pv, 320)
+	shop_try_label = HomeKit.label("", 20, GOLD)
+	shop_try_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pv.add_child(shop_try_label)
+	shop_overlay.show()
 	_fill_shop()
+	_show_try()
 
 func _after_shop() -> void:
+	shop_try = {}
 	_update_shop_btn()
-	_show_picker_char()
+	if home and is_instance_valid(home):
+		home.refresh()
 	if world and not started:
 		world.rebuild(_defs())
+
+func _wallet_text() -> String:
+	return tr("You have %d ⭐") % int(progress.get("wallet", 0))
 
 func _fill_shop() -> void:
 	if shop_body == null or not is_instance_valid(shop_body):
 		return
 	for c in shop_body.get_children():
 		c.queue_free()
-	shop_wallet = HomeKit.label(tr("You have %d ⭐") % int(progress.get("wallet", 0)), 30, GOLD)
+	shop_group = ButtonGroup.new()
+	shop_group.allow_unpress = true
+	shop_wallet = HomeKit.label(_wallet_text(), 30, GOLD)
 	shop_wallet.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	shop_body.add_child(shop_wallet)
 	var how := HomeKit.label(tr("Win fights to earn stars: Easy 3, Normal 5, Hard 7, Expert 9, +2 flawless; online win 5; a loss 1."), 20, Color(1, 1, 1, 0.7))
 	how.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	how.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	shop_body.add_child(how)
-	shop_body.add_child(home.section("Upgrades"))
-	var note := HomeKit.label(tr("Upgrades work against the computer only (Contracts and vs Computer)."), 20, Color(1, 1, 1, 0.7))
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	shop_body.add_child(note)
-	for u in UPGRADES:
-		var lv := _up(u.id)
-		var maxed: bool = lv >= (u.prices as Array).size()
-		var left := tr(u.name) + "  " + "●".repeat(lv) + "○".repeat((u.prices as Array).size() - lv) + "
-" + tr(u.desc)
-		_shop_row(left, tr("Maxed") if maxed else "%d ⭐" % int(u.prices[lv]), Color.WHITE, maxed, _buy_upgrade.bind(u.id))
+	var tip := HomeKit.label(tr("Tap a name to try it on; tap the price to buy."), 20, Color(1, 1, 1, 0.7))
+	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	shop_body.add_child(tip)
 	shop_body.add_child(home.section("Outfits"))
-	_shop_row(tr("Her own colours"), tr("Wearing") if str(progress.outfit) == "" else tr("Wear"), CHARS[my_char].c1, str(progress.outfit) == "", _wear.bind("outfit", ""))
+	_shop_row(tr("Her own colours"), tr("Wearing") if str(progress.outfit) == "" else tr("Wear"), CHARS[my_char].c1, str(progress.outfit) == "", _wear.bind("outfit", ""), {"outfit": "-"})
 	var tier := ""
 	for o in OUTFITS:
 		var t: String = o.get("tier", "")
@@ -1309,36 +1363,161 @@ func _fill_shop() -> void:
 			shop_body.add_child(home.section({"Bikinis": "Bikinis · 75 ⭐", "Costumes": "Costumes · 100 ⭐", "Legendary": "Legendary · 150 ⭐"}[t]))
 		_look_row("outfit", o, o.c1)
 	shop_body.add_child(home.section("Hair dye"))
-	_shop_row(tr("Natural"), tr("Wearing") if str(progress.hair) == "" else tr("Wear"), CHARS[my_char].hair_col, str(progress.hair) == "", _wear.bind("hair", ""))
+	_shop_row(tr("Natural"), tr("Wearing") if str(progress.hair) == "" else tr("Wear"), CHARS[my_char].hair_col, str(progress.hair) == "", _wear.bind("hair", ""), {"hair": "-"})
 	for h in HAIR_DYES:
 		_look_row("hair", h, h.col)
+	shop_body.add_child(home.section("Upgrades"))
+	var note := HomeKit.label(tr("Upgrades work against the computer only (Contracts and vs Computer)."), 20, Color(1, 1, 1, 0.7))
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	shop_body.add_child(note)
+	for u in UPGRADES:
+		var lv := _up(u.id)
+		var maxed: bool = lv >= (u.prices as Array).size()
+		var left := tr(u.name) + "  " + "●".repeat(lv) + "○".repeat((u.prices as Array).size() - lv) + "\n" + tr(u.desc)
+		_shop_row(left, tr("Maxed") if maxed else "%d ⭐" % int(u.prices[lv]), Color.WHITE, maxed,
+			_ask_buy.bind(tr(u.name), int(u.prices[mini(lv, (u.prices as Array).size() - 1)]), _buy_upgrade.bind(u.id)), {})
 
 func _look_row(slot: String, it: Dictionary, col: Color) -> void:
 	var owned: bool = (progress.owned as Array).has(it.id)
 	var on: bool = str(progress[slot]) == it.id
 	var right: String = tr("Wearing") if on else (tr("Wear") if owned else "%d ⭐" % int(it.price))
-	_shop_row(tr(it.name), right, col, on, _buy_look.bind(slot, it.id))
+	var act: Callable = _wear.bind(slot, it.id) if owned else _ask_buy.bind(tr(it.name), int(it.price), _buy_look.bind(slot, it.id))
+	_shop_row(tr(it.name), right, col, on, act, {slot: it.id})
 
-## One row: a colour chip, the text, and a button on the right.
-func _shop_row(left: String, right: String, chip: Color, done: bool, action: Callable) -> void:
+## One row: the left part (colour chip + name) tries the look on; the button on the right buys / wears.
+func _shop_row(left: String, right: String, chip: Color, done: bool, action: Callable, look: Dictionary) -> void:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
+	row.add_theme_constant_override("separation", 10)
+	var pick := Button.new()
+	pick.toggle_mode = true
+	pick.button_group = shop_group
+	pick.focus_mode = Control.FOCUS_NONE
+	pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pick.custom_minimum_size = Vector2(0, 58)
+	for state in ["normal", "hover", "pressed", "hover_pressed", "focus"]:
+		var sb := StyleBoxFlat.new()
+		var on: bool = state in ["pressed", "hover_pressed"]
+		sb.bg_color = Color(GOLD, 0.18) if on else Color(1, 1, 1, 0.05 if state != "hover" else 0.09)
+		sb.border_color = Color(GOLD, 0.9) if on else Color(1, 1, 1, 0.1)
+		sb.set_border_width_all(2 if on else 1)
+		sb.set_corner_radius_all(12)
+		pick.add_theme_stylebox_override(state, sb)
+	if not look.is_empty():
+		pick.pressed.connect(_try.bind(look, left))
+		if look == shop_try:
+			pick.set_pressed_no_signal(true)
+	else:
+		pick.mouse_filter = Control.MOUSE_FILTER_PASS
+		pick.disabled = true
+		pick.add_theme_stylebox_override("disabled", pick.get_theme_stylebox("normal"))
+	var inner := HBoxContainer.new()
+	inner.add_theme_constant_override("separation", 12)
+	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pick.add_child(inner)
+	inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	inner.offset_left = 12
+	inner.offset_right = -8
 	var sw := ColorRect.new()
 	sw.color = chip
 	sw.custom_minimum_size = Vector2(28, 28)
 	sw.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(sw)
+	sw.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inner.add_child(sw)
 	var l := HomeKit.label(left, 22, Color.WHITE)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(l)
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inner.add_child(l)
+	# the row grows with a two-line name
+	pick.custom_minimum_size.y = maxf(58.0, 22.0 * 1.5 * (left.count("\n") + 1) + 20.0)
+	row.add_child(pick)
 	var b := HomeKit.neon_button(right, HomeKit.BUTTON, 22, 54)
 	b.custom_minimum_size.x = 140
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	b.disabled = done
 	b.add_theme_color_override("font_disabled_color", GOLD)
 	b.pressed.connect(action)
 	row.add_child(b)
 	shop_body.add_child(row)
+
+## Try a look on in the preview (nothing is bought or worn).
+func _try(look: Dictionary, name: String) -> void:
+	var off := look == shop_try
+	shop_try = {} if off else look
+	_show_try(name if not off else "")
+
+func _show_try(name: String = "") -> void:
+	var look := {}
+	for k in shop_try:
+		look[k] = "" if str(shop_try[k]) == "-" else shop_try[k]
+	_show_picker_char(look)
+	if shop_try_label and is_instance_valid(shop_try_label):
+		shop_try_label.text = (tr("Trying on: %s") % name.get_slice("\n", 0)) if name != "" else tr("Wearing now")
+	if picker_char and is_instance_valid(picker_char):
+		picker_char.scale = Vector3(0.92, 0.92, 0.92)
+		var tw := picker_char.create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(picker_char, "scale", Vector3.ONE, 0.3)
+
+## Every purchase asks first: "Buy <name> for N ⭐?" Buy / Cancel.
+func _ask_buy(name: String, price: int, buy: Callable) -> void:
+	if int(progress.get("wallet", 0)) < price:
+		_sound("ui/wrong", -6.0)
+		if shop_wallet:
+			shop_wallet.text = tr("Not enough stars: win more fights!")
+		return
+	_close_confirm()
+	shop_confirm = ColorRect.new()
+	(shop_confirm as ColorRect).color = Color(0, 0, 0, 0.6)
+	shop_confirm.mouse_filter = Control.MOUSE_FILTER_STOP
+	shop_overlay.add_child(shop_confirm)
+	shop_confirm.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var cc := CenterContainer.new()
+	shop_confirm.add_child(cc)
+	cc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var pc := PanelContainer.new()
+	var ps := StyleBoxFlat.new()
+	ps.bg_color = Color(0.07, 0.05, 0.04, 0.97)
+	ps.border_color = Color(GOLD, 0.85)
+	ps.set_border_width_all(2)
+	ps.set_corner_radius_all(18)
+	ps.set_content_margin_all(24)
+	pc.add_theme_stylebox_override("panel", ps)
+	pc.custom_minimum_size.x = minf(560.0, size.x - 48.0)
+	cc.add_child(pc)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 16)
+	pc.add_child(box)
+	var q := HomeKit.label(tr("Buy %s for %d ⭐?") % [name.get_slice("\n", 0), price], 28, Color.WHITE, true, true)
+	box.add_child(q)
+	box.add_child(HomeKit.label(tr("You will have %d ⭐ left.") % (int(progress.wallet) - price), 22, GOLD, true, true))
+	var r := HBoxContainer.new()
+	r.add_theme_constant_override("separation", 12)
+	box.add_child(r)
+	var no := HomeKit.neon_button(tr("Cancel"), HomeKit.BUTTON, 24, 60)
+	no.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	no.pressed.connect(_close_confirm)
+	r.add_child(no)
+	var yes := HomeKit.neon_button(tr("Buy"), HomeKit.GO, 24, 60)
+	yes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	yes.pressed.connect(_confirm_buy.bind(buy))
+	r.add_child(yes)
+	# pop in
+	pc.pivot_offset = pc.custom_minimum_size * 0.5
+	pc.scale = Vector2(0.85, 0.85)
+	shop_confirm.modulate.a = 0.0
+	var tw := shop_confirm.create_tween().set_parallel(true).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(shop_confirm, "modulate:a", 1.0, 0.15)
+	tw.tween_property(pc, "scale", Vector2.ONE, 0.25)
+
+func _confirm_buy(buy: Callable) -> void:
+	_close_confirm()
+	buy.call()
+
+func _close_confirm() -> void:
+	if shop_confirm and is_instance_valid(shop_confirm):
+		shop_confirm.queue_free()
+	shop_confirm = null
 
 func _spend(price: int) -> bool:
 	if int(progress.get("wallet", 0)) < price:
@@ -1369,11 +1548,13 @@ func _buy_look(slot: String, id: String) -> void:
 		progress.owned.append(id)
 	_wear(slot, id)
 
+## Bought or picked: she wears it from now on (the preview drops the try-on).
 func _wear(slot: String, id: String) -> void:
 	progress[slot] = id
 	_save_progress()
-	_show_picker_char()
+	shop_try = {}
 	_fill_shop()
+	_show_try()
 
 # ---------- helps (STANDARDS §17) ----------
 
