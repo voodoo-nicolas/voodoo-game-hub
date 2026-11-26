@@ -295,7 +295,7 @@
     "truco": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/truco.pck", "scene": "res://scenes/games/truco/truco.tscn"},
     "el_9": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/el_9.pck", "scene": "res://scenes/games/el_9/el_9.tscn"},
     "chinchon": {"version": 1, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/chinchon.pck", "scene": "res://scenes/games/chinchon/chinchon.tscn"},
-    "arrow_cube": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/arrow_cube.pck", "scene": "res://scenes/games/arrow_cube/arrow_cube.tscn", "updated": "2026-11-24"},
+    "arrow_cube": {"version": 3, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/arrow_cube.pck", "scene": "res://scenes/games/arrow_cube/arrow_cube.tscn", "updated": "2026-11-26"},
     "hue_hunt": {"version": 2, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/hue_hunt.pck", "scene": "res://scenes/games/hue_hunt/hue_hunt.tscn", "min_build": 65, "updated": "2026-11-26"}
   }
 }
