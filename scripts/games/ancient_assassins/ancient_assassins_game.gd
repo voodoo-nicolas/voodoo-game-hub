@@ -66,6 +66,60 @@ const CONTRACTS := [
 	{"place": "The Waterfall", "level": 3, "dist": 28.0, "wind": 2.0, "style": 1, "hp": 100},
 	{"place": "The Great Falls", "level": 3, "dist": 30.0, "wind": 2.2, "style": 2, "hp": 100},
 ]
+## The Shop (2026-11-25): wins pay ⭐ stars (the wallet, not the Contract ★ ratings),
+## spent on outfits, hair dyes and upgrades. Upgrades count only against the computer
+## (Contracts and vs Computer), never in 2 Players or online; looks are yours everywhere.
+## Stars per win vs the computer by level; a flawless win adds FLAWLESS_BONUS.
+const WIN_STARS := [3, 5, 7, 9]
+const ONLINE_WIN_STARS := 5
+const LOSS_STARS := 1
+const FLAWLESS_BONUS := 2
+## Outfits (owner 2026-11-25): colours 50 ⭐, bikinis 75 ⭐, costumes 100 ⭐, Angel and Devil 150 ⭐.
+## c1 = the cloth colour of her base outfit; "bikini" = a pattern on it (aa_character.gd:
+## 0 solid, 1 three bands across, 2 stripes, 3 smileys, 4 polka dots, 5 stars & stripes) and
+## no skirt; "costume" = pieces added by aa_character.gd _costume().
+const OUTFITS := [
+	{"id": "jaguar", "name": "Jaguar Gold", "c1": Color("d99a2b"), "c2": Color("3a2412"), "price": 50},
+	{"id": "night", "name": "Midnight", "c1": Color("1c2340"), "c2": Color("9aa6b8"), "price": 50},
+	{"id": "ember", "name": "Ember", "c1": Color("e0552a"), "c2": Color("2a1a12"), "price": 50},
+	{"id": "orchid", "name": "Orchid", "c1": Color("c04a9a"), "c2": Color("f0d070"), "price": 50},
+	{"id": "ivory", "name": "Ivory", "c1": Color("e8e0cc"), "c2": Color("8a5a2a"), "price": 50},
+	{"id": "obsidian", "name": "Obsidian", "c1": Color("222226"), "c2": Color("d4a840"), "price": 50},
+	{"id": "bk_argentina", "name": "Bikini: Argentina", "tier": "Bikinis", "c1": Color("75aadb"), "price": 75, "bikini": {"pattern": 2, "cols": [Color("75aadb"), Color("ffffff"), Color("75aadb")]}},
+	{"id": "bk_usa", "name": "Bikini: USA", "tier": "Bikinis", "c1": Color("b22234"), "price": 75, "bikini": {"pattern": 5, "cols": [Color("3c3b6e"), Color("b22234"), Color("ffffff")]}},
+	{"id": "bk_brazil", "name": "Bikini: Brazil", "tier": "Bikinis", "c1": Color("009c3b"), "price": 75, "bikini": {"pattern": 4, "cols": [Color("009c3b"), Color("ffdf00"), Color("002776")]}},
+	{"id": "bk_spain", "name": "Bikini: Spain", "tier": "Bikinis", "c1": Color("c60b1e"), "price": 75, "bikini": {"pattern": 2, "cols": [Color("c60b1e"), Color("ffc400"), Color("c60b1e")]}},
+	{"id": "bk_italy", "name": "Bikini: Italy", "tier": "Bikinis", "c1": Color("009246"), "price": 75, "bikini": {"pattern": 1, "cols": [Color("009246"), Color("ffffff"), Color("ce2b37")]}},
+	{"id": "bk_france", "name": "Bikini: France", "tier": "Bikinis", "c1": Color("0055a4"), "price": 75, "bikini": {"pattern": 1, "cols": [Color("0055a4"), Color("ffffff"), Color("ef4135")]}},
+	{"id": "bk_germany", "name": "Bikini: Germany", "tier": "Bikinis", "c1": Color("000000"), "price": 75, "bikini": {"pattern": 2, "cols": [Color("111111"), Color("dd0000"), Color("ffce00")]}},
+	{"id": "bk_jamaica", "name": "Bikini: Jamaica", "tier": "Bikinis", "c1": Color("009b3a"), "price": 75, "bikini": {"pattern": 2, "cols": [Color("009b3a"), Color("fed100"), Color("111111")]}},
+	{"id": "bk_smiley", "name": "Bikini: Smileys", "tier": "Bikinis", "c1": Color("ff5fa8"), "price": 75, "bikini": {"pattern": 3, "cols": [Color("ff5fa8"), Color("ffd83a"), Color("2a1a10")]}},
+	{"id": "bk_smiley_night", "name": "Bikini: Night Smileys", "tier": "Bikinis", "c1": Color("141418"), "price": 75, "bikini": {"pattern": 3, "cols": [Color("141418"), Color("ffd83a"), Color("141418")]}},
+	{"id": "bk_polka", "name": "Bikini: Polka Dots", "tier": "Bikinis", "c1": Color("e02040"), "price": 75, "bikini": {"pattern": 4, "cols": [Color("e02040"), Color("ffffff"), Color("ffffff")]}},
+	{"id": "bk_hotpink", "name": "Bikini: Hot Pink", "tier": "Bikinis", "c1": Color("ff2d8a"), "price": 75, "bikini": {"pattern": 0}},
+	{"id": "bk_white", "name": "Bikini: White", "tier": "Bikinis", "c1": Color("f4f2ee"), "price": 75, "bikini": {"pattern": 0}},
+	{"id": "bk_black", "name": "Bikini: Black", "tier": "Bikinis", "c1": Color("141418"), "price": 75, "bikini": {"pattern": 0}},
+	{"id": "bk_turquoise", "name": "Bikini: Turquoise", "tier": "Bikinis", "c1": Color("1fc8c0"), "price": 75, "bikini": {"pattern": 0}},
+	{"id": "bk_gold", "name": "Bikini: Gold", "tier": "Bikinis", "c1": Color("e8b84a"), "price": 75, "bikini": {"pattern": 0}},
+	{"id": "maid", "name": "Sexy Maid", "tier": "Costumes", "c1": Color("16161a"), "price": 100, "costume": "maid"},
+	{"id": "nurse", "name": "Sexy Nurse", "tier": "Costumes", "c1": Color("f4f2ee"), "price": 100, "costume": "nurse"},
+	{"id": "cop", "name": "Sexy Cop", "tier": "Costumes", "c1": Color("121216"), "price": 100, "costume": "cop"},
+	{"id": "secretary", "name": "Sexy Secretary", "tier": "Costumes", "c1": Color("f4f2ee"), "price": 100, "costume": "secretary"},
+	{"id": "angel", "name": "Sexy Angel", "tier": "Legendary", "c1": Color("fbfaf6"), "price": 150, "costume": "angel"},
+	{"id": "devil", "name": "Sexy Devil", "tier": "Legendary", "c1": Color("c01818"), "price": 150, "costume": "devil"},
+]
+const HAIR_DYES := [
+	{"id": "silver", "name": "Silver", "col": Color("c8ccd4"), "price": 15},
+	{"id": "fire", "name": "Fire Red", "col": Color("c2361c"), "price": 15},
+	{"id": "honey", "name": "Honey", "col": Color("d8a04a"), "price": 15},
+	{"id": "violet", "name": "Violet", "col": Color("6a3aa8"), "price": 20},
+]
+## Upgrades: per level +5 % (edge: damage dealt; hide: damage taken off) or +1 axe and chakram (quiver).
+const UPGRADES := [
+	{"id": "edge", "name": "🗡 Sharp Edges", "desc": "+5% damage per level", "prices": [20, 40, 60]},
+	{"id": "hide", "name": "🛡 Jaguar Hide", "desc": "−5% damage taken per level", "prices": [20, 40, 60]},
+	{"id": "quiver", "name": "🎒 Full Quiver", "desc": "+1 axe and +1 chakram per level", "prices": [30, 60]},
+]
 const WEAPON_ICONS := ["🗡", "🪓", "⭕"]
 const GOLD := Color("ffc24a")
 const P_BLUE := Color("2f8cff")
@@ -87,7 +141,9 @@ var cpu_level := 1
 var contract := 0
 var my_char := 0
 var my_seat := 0     # online: 0 = host, 1 = guest
-var progress := {"stars": [0, 0, 0, 0, 0, 0, 0, 0], "char": 0}
+var progress := {"stars": [0, 0, 0, 0, 0, 0, 0, 0], "char": 0,
+	"wallet": 0, "earned": 0, "owned": [], "outfit": "", "hair": "", "up": {}}
+var shop_btn: Button
 var started := false
 var result_recorded := false
 var phase := "aim"   # aim, cpu, fly, settle, over, wait (online: the other phone)
@@ -291,7 +347,34 @@ func _build_ui() -> void:
 	add_child(SettingsDrawer.new())  # older kits used it; the kit frees it
 
 func _defs() -> Array:
-	return [CHARS[int(engine.fighters[0].char)], CHARS[int(engine.fighters[1].char)]]
+	var mine := my_seat if _is_online() else 0
+	var out: Array = []
+	for i in 2:
+		var d: Dictionary = CHARS[int(engine.fighters[i].char)]
+		out.append(_dressed(d) if i == mine else d)
+	return out
+
+## A character with the outfit and hair dye picked in the Shop (only on this phone).
+func _dressed(d: Dictionary) -> Dictionary:
+	var o := _find(OUTFITS, str(progress.get("outfit", "")))
+	var h := _find(HAIR_DYES, str(progress.get("hair", "")))
+	if o.is_empty() and h.is_empty():
+		return d
+	var c := d.duplicate()
+	if not o.is_empty():
+		c["c1"] = o.c1
+		c["c2"] = o.get("c2", d.c2)
+		c["bikini"] = o.get("bikini", {})
+		c["costume"] = o.get("costume", "")
+	if not h.is_empty():
+		c["hair_col"] = h.col
+	return c
+
+func _find(list: Array, id: String) -> Dictionary:
+	for it in list:
+		if it.id == id:
+			return it
+	return {}
 
 func _build_end_panel() -> void:
 	end_panel = ColorRect.new()
@@ -439,6 +522,10 @@ func _add_char_picker(box: VBoxContainer) -> void:
 			home._style_toggle(b, HomeKit.BUTTON)   # the kit's picked look, as its own choice rows
 		b.pressed.connect(_pick_char.bind(i))
 		grid.add_child(b)
+	shop_btn = HomeKit.neon_button("", HomeKit.BUTTON, 24, 60)
+	shop_btn.pressed.connect(_open_shop)
+	box.add_child(shop_btn)
+	_update_shop_btn()
 
 func _show_picker_char() -> void:
 	if picker_view == null or not is_instance_valid(picker_view):
@@ -448,7 +535,7 @@ func _show_picker_char() -> void:
 		picker_char.queue_free()
 	picker_char = AaCharacter.new()
 	picker_view.add_child(picker_char)
-	picker_char.build(CHARS[my_char], skin == "voodoo")
+	picker_char.build(_dressed(CHARS[my_char]), skin == "voodoo")
 	picker_char.set_weapon(0, world.weapon_mesh)
 	picker_char.play("ready", 0.0)
 
@@ -512,6 +599,8 @@ func _restart() -> void:
 		return
 	SaveUtil.delete(SAVE_PATH)
 	var opts := {"chars": [my_char, _rival_char()]}
+	if _vs_cpu():   # Shop upgrades: against the computer only
+		opts.merge({"pow": [100 + 5 * _up("edge"), 100], "armor": [5 * _up("hide"), 0], "extra_ammo": [_up("quiver"), 0]})
 	if mode == "contract":
 		var c: Dictionary = CONTRACTS[contract]
 		opts.merge({"dist": c.dist, "wind_max": c.wind, "style": c.style, "hp": [AaEngine.MAX_HP, c.hp]})
@@ -636,7 +725,7 @@ func _throw() -> void:
 	kill_target = -1
 	var r: Dictionary = engine.predict(i, engine.yaw_of(i), engine.angle_of(i), w)
 	if r.f >= 0 and r.f != i:
-		var dmg := int(roundf(float(AaEngine.WEAPONS[w].dmg) * float(AaEngine.ZONE_MULT[r.zone])))
+		var dmg: int = engine.damage(i, r.f, AaEngine.WEAPONS[w], r.zone)
 		if dmg >= int(engine.fighters[r.f].hp):
 			kill_target = r.f
 	engine.throw()
@@ -708,7 +797,7 @@ func _process(delta: float) -> void:
 			if engine.shot.is_empty():
 				world.hide_projectile()
 				phase = "settle"
-				phase_t = 0.9
+				phase_t = 1.4   # was 0.9: the chase cam holds on where it landed
 		"settle":
 			phase_t -= delta
 			if phase_t <= 0.0:
@@ -720,6 +809,7 @@ func _process(delta: float) -> void:
 	world.view3d_shake = shake
 	world.tick(real, {"view": _view_seat(), "aiming": aiming, "show_ribbon": phase == "aim" and aiming >= 0,
 		"eagle": eagle, "kill": kill_target, "zoom": kill_zoom,
+		"chase": phase in ["fly", "settle"] and not engine.is_over(),
 		"ghost": engine.turn if phase == "aim" and _my_turn() else -1,
 		"winner": engine.winner if phase == "over" and kill_zoom <= 0.01 else -1})
 	hud.queue_redraw()
@@ -867,6 +957,9 @@ func _game_over() -> void:
 	if _is_online():
 		var won: bool = w == my_seat
 		msg = online.result_text(won)
+		_pay(ONLINE_WIN_STARS if won else LOSS_STARS)
+		msg += "
+" + _paid_text()
 		if info:
 			info.result("win" if won else "loss", true)
 			msg += "\n" + info.summary(["Online wins", "Online losses"])
@@ -899,6 +992,9 @@ func _game_over() -> void:
 				info.high("Contracts completed", done)
 				info.high("Contract stars", total)
 			msg += "\n" + info.summary(["Wins", "Losses", "Best streak"])
+		_pay((WIN_STARS[clampi(cpu_level, 0, 3)] + (FLAWLESS_BONUS if hp >= AaEngine.MAX_HP else 0)) if won else LOSS_STARS)
+		msg += "
+" + _paid_text()
 		if won and hp >= AaEngine.MAX_HP:
 			_sound("voice/flawless_victory")
 		else:
@@ -1108,7 +1204,17 @@ func _load_progress() -> void:
 		var st: Array = []
 		for s in d.stars:
 			st.append(clampi(int(s), 0, 3))
-		progress = {"stars": st, "char": clampi(int(d.get("char", 0)), 0, CHARS.size() - 1)}
+		var owned: Array = []
+		for o in d.get("owned", []):
+			owned.append(str(o))
+		var up := {}
+		var du = d.get("up", {})
+		if du is Dictionary:
+			for k in du:
+				up[str(k)] = maxi(0, int(du[k]))
+		progress = {"stars": st, "char": clampi(int(d.get("char", 0)), 0, CHARS.size() - 1),
+			"wallet": maxi(0, int(d.get("wallet", 0))), "earned": maxi(0, int(d.get("earned", 0))),
+			"owned": owned, "outfit": str(d.get("outfit", "")), "hair": str(d.get("hair", "")), "up": up}
 
 func _save_progress() -> void:
 	SaveUtil.write(PROGRESS_PATH, progress)
@@ -1127,7 +1233,147 @@ func _progress_score(d: Dictionary) -> int:
 	if st is Array:
 		for v in st:
 			n += (4 + int(v)) if int(v) > 0 else 0
-	return n
+	# Then the stars ever earned (Shop, 2026-11-25): a tie goes to the copy that played more.
+	return n * 1000000 + mini(int(d.get("earned", 0)), 999999)
+
+# ---------- shop (2026-11-25) ----------
+
+func _up(id: String) -> int:
+	return int((progress.get("up", {}) as Dictionary).get(id, 0))
+
+var _last_paid := 0
+
+func _pay(n: int) -> void:
+	_last_paid = n
+	if n <= 0:
+		return
+	progress["wallet"] = int(progress.get("wallet", 0)) + n
+	progress["earned"] = int(progress.get("earned", 0)) + n
+	_save_progress()
+	_update_shop_btn()
+
+func _paid_text() -> String:
+	return tr("+%d ⭐ for the Shop (%d ⭐)") % [_last_paid, int(progress.get("wallet", 0))]
+
+func _update_shop_btn() -> void:
+	if shop_btn and is_instance_valid(shop_btn):
+		shop_btn.text = tr("🛒 Shop") + "   ⭐ %d" % int(progress.get("wallet", 0))
+
+var shop_body: VBoxContainer
+var shop_wallet: Label
+
+func _open_shop() -> void:
+	var parts: Array = home._overlay(tr("🛒 Shop"), GOLD, true)
+	var overlay: Control = parts[0]
+	shop_body = parts[1]
+	(overlay.get_meta("nav") as Button).text = tr("‹ Back")
+	overlay.tree_exited.connect(_after_shop)
+	overlay.show()
+	_fill_shop()
+
+func _after_shop() -> void:
+	_update_shop_btn()
+	_show_picker_char()
+	if world and not started:
+		world.rebuild(_defs())
+
+func _fill_shop() -> void:
+	if shop_body == null or not is_instance_valid(shop_body):
+		return
+	for c in shop_body.get_children():
+		c.queue_free()
+	shop_wallet = HomeKit.label(tr("You have %d ⭐") % int(progress.get("wallet", 0)), 30, GOLD)
+	shop_wallet.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	shop_body.add_child(shop_wallet)
+	var how := HomeKit.label(tr("Win fights to earn stars: Easy 3, Normal 5, Hard 7, Expert 9, +2 flawless; online win 5; a loss 1."), 20, Color(1, 1, 1, 0.7))
+	how.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	how.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	shop_body.add_child(how)
+	shop_body.add_child(home.section("Upgrades"))
+	var note := HomeKit.label(tr("Upgrades work against the computer only (Contracts and vs Computer)."), 20, Color(1, 1, 1, 0.7))
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	shop_body.add_child(note)
+	for u in UPGRADES:
+		var lv := _up(u.id)
+		var maxed: bool = lv >= (u.prices as Array).size()
+		var left := tr(u.name) + "  " + "●".repeat(lv) + "○".repeat((u.prices as Array).size() - lv) + "
+" + tr(u.desc)
+		_shop_row(left, tr("Maxed") if maxed else "%d ⭐" % int(u.prices[lv]), Color.WHITE, maxed, _buy_upgrade.bind(u.id))
+	shop_body.add_child(home.section("Outfits"))
+	_shop_row(tr("Her own colours"), tr("Wearing") if str(progress.outfit) == "" else tr("Wear"), CHARS[my_char].c1, str(progress.outfit) == "", _wear.bind("outfit", ""))
+	var tier := ""
+	for o in OUTFITS:
+		var t: String = o.get("tier", "")
+		if t != tier:
+			tier = t
+			shop_body.add_child(home.section({"Bikinis": "Bikinis · 75 ⭐", "Costumes": "Costumes · 100 ⭐", "Legendary": "Legendary · 150 ⭐"}[t]))
+		_look_row("outfit", o, o.c1)
+	shop_body.add_child(home.section("Hair dye"))
+	_shop_row(tr("Natural"), tr("Wearing") if str(progress.hair) == "" else tr("Wear"), CHARS[my_char].hair_col, str(progress.hair) == "", _wear.bind("hair", ""))
+	for h in HAIR_DYES:
+		_look_row("hair", h, h.col)
+
+func _look_row(slot: String, it: Dictionary, col: Color) -> void:
+	var owned: bool = (progress.owned as Array).has(it.id)
+	var on: bool = str(progress[slot]) == it.id
+	var right: String = tr("Wearing") if on else (tr("Wear") if owned else "%d ⭐" % int(it.price))
+	_shop_row(tr(it.name), right, col, on, _buy_look.bind(slot, it.id))
+
+## One row: a colour chip, the text, and a button on the right.
+func _shop_row(left: String, right: String, chip: Color, done: bool, action: Callable) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	var sw := ColorRect.new()
+	sw.color = chip
+	sw.custom_minimum_size = Vector2(28, 28)
+	sw.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(sw)
+	var l := HomeKit.label(left, 22, Color.WHITE)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(l)
+	var b := HomeKit.neon_button(right, HomeKit.BUTTON, 22, 54)
+	b.custom_minimum_size.x = 140
+	b.disabled = done
+	b.add_theme_color_override("font_disabled_color", GOLD)
+	b.pressed.connect(action)
+	row.add_child(b)
+	shop_body.add_child(row)
+
+func _spend(price: int) -> bool:
+	if int(progress.get("wallet", 0)) < price:
+		_sound("ui/wrong", -6.0)
+		if shop_wallet:
+			shop_wallet.text = tr("Not enough stars: win more fights!")
+		return false
+	progress["wallet"] = int(progress.wallet) - price
+	_sound("reward/coin_plingy", -4.0)
+	return true
+
+func _buy_upgrade(id: String) -> void:
+	var u := _find(UPGRADES, id)
+	var lv := _up(id)
+	if u.is_empty() or lv >= (u.prices as Array).size() or not _spend(int(u.prices[lv])):
+		return
+	progress.up[id] = lv + 1
+	_save_progress()
+	_fill_shop()
+
+func _buy_look(slot: String, id: String) -> void:
+	var it := _find(OUTFITS if slot == "outfit" else HAIR_DYES, id)
+	if it.is_empty():
+		return
+	if not (progress.owned as Array).has(id):
+		if not _spend(int(it.price)):
+			return
+		progress.owned.append(id)
+	_wear(slot, id)
+
+func _wear(slot: String, id: String) -> void:
+	progress[slot] = id
+	_save_progress()
+	_show_picker_char()
+	_fill_shop()
 
 # ---------- helps (STANDARDS §17) ----------
 

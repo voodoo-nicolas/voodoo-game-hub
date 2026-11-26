@@ -236,6 +236,8 @@ var rock_mat_cache: Dictionary = {}
 var level: Node3D              # rebuilt each fight
 var scenery: Node3D            # cliffs, mountains, boat, gulls
 var cam: Camera3D
+var chase_p := Vector3.ZERO     # the throw's head (then where it landed)
+var chase_dir := Vector3.ZERO   # its flat heading
 var proj: Node3D
 var proj_w := -1
 var trail: MeshInstance3D
@@ -946,6 +948,7 @@ func weapon_mesh(w: int) -> Node3D:
 	return n
 
 func show_projectile(w: int) -> void:
+	chase_dir = Vector3.ZERO
 	hide_projectile()
 	proj = weapon_mesh(w)
 	proj_w = w
@@ -1127,6 +1130,7 @@ func celebrate(i: int, on: bool) -> void:
 
 ## st: "view" (seat the camera follows), "aiming" (seat aiming or -1),
 ## "show_ribbon", "eagle" (bool), "kill" (victim or -1), "winner", "zoom" 0..1.
+## "chase" (bool): the camera follows the throw in flight, then holds where it landed.
 func tick(delta: float, st: Dictionary) -> void:
 	_time += delta
 	var view: int = st.get("view", 0)
@@ -1173,6 +1177,11 @@ func tick(delta: float, st: Dictionary) -> void:
 		flag.look_at(flag.position + Vector3(0, 0, 1), Vector3.UP)
 		flag.rotation.z = -atan2(stream.y, stream.x) + sin(_time * (5.0 + 8.0 * absf(wv))) * 0.08
 	# The throw in flight.
+	if not engine.shot.is_empty():
+		chase_p = engine.shot.p
+		var hv := Vector3(engine.shot.v.x, 0, engine.shot.v.z)
+		if hv.length() > 0.5:
+			chase_dir = hv.normalized()
 	if proj and not engine.shot.is_empty():
 		var s: Dictionary = engine.shot
 		proj.position = s.p
@@ -1311,6 +1320,13 @@ func _camera(delta: float, st: Dictionary, view: int) -> void:
 		want_pos = want_pos.lerp(kp, zoom)
 		want_look = want_look.lerp(kl, zoom)
 		k = minf(1.0, delta * 3.0)
+	elif st.get("chase", false) and chase_dir != Vector3.ZERO:
+		# Chase cam (2026-11-25): behind and above the throw, looking where it's going;
+		# once it lands the camera holds there, so you see whether it hit.
+		var side := chase_dir.cross(Vector3.UP).normalized()
+		want_pos = chase_p - chase_dir * 4.2 + Vector3(0, 1.6, 0) + side * 0.8
+		want_look = chase_p + chase_dir * 6.0 + Vector3(0, -0.4, 0)
+		k = minf(1.0, delta * 6.0)
 	elif winner >= 0:
 		var wf: Vector3 = engine.feet(winner)
 		var wfw: Vector3 = engine.forward(winner)
