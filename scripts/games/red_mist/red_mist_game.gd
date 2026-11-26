@@ -107,6 +107,13 @@ var _landing_logo: Control = null
 
 # Overlays
 var precip_layer: Control
+var grade_rect: ColorRect
+var grade_mat: ShaderMaterial
+var muzzle_t := 0.0                 # muzzle flash, 1 -> 0 just after a shot
+var hit_t := 0.0                    # hit marker on the reticle, 1 -> 0
+var hit_head := false
+var banner_age := 0.0               # seconds since the banner came up (slide-in)
+var _soft: Texture2D = null         # soft round glow texture (cheaper than stacks of draw_circle)
 var scope_rect: ColorRect
 var scope_mat: ShaderMaterial
 var reticle: Control
@@ -203,6 +210,15 @@ func _build_ui() -> void:
 	world.name = "World"
 	vp.add_child(world)
 
+	# Look pass: one full-screen grade over the valley (vignette, the hour's
+	# colour, muzzle and hit flashes); a single shader pass, cheap on phones.
+	grade_rect = ColorRect.new()
+	grade_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	grade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grade_mat = ShaderMaterial.new()
+	grade_mat.shader = _grade_shader()
+	grade_rect.material = grade_mat
+	add_child(grade_rect)
 	precip_layer = _overlay_control(_draw_precip)
 	rifle_layer = _overlay_control(_draw_rifle)
 	scope_rect = ColorRect.new()
@@ -417,7 +433,13 @@ func _glass(b: Button, radius: int = 18) -> void:
 		sb.bg_color = Color(0.04, 0.03, 0.03, 0.55 if st != "pressed" else 0.85)
 		sb.set_corner_radius_all(radius)
 		sb.set_border_width_all(2)
-		sb.border_color = Color(ACCENT, 0.85 if st == "pressed" else 0.5)
+		sb.border_color = Color(ACCENT, 0.85 if st == "pressed" else (0.7 if st == "hover" else 0.5))
+		# Look pass: depth (a soft drop shadow, gone when pressed, as if pushed in) and a glow on press.
+		sb.shadow_color = Color(0, 0, 0, 0.35) if st != "pressed" else Color(ACCENT, 0.35)
+		sb.shadow_size = 6 if st != "pressed" else 10
+		sb.shadow_offset = Vector2(0, 3) if st != "pressed" else Vector2.ZERO
+		if st == "pressed":
+			sb.bg_color = Color(0.25, 0.05, 0.03, 0.85)
 		b.add_theme_stylebox_override(st, sb)
 
 func _find_button(n: Node, text: String) -> Button:
@@ -471,10 +493,98 @@ void fragment() {
 	float a = max(outside, max(max(vig, rim * 0.8), max(cres, fringe * 0.5)));
 	a = max(a, kick * 0.35 * (1.0 - outside));
 	vec4 nvc = vec4(0.1, 0.5, 0.15, 0.10 + 0.06 * grain) * nv * (1.0 - outside);
+	// Look pass: a faint sky reflection on the glass, upper left, as a real lens shows.
+	float gl = (1.0 - smoothstep(0.0, radius * 0.5, length(p - center - vec2(-0.34, -0.4) * radius))) * 0.07 * (1.0 - outside) * (1.0 - nv);
+	col = mix(col, vec3(0.85, 0.92, 1.0), gl / max(a + gl, 0.001));
+	a = max(a, gl);
 	COLOR = vec4(mix(col, nvc.rgb, nvc.a), max(a, nvc.a)) * vec4(1.0, 1.0, 1.0, amount);
 }
 """
 	return sh
+
+## The screen grade: a soft vignette, a gentle colour grade for the hour (warm
+## dawn / dusk, cool night, cold fog), film grain, and the warm bloom of the
+## muzzle flash or the white pop of a hit. Under the rifle, scope and HUD.
+func _grade_shader() -> Shader:
+	var sh := Shader.new()
+	sh.code = """
+shader_type canvas_item;
+uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
+uniform vec2 size = vec2(1280.0, 720.0);
+uniform vec4 grade = vec4(0.0, 0.0, 0.0, 0.0);
+uniform float vig = 0.45;
+uniform float contrast = 1.12;
+uniform float sat = 1.1;
+uniform float muzzle = 0.0;
+uniform vec2 muzzle_at = vec2(640.0, 500.0);
+uniform float hit = 0.0;
+uniform float grain = 0.025;
+uniform float time = 0.0;
+void fragment() {
+	vec2 p = UV * size;
+	vec3 c = texture(screen_tex, SCREEN_UV).rgb;
+	// Contrast around mid-grey, then saturation: the flat painted valley gains depth.
+	c = (c - 0.5) * contrast + 0.5;
+	float l = dot(c, vec3(0.299, 0.587, 0.114));
+	c = mix(vec3(l), c, sat);
+	// The hour's colour: shadows take it more than highlights (a split tone).
+	c = mix(c, c * (grade.rgb * 1.6 + 0.2), grade.a * (1.0 - l * 0.6));
+	vec2 q = (UV - 0.5) * vec2(size.x / size.y, 1.0);
+	float v = smoothstep(0.4, 1.0, length(q)) * vig;
+	c *= 1.0 - v;
+	float m = muzzle * exp(-length(p - muzzle_at) / (size.y * 0.35));
+	c += vec3(1.0, 0.7, 0.35) * m * 0.9;
+	c = mix(c, vec3(1.0), hit * 0.1);
+	float n = fract(sin(dot(p + fract(time) * 97.0, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+	c += n * grain;
+	COLOR = vec4(clamp(c, 0.0, 1.0), 1.0);
+}
+"""
+	return sh
+
+## The hour's grade: a colour laid thinly over the valley.
+func _grade_color() -> Color:
+	if skin == "voodoo":
+		return Color(0.35, 0.0, 0.45, 0.10)
+	var c := Color(0, 0, 0, 0)
+	match str(engine.tod):
+		"dawn":
+			c = Color(1.0, 0.55, 0.45, 0.08)
+		"dusk":
+			c = Color(1.0, 0.45, 0.2, 0.10)
+		"night":
+			c = Color(0.05, 0.1, 0.3, 0.14)
+		_:
+			c = Color(1.0, 0.92, 0.75, 0.04)
+	match str(pal.get("wx", "")):
+		"fog", "snow":
+			c = c.lerp(Color(0.75, 0.82, 0.9, 0.08), 0.6)
+		"rain", "storm":
+			c = c.lerp(Color(0.2, 0.28, 0.35, 0.12), 0.6)
+		"dust":
+			c = c.lerp(Color(0.9, 0.65, 0.35, 0.10), 0.6)
+	return c
+
+## A soft round glow (white centre fading out), made once: effects draw it with
+## draw_texture_rect, which costs far less than stacked draw_circle calls.
+func _soft_tex() -> Texture2D:
+	if _soft == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(1, 1, 1, 1))
+		g.set_color(1, Color(1, 1, 1, 0))
+		g.add_point(0.45, Color(1, 1, 1, 0.45))
+		var t := GradientTexture2D.new()
+		t.gradient = g
+		t.fill = GradientTexture2D.FILL_RADIAL
+		t.fill_from = Vector2(0.5, 0.5)
+		t.fill_to = Vector2(1.0, 0.5)
+		t.width = 64
+		t.height = 64
+		_soft = t
+	return _soft
+
+func _soft_dot(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:
+	ci.draw_texture_rect(_soft_tex(), Rect2(c - Vector2(r, r), Vector2(r, r) * 2.0), false, col)
 
 # ---------- the world ----------
 
@@ -599,6 +709,9 @@ func _draw_target(ci: CanvasItem, id: int) -> void:
 ## Runs even while the tree is paused (Landing, pause menu): the valley stays alive.
 func _tick_always(delta: float) -> void:
 	anim_t += delta
+	muzzle_t = maxf(0.0, muzzle_t - delta * 7.0)
+	hit_t = maxf(0.0, hit_t - delta * 2.2)
+	banner_age += delta
 	birds_scatter = maxf(0.0, birds_scatter - delta * 0.08) if birds_scatter < 0.98 else birds_scatter - delta * 0.02
 	if pal.get("wx", "") == "storm":
 		flash_t -= delta
@@ -730,6 +843,17 @@ func _draw_overlays() -> void:
 		scope_mat.set_shader_parameter("eye", eye)
 		scope_mat.set_shader_parameter("kick", recoil)
 	world.modulate = _world_tint(scoped)
+	var s2 := size if size.x > 0.0 else Vector2(1280, 720)
+	grade_mat.set_shader_parameter("size", s2)
+	grade_mat.set_shader_parameter("grade", _grade_color())
+	# Through the scope the tube already darkens the edges: a lighter vignette there.
+	grade_mat.set_shader_parameter("vig", 0.15 if scoped else (0.42 if playing else 0.3))
+	grade_mat.set_shader_parameter("contrast", 1.14 if skin == "classic" else 1.06)
+	grade_mat.set_shader_parameter("sat", 1.12 if skin == "classic" else 1.0)
+	grade_mat.set_shader_parameter("muzzle", muzzle_t * (0.55 if scoped else 1.0))
+	grade_mat.set_shader_parameter("muzzle_at", Vector2(s2.x * 0.5, s2.y * 0.5 + _scope_radius()) if scoped else _muzzle_screen())
+	grade_mat.set_shader_parameter("hit", hit_t * 0.6 if hit_head else hit_t * 0.3)
+	grade_mat.set_shader_parameter("time", anim_t)
 	if not zoom_slider.has_focus() and absf(zoom_slider.value - zoom_target) > 0.01:
 		zoom_slider.set_value_no_signal(zoom_target)
 	for c in [hold_btn, zoom_slider, pause_btn]:
@@ -792,6 +916,8 @@ func _handle_events() -> void:
 				var p: Vector2 = engine.target_pos(tg) + Vector2(0, -(1.65 if ev.head else 1.2) * u) if not tg.is_empty() else Vector2(float(ev.x), E.ground_y(float(ev.d)))
 				_add_effect("mist" if int(prefs.get("effect", 0)) == 0 and not ev.get("civ", false) else "dust", p, float(ev.d), 1.4)
 				if not ev.get("civ", false):
+					hit_t = 1.0
+					hit_head = bool(ev.head)
 					_float_text(("+%d" % int(ev.points)) + ("  " + tr("HEADSHOT") if ev.head else ""), p + Vector2(0, -1.2 * u))
 				SoundLib.play(self, "impact/soft_heavy", -12.0 if float(ev.d) < 400.0 else -18.0)
 				if ev.primary:
@@ -841,6 +967,7 @@ func _boom_sound() -> void:
 func _banner(text: String) -> void:
 	banner = text
 	banner_t = 2.6
+	banner_age = 0.0
 
 func _hint(text: String, secs: float = 3.5) -> void:
 	hint.text = text
@@ -853,7 +980,9 @@ func _float_text(text: String, p: Vector2) -> void:
 
 func _add_effect(kind: String, p: Vector2, d: float, life: float) -> void:
 	var fx := {"k": kind, "p": p, "d": d, "t": 0.0, "life": life, "seed": randi()}
-	fx["node"] = _layer(Scenery.z_for(d) + 4, _draw_effect.bind(fx), true, kind != "mist" and kind != "dust" and kind != "puff")
+	# Mist, dust and puffs skip the hour's tint so a hit always reads (was already so);
+	# look pass: fire and sparks skip it too (they give light, so they glow at night).
+	fx["node"] = _layer(Scenery.z_for(d) + 4, _draw_effect.bind(fx), true, false)
 	effects.append(fx)
 
 func _step_effects(delta: float) -> void:
@@ -882,36 +1011,73 @@ func _draw_effect(ci: CanvasItem, fx: Dictionary) -> void:
 	match str(fx.k):
 		"mist":
 			# The red mist: a soft cloud that spreads and drifts with the wind, and a few drops.
+			# Look pass: soft textured puffs (no hard circle edges) with a darker core.
 			var base := Color("b3121a") if skin == "classic" else Color("ff2bd6")
+			var fade := (1.0 - k) * (1.0 - k)
 			for i in 7:
 				var o := Vector2(r.randf_range(-0.35, 0.35), r.randf_range(-0.3, 0.2)) * u
-				var rad := (0.25 + k * 0.9 + r.randf() * 0.2) * u
-				ci.draw_circle(p + o + drift * (1.0 + i * 0.1), rad, Color(base, 0.22 * (1.0 - k)))
+				var rad := (0.4 + k * 1.3 + r.randf() * 0.25) * u
+				_soft_dot(ci, p + o + drift * (1.0 + i * 0.1), rad, Color(base, 0.5 * fade))
+			_soft_dot(ci, p + drift * 0.6, (0.3 + k * 0.5) * u, Color(base.darkened(0.35), 0.55 * fade))
+			var drops := PackedVector2Array()
 			for i in 10:
 				var v := Vector2(r.randf_range(-1.0, 1.0), r.randf_range(-1.4, 0.2)) * 1.6 * u
 				var q: Vector2 = p + v * float(fx.t) + Vector2(0, 4.9 * fx.t * fx.t * u) + drift
-				ci.draw_circle(q, maxf(0.5, 0.05 * u), Color(base.darkened(0.2), 0.8 * (1.0 - k)))
+				drops.append(q)
+				drops.append(q + Vector2(0, maxf(0.6, 0.12 * u)))
+			ci.draw_multiline(drops, Color(base.darkened(0.2), 0.8 * (1.0 - k)), maxf(1.0, 0.07 * u))
 		"dust":
 			var base := Color(0.75, 0.68, 0.55) if skin == "classic" else Color("29e6ff")
 			for i in 6:
 				var o := Vector2(r.randf_range(-0.5, 0.5), r.randf_range(-0.4, 0.1)) * u
-				ci.draw_circle(p + o + drift + Vector2(0, -k * 0.6 * u), (0.2 + k * 0.8) * u, Color(base, 0.35 * (1.0 - k)))
+				_soft_dot(ci, p + o + drift + Vector2(0, -k * 0.6 * u), (0.35 + k * 1.1) * u, Color(base, 0.6 * (1.0 - k)))
 		"boom":
 			var fire := clampf(1.0 - k * 2.5, 0.0, 1.0)
-			ci.draw_circle(p, (1.0 + k * 6.0) * u, Color(1.0, 0.9, 0.6, 0.12 * (1.0 - k)))
+			# The flash: a wide hot glow in the first instant.
+			if k < 0.25:
+				_soft_dot(ci, p, (4.0 + k * 20.0) * u, Color(1.0, 0.85, 0.55, 0.7 * (1.0 - k * 4.0)))
+			# The shock ring racing out over the ground.
+			if k < 0.4:
+				var sr := (1.0 + k * 22.0) * u
+				ci.draw_arc(p + Vector2(0, 0.4 * u), sr, 0, TAU, 32, Color(1, 0.95, 0.85, 0.5 * (1.0 - k / 0.4)), maxf(1.0, 0.15 * u))
+			# Smoke column rising and leaning with the wind.
 			for i in 9:
 				var a := TAU * i / 9.0 + r.randf()
-				var q := p + Vector2(cos(a), sin(a) * 0.6 - 0.5) * (0.5 + k * 3.0) * u + drift
-				ci.draw_circle(q, (0.9 + k * 2.2) * u, Color(0.12, 0.1, 0.1, 0.5 * (1.0 - k)))
+				var q := p + Vector2(cos(a), sin(a) * 0.6 - 0.5) * (0.5 + k * 3.0) * u + drift + Vector2(0, -k * k * 4.0 * u)
+				_soft_dot(ci, q, (1.4 + k * 3.4) * u, Color(0.1, 0.09, 0.09, 0.7 * (1.0 - k)))
 				if fire > 0.0:
-					ci.draw_circle(q, (0.8 + k * 1.2) * u, Color(1.0, 0.55 + 0.3 * r.randf(), 0.1, 0.85 * fire))
+					_soft_dot(ci, q, (1.1 + k * 1.6) * u, Color(1.0, 0.5 + 0.3 * r.randf(), 0.1, fire))
+			if fire > 0.0:
+				_soft_dot(ci, p, 1.2 * u, Color(1.0, 0.95, 0.7, fire))
+			# Debris: a few chunks flung out on arcs.
+			var bits := PackedVector2Array()
+			for i in 8:
+				var a := -PI * r.randf()
+				var v := Vector2(cos(a), sin(a)) * r.randf_range(3.0, 7.0) * u
+				var q := p + v * float(fx.t) + Vector2(0, 4.9 * fx.t * fx.t * u)
+				bits.append(q)
+				bits.append(q + v.normalized() * 0.3 * u)
+			ci.draw_multiline(bits, Color(0.08, 0.07, 0.06, 1.0 - k), maxf(1.0, 0.12 * u))
 		"spark":
+			if k < 0.3:
+				_soft_dot(ci, p, (0.6 + k * 2.0) * u, Color(1.0, 0.85, 0.5, 0.8 * (1.0 - k / 0.3)))
+			var sp := PackedVector2Array()
 			for i in 12:
 				var a := TAU * i / 12.0 + r.randf()
 				var q := p + Vector2(cos(a), sin(a)) * k * 2.0 * u + Vector2(0, 4.9 * fx.t * fx.t * u)
-				ci.draw_line(q, q + Vector2(cos(a), sin(a)) * 0.25 * u, Color(1.0, 0.85, 0.4, 1.0 - k), maxf(0.6, 0.05 * u))
+				sp.append(q)
+				sp.append(q + Vector2(cos(a), sin(a)) * 0.25 * u)
+			ci.draw_multiline(sp, Color(1.0, 0.85, 0.4, 1.0 - k), maxf(0.6, 0.05 * u))
 		"puff":
-			ci.draw_circle(p + drift, (0.2 + k * 0.6) * u, Color(0.8, 0.75, 0.65, 0.4 * (1.0 - k)))
+			_soft_dot(ci, p + drift, (0.35 + k * 0.9) * u, Color(0.8, 0.75, 0.65, 0.6 * (1.0 - k)))
+			if k < 0.5:
+				var bits := PackedVector2Array()
+				for i in 5:
+					var a := -PI * (0.15 + 0.7 * r.randf())
+					var q := p + Vector2(cos(a), sin(a)) * k * 1.6 * u + Vector2(0, 4.9 * fx.t * fx.t * u)
+					bits.append(q)
+					bits.append(q + Vector2(0, maxf(0.5, 0.08 * u)))
+				ci.draw_multiline(bits, Color(0.45, 0.4, 0.33, 0.9 * (1.0 - k * 2.0)), maxf(0.8, 0.06 * u))
 
 ## Bullet traces and the floating score text, over everything in the world.
 func _draw_world_fx_top(ci: CanvasItem) -> void:
@@ -943,8 +1109,9 @@ func _draw_world_fx_top(ci: CanvasItem) -> void:
 		ci.draw_circle(p, w * 1.5, Color(1.0, 0.95, 0.85, 0.8))
 	var font := ThemeDB.fallback_font
 	for f in floating:
-		var fs := int(maxf(6.0, 22.0 / world.scale.x))
-		var p: Vector2 = f.p + Vector2(0, -f.t * 20.0 / world.scale.x)
+		var pop := 1.0 + 0.5 * maxf(0.0, 1.0 - float(f.t) / 0.18)  # look pass: pops in, then settles
+		var fs := int(maxf(6.0, 22.0 * pop / world.scale.x))
+		var p: Vector2 = f.p + Vector2(0, -(1.0 - exp(-float(f.t) * 3.0)) * 34.0 / world.scale.x)
 		var c := Color(1.0, 0.85, 0.3, clampf(1.6 - f.t, 0.0, 1.0))
 		ci.draw_string_outline(font, p - Vector2(fs * 2.0, 0), str(f.text), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, maxi(2, fs / 5), Color(0, 0, 0, c.a))
 		ci.draw_string(font, p - Vector2(fs * 2.0, 0), str(f.text), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, c)
@@ -963,6 +1130,8 @@ func _reset_precip() -> void:
 			n = 220
 		"dust":
 			n = 40
+		"clear", "":
+			n = 28  # look pass: ambient motes (pollen in the light, fireflies in the jungle night)
 	for i in n:
 		precip.append(Vector3(randf() * 1600.0, randf() * 900.0, randf_range(0.5, 1.0)))
 
@@ -981,6 +1150,9 @@ func _step_precip(delta: float) -> void:
 			"dust":
 				p.x += (engine.wind * 30.0 + 12.0) * delta * p.z
 				p.y += sin(anim_t * 0.7 + i) * 6.0 * delta
+			"clear", "":
+				p.x += (engine.wind * 6.0 + sin(anim_t * 0.4 + i * 1.3) * 8.0) * delta * p.z
+				p.y += sin(anim_t * 0.5 + i * 2.1) * 7.0 * delta - 2.0 * delta
 		if p.y > s.y + 10.0:
 			p.y = -10.0
 			p.x = randf() * s.x
@@ -1005,6 +1177,14 @@ func _draw_precip() -> void:
 				precip_layer.draw_line(Vector2(p.x, p.y), Vector2(p.x, p.y) + v, Color(0.7, 0.8, 0.95, (0.3 if not night else 0.2) * a) if not neon else Color("7dff3a", 0.35 * a), 1.2)
 			"dust":
 				precip_layer.draw_circle(Vector2(p.x, p.y), 1.0 + p.z, Color(0.95, 0.85, 0.65, 0.35 * a))
+			"clear", "":
+				var tw := 0.5 + 0.5 * sin(anim_t * (1.0 + p.z * 2.0) + p.x * 0.05)
+				if night:
+					if engine.loc == "jungle" and not neon:
+						precip_layer.draw_rect(Rect2(Vector2(p.x, p.y), Vector2(2.5, 2.5)), Color(0.75, 1.0, 0.35, 0.8 * tw * tw * a))
+				else:
+					var mc := Color(1.0, 0.95, 0.8, (0.12 + 0.22 * tw) * a) if not neon else Color("ff2bd6", 0.35 * tw * a)
+					precip_layer.draw_rect(Rect2(Vector2(p.x, p.y), Vector2(1.5 + p.z, 1.5 + p.z)), mc)
 	if flash > 0.0:
 		precip_layer.draw_rect(Rect2(Vector2.ZERO, size), Color(0.8, 0.85, 1.0, flash * 0.18))
 
@@ -1022,8 +1202,15 @@ func _draw_reticle() -> void:
 		return
 	var c := _scope_center()
 	if zoom < ZOOM_SCOPE:
-		# Naked eye: a small ring where a tap will look.
-		reticle.draw_arc(c, 10.0, 0, TAU, 24, Color(1, 1, 1, 0.5), 1.5)
+		# Naked eye: a small ring where a tap will look (look pass: four ticks and a shadow so it reads on snow too).
+		reticle.draw_arc(c, 11.0, 0, TAU, 24, Color(0, 0, 0, 0.35), 3.5)
+		reticle.draw_arc(c, 10.0, 0, TAU, 24, Color(1, 1, 1, 0.6), 1.5)
+		var ticks := PackedVector2Array()
+		for d in [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN]:
+			ticks.append(c + d * 15.0)
+			ticks.append(c + d * 21.0)
+		reticle.draw_multiline(ticks, Color(1, 1, 1, 0.5), 1.5)
+		_draw_hit_marker(c)
 		return
 	var r := _scope_radius()
 	var neon: bool = skin == "voodoo"
@@ -1056,6 +1243,7 @@ func _draw_reticle() -> void:
 		m += every
 	reticle.draw_circle(c, 2.6, dot)
 	reticle.draw_circle(c, 5.0, Color(dot, 0.25))
+	_draw_hit_marker(c)
 	# The steady ring: tightens and turns green as the aim settles.
 	var st: float = engine.steady()
 	var ring_r := lerpf(34.0, 12.0, st)
@@ -1077,6 +1265,21 @@ func _draw_reticle() -> void:
 		var txt := tr("Reloading…") if engine.reload_t > 0.0 else tr("Bolt…")
 		reticle.draw_string_outline(font, c + Vector2(-60, r * 0.62), txt, HORIZONTAL_ALIGNMENT_CENTER, 120, 18, 4, Color(0, 0, 0, 0.8))
 		reticle.draw_string(font, c + Vector2(-60, r * 0.62), txt, HORIZONTAL_ALIGNMENT_CENTER, 120, 18, Color(1, 0.9, 0.7))
+
+## A hit confirmed: four short strokes snap out around the centre and fade (red for a headshot).
+func _draw_hit_marker(c: Vector2) -> void:
+	if hit_t <= 0.0:
+		return
+	var k := hit_t
+	var col := Color(1.0, 0.3, 0.25, k) if hit_head else Color(1, 1, 1, k)
+	var g := 8.0 + (1.0 - k) * 10.0
+	var pts := PackedVector2Array()
+	for d in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
+		var n: Vector2 = d.normalized()
+		pts.append(c + n * g)
+		pts.append(c + n * (g + 12.0))
+	reticle.draw_multiline(pts, Color(0, 0, 0, 0.6 * k), 5.0)
+	reticle.draw_multiline(pts, col, 2.5)
 
 func _spotter_target() -> Dictionary:
 	var aim := _aim_world()
@@ -1118,9 +1321,13 @@ func _draw_hud() -> void:
 		return
 	if not bcam.is_empty():
 		# Letterbox bars and a quiet label: the bullet cam.
-		var bar := size.y * 0.1
+		# Look pass: the bars slide in (eased) with a thin red edge.
+		var bin := 1.0 - pow(1.0 - clampf(float(bcam.t) / maxf(0.001, float(bcam.tof)) * 6.0, 0.0, 1.0), 3.0) if bcam.hold < 0.0 else 1.0
+		var bar := size.y * 0.1 * bin
 		hud.draw_rect(Rect2(0, 0, size.x, bar), Color(0, 0, 0, 0.85))
 		hud.draw_rect(Rect2(0, size.y - bar, size.x, bar), Color(0, 0, 0, 0.85))
+		hud.draw_line(Vector2(0, bar), Vector2(size.x, bar), Color(ACCENT, 0.5), 1.5)
+		hud.draw_line(Vector2(0, size.y - bar), Vector2(size.x, size.y - bar), Color(ACCENT, 0.5), 1.5)
 		_text(ThemeDB.fallback_font, Vector2(28, size.y - bar * 0.35), tr("BULLET CAM · tap to skip"), 16, Color(1, 1, 1, 0.6))
 		_text_r(ThemeDB.fallback_font, Vector2(size.x - 28, size.y - bar * 0.35), "%d m" % int(bcam.d), 18, Color(1, 0.85, 0.6, 0.9))
 		return
@@ -1130,12 +1337,16 @@ func _draw_hud() -> void:
 	var dim := Color(1, 1, 1, 0.6)
 	var x0 := 28.0
 	var y0 := 30.0
-	# Top left: the job.
+	# Look pass: dark glass cards behind the top-left and top-right readouts.
 	var title := _job_title()
-	_text(font, Vector2(x0, y0 + 18), title, 20, white)
 	var left_n: int = engine.targets_left()
-	var line2 := (tr("Through: %d / 3") % engine.escapes) if engine.mode == "survival" else _goal_line(left_n)
-	_text(font, Vector2(x0, y0 + 46), line2 + "   " + tr("Score %d") % engine.score, 18, dim)
+	var line2 := ((tr("Through: %d / 3") % engine.escapes) if engine.mode == "survival" else _goal_line(left_n)) + "   " + tr("Score %d") % engine.score
+	var tw := maxf(maxf(font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x, font.get_string_size(line2, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x), 250.0)
+	_glass_card(Rect2(x0 - 14, y0 - 8, tw + 28, 92 if engine.mode != "survival" else 70))
+	_glass_card(Rect2(s.x - 30.0 - 250.0, y0 - 8, 264.0, 70 if level == 0 or zoom < ZOOM_SCOPE else 92))
+	# Top left: the job.
+	_text(font, Vector2(x0, y0 + 18), title, 20, white)
+	_text(font, Vector2(x0, y0 + 46), line2, 18, dim)
 	if engine.limit > 0.0 and engine.mode != "survival":
 		var tl: float = engine.time_left()
 		var urgent := tl < 15.0
@@ -1144,18 +1355,29 @@ func _draw_hud() -> void:
 	# Alarm bar.
 	if engine.mode != "survival":
 		var bar := Rect2(x0, y0 + 58, 180, 8)
-		hud.draw_rect(bar, Color(1, 1, 1, 0.15))
-		hud.draw_rect(Rect2(bar.position, Vector2(bar.size.x * engine.alarm / 100.0, bar.size.y)), Color(1.0, 0.75, 0.2).lerp(RED, engine.alarm / 100.0))
+		hud.draw_rect(bar, Color(1, 1, 1, 0.12))
+		var fill_c := Color(1.0, 0.75, 0.2).lerp(RED, engine.alarm / 100.0)
+		var fw: float = bar.size.x * engine.alarm / 100.0
+		if fw > 0.5:
+			var hot: bool = engine.alarm >= 70.0
+			var pulse: float = (0.5 + 0.5 * sin(anim_t * 8.0)) if hot else 0.0
+			_soft_dot(hud, bar.position + Vector2(fw, 4), 10.0 + pulse * 6.0, Color(fill_c, 0.35 + pulse * 0.3))
+			hud.draw_rect(Rect2(bar.position, Vector2(fw, bar.size.y)), fill_c)
+			hud.draw_rect(Rect2(bar.position, Vector2(fw, 2)), Color(1, 1, 1, 0.3))
+		for i in range(1, 4):
+			hud.draw_rect(Rect2(bar.position + Vector2(bar.size.x * i / 4.0, 0), Vector2(1, bar.size.y)), Color(0, 0, 0, 0.45))
 		_text(font, Vector2(x0 + 190, y0 + 67), tr("ALARM") if engine.dish_quiet_t <= 0.0 else tr("DISH DOWN"), 13, dim)
 	# Top right: wind, range, rounds.
 	var xr := s.x - 30.0
 	var w: float = engine.wind
-	var arrow_c := Vector2(xr - 150, y0 + 14)
+	var wind_txt: String = tr("Wind %.1f m/s") % absf(w) if level > 0 else tr("Wind: off (Easy)")
 	var dir := 1.0 if w >= 0.0 else -1.0
 	var len_ := 18.0 + absf(w) * 5.0
+	# The arrow sits just left of its label (it used to overlap a long label).
+	var arrow_c := Vector2(xr - font.get_string_size(wind_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x - 16.0 - len_ * 0.5 - 8.0, y0 + 14)
 	hud.draw_line(arrow_c - Vector2(len_ * 0.5 * dir, 0), arrow_c + Vector2(len_ * 0.5 * dir, 0), white, 3.0)
 	hud.draw_colored_polygon(PackedVector2Array([arrow_c + Vector2(len_ * 0.5 * dir + 8 * dir, 0), arrow_c + Vector2(len_ * 0.5 * dir, -6), arrow_c + Vector2(len_ * 0.5 * dir, 6)]), white)
-	_text_r(font, Vector2(xr, y0 + 20), tr("Wind %.1f m/s") % absf(w) if level > 0 else tr("Wind: off (Easy)"), 18, white)
+	_text_r(font, Vector2(xr, y0 + 20), wind_txt, 18, white)
 	var lr := _lased_range()
 	var rng_txt := tr("Range %d m") % int(round(lr)) if lr > 1.0 and zoom >= ZOOM_SCOPE else tr("Range —")
 	_text_r(font, Vector2(xr, y0 + 46), rng_txt, 18, white)
@@ -1166,11 +1388,16 @@ func _draw_hud() -> void:
 	# Rounds: the magazine as cartridges, the rest as a number.
 	var ry := s.y - 44.0
 	var rx := 150.0 if not prefs.get("left", false) else s.x - 330.0
+	_glass_card(Rect2(rx - 12, ry - 40, E.MAG * 18 + 64, 48))
 	for i in E.MAG:
 		var full: bool = i < engine.mag
 		var r := Rect2(rx + i * 18, ry - 30, 9, 30)
 		hud.draw_rect(Rect2(r.position + Vector2(0, 8), Vector2(9, 22)), Color(0.85, 0.65, 0.25, 0.95) if full else Color(1, 1, 1, 0.12))
 		hud.draw_rect(Rect2(r.position + Vector2(2, 0), Vector2(5, 9)), Color(0.75, 0.55, 0.3, 0.95) if full else Color(1, 1, 1, 0.08))
+		if full:
+			# Brass shine down the case, a rim at its base.
+			hud.draw_rect(Rect2(r.position + Vector2(1.5, 9), Vector2(2, 19)), Color(1, 0.95, 0.7, 0.55))
+			hud.draw_rect(Rect2(r.position + Vector2(0, 27), Vector2(9, 3)), Color(0.55, 0.4, 0.15, 1.0))
 	var spare := "∞" if engine.ammo < 0 else str(maxi(0, engine.ammo - engine.mag))
 	_text(font, Vector2(rx + E.MAG * 18 + 8, ry - 6), "+ " + spare, 18, dim)
 	# Bottom left: the breath and the heart.
@@ -1180,11 +1407,53 @@ func _draw_hud() -> void:
 		_text(font, zoom_slider.position + Vector2(-6, -12), "%.1f×" % zoom_target, 16, white)
 	# Banner (officer down, ran for it...).
 	if banner_t > 0.0:
+		# Look pass: the banner wipes open from the centre (eased), a strip that
+		# fades out at its ends with red rules above and below, title-font text.
 		var a := clampf(banner_t, 0.0, 1.0)
-		var bw := 640.0
-		hud.draw_rect(Rect2(s.x * 0.5 - bw * 0.5, 96, bw, 44), Color(0, 0, 0, 0.55 * a))
-		hud.draw_string_outline(font, Vector2(s.x * 0.5 - bw * 0.5, 126), banner, HORIZONTAL_ALIGNMENT_CENTER, bw, 24, 6, Color(0, 0, 0, a))
-		hud.draw_string(font, Vector2(s.x * 0.5 - bw * 0.5, 126), banner, HORIZONTAL_ALIGNMENT_CENTER, bw, 24, Color(1.0, 0.85, 0.75, a))
+		var bw := minf(680.0, s.x - 40.0)
+		var open := 1.0 - pow(1.0 - clampf(banner_age / 0.22, 0.0, 1.0), 3.0)
+		var cx := s.x * 0.5
+		var hw := bw * 0.5 * open
+		var y := 96.0
+		var mid := Color(0, 0, 0, 0.7 * a)
+		var clear := Color(0, 0, 0, 0)
+		hud.draw_polygon(PackedVector2Array([Vector2(cx - hw, y), Vector2(cx, y), Vector2(cx, y + 46), Vector2(cx - hw, y + 46)]), PackedColorArray([clear, mid, mid, clear]))
+		hud.draw_polygon(PackedVector2Array([Vector2(cx, y), Vector2(cx + hw, y), Vector2(cx + hw, y + 46), Vector2(cx, y + 46)]), PackedColorArray([mid, clear, clear, mid]))
+		var rule := Color(ACCENT, 0.9 * a)
+		hud.draw_line(Vector2(cx - hw * 0.7, y), Vector2(cx + hw * 0.7, y), rule, 2.0)
+		hud.draw_line(Vector2(cx - hw * 0.7, y + 46), Vector2(cx + hw * 0.7, y + 46), rule, 2.0)
+		if open > 0.6:
+			var bf := _banner_font(banner)
+			var ta := a * clampf((open - 0.6) / 0.4, 0.0, 1.0)
+			hud.draw_string_outline(bf, Vector2(cx - bw * 0.5, y + 32), banner, HORIZONTAL_ALIGNMENT_CENTER, bw, 26, 6, Color(0, 0, 0, ta))
+			hud.draw_string(bf, Vector2(cx - bw * 0.5, y + 32), banner, HORIZONTAL_ALIGNMENT_CENTER, bw, 26, Color(1.0, 0.88, 0.78, ta))
+
+var _card_sb: StyleBoxFlat = null
+var _title_font: Font = null
+
+## A dark glass card behind a group of HUD readouts: rounded, a faint top light, a red hairline.
+func _glass_card(r: Rect2) -> void:
+	if _card_sb == null:
+		_card_sb = StyleBoxFlat.new()
+		_card_sb.bg_color = Color(0.03, 0.02, 0.03, 0.42)
+		_card_sb.set_corner_radius_all(12)
+		_card_sb.border_width_left = 3
+		_card_sb.border_color = Color(ACCENT, 0.55)
+		_card_sb.shadow_color = Color(0, 0, 0, 0.25)
+		_card_sb.shadow_size = 6
+	hud.draw_style_box(_card_sb, r)
+	hud.draw_line(r.position + Vector2(14, 1), Vector2(r.end.x - 12, r.position.y + 1), Color(1, 1, 1, 0.08), 1.0)
+
+## The game's title font for the banner when it has every letter of the text, else the default.
+func _banner_font(t: String) -> Font:
+	if _title_font == null:
+		var path := "res://games/red_mist/title.ttf"
+		_title_font = load(path) if ResourceLoader.exists(path) else ThemeDB.fallback_font
+	for i in t.length():
+		var ch := t.unicode_at(i)
+		if ch != 32 and not _title_font.has_char(ch):
+			return ThemeDB.fallback_font
+	return _title_font
 
 func _goal_line(left_n: int) -> String:
 	match engine.goal:
@@ -1209,7 +1478,10 @@ func _job_title() -> String:
 func _draw_breath(c: Vector2) -> void:
 	var font := ThemeDB.fallback_font
 	var r := 34.0
-	hud.draw_circle(c, r + 8.0, Color(0, 0, 0, 0.45))
+	_soft_dot(hud, c, r + 26.0, Color(0, 0, 0, 0.55))  # look pass: a soft shadow pool, no hard disc edge
+	hud.draw_circle(c, r + 8.0, Color(0, 0, 0, 0.35))
+	if engine.steady() >= 0.8 and not engine.holding:
+		_soft_dot(hud, c, r + 18.0, Color(0.35, 1.0, 0.45, 0.18 + 0.08 * sin(anim_t * 6.0)))
 	var start := -PI * 0.5
 	hud.draw_arc(c, r, start + TAU * E.BREATH_MOVE, start + TAU, 24, Color(0.35, 1.0, 0.45, 0.55), 6.0)
 	hud.draw_arc(c, r, start, start + TAU * E.BREATH_MOVE, 32, Color(1, 1, 1, 0.18), 6.0)
@@ -1457,15 +1729,52 @@ func _draw_rifle() -> void:
 		rifle_layer.draw_circle(at.call(0.22, 26.0), 20.0, Color(0.16, 0.14, 0.12) * Color(tint, 1.0))
 		if skin == "voodoo":
 			rifle_layer.draw_polyline(PackedVector2Array([at.call(0.0, -34.0), at.call(0.3, -42.0), at.call(0.62, -36.0), tip]), Color("29e6ff"), 2.0)
+		else:
+			# Look pass: a rim of the hour's light along the top of the stock, body and barrel.
+			var rim := Color(pal.get("sun", Color(1, 0.9, 0.7)), 0.22)
+			rifle_layer.draw_line(at.call(0.02, -33.0), at.call(0.3, -15.0), rim, 2.0)
+			rifle_layer.draw_line(at.call(0.3, -13.0), at.call(0.7, -8.5), rim, 2.0)
+			rifle_layer.draw_line(at.call(0.7, -4.0), at.call(0.95, -4.0), rim, 1.5)
+			# Scope glass catching the light.
+			rifle_layer.draw_circle(at.call(0.62, -25.0), 6.0, Color(0.35, 0.5, 0.65, 0.55))
+			_soft_dot(rifle_layer, at.call(0.62, -28.0), 6.0, Color(1, 1, 1, 0.5))
+		_draw_flash(tip, dir)
 		_draw_smoke(tip)
 	else:
-		_draw_smoke(Vector2(s.x * 0.5, s.y * 0.5 + _scope_radius() * 0.95))
+		var bottom := Vector2(s.x * 0.5, s.y * 0.5 + _scope_radius() * 0.95)
+		_draw_flash(bottom, Vector2.UP)
+		_draw_smoke(bottom)
+
+## Where the muzzle is on screen at the naked eye (the grade's flash glows there).
+func _muzzle_screen() -> Vector2:
+	var s := size if size.x > 0.0 else Vector2(1280, 720)
+	var sx := -1.0 if prefs.get("left", false) else 1.0
+	return Vector2(s.x * 0.5 + sx * s.x * 0.06, s.y * 0.66)
+
+## The muzzle flash: a hot core, a few short flame tongues along the barrel, gone in ~0.15 s.
+func _draw_flash(tip: Vector2, dir: Vector2) -> void:
+	if muzzle_t <= 0.0:
+		return
+	var k := muzzle_t
+	var n := dir.orthogonal()
+	var hot := Color(1.0, 0.92, 0.65, k)
+	var warm := Color(1.0, 0.55, 0.15, 0.85 * k)
+	_soft_dot(rifle_layer, tip, 90.0 * k, Color(1.0, 0.7, 0.3, 0.5 * k))
+	for i in 5:
+		var a := (float(i) - 2.0) * 0.45
+		var d2 := dir.rotated(a)
+		var ln := (70.0 if i == 2 else 34.0) * (0.6 + 0.4 * k)
+		var w := 10.0 if i == 2 else 6.0
+		rifle_layer.draw_colored_polygon(PackedVector2Array([tip + d2.orthogonal() * w, tip + d2 * ln, tip - d2.orthogonal() * w]), warm)
+	rifle_layer.draw_colored_polygon(PackedVector2Array([tip + n * 7.0, tip + dir * 40.0 * k, tip - n * 7.0, tip - dir * 6.0]), hot)
+	_soft_dot(rifle_layer, tip, 22.0, Color(1, 1, 0.9, k))
 
 func _draw_smoke(origin: Vector2) -> void:
 	for sm in smoke:
 		var k: float = sm.t / 1.6
 		var p: Vector2 = origin + sm.p + sm.v * sm.t
-		rifle_layer.draw_circle(p, 10.0 + k * 40.0, Color(0.85, 0.85, 0.85, 0.22 * (1.0 - k)))
+		# Soft puffs that swell and thin out (a texture: no hard circle edge).
+		_soft_dot(rifle_layer, p, 18.0 + k * 70.0, Color(0.85, 0.85, 0.85, 0.42 * (1.0 - k)))
 
 # ---------- flow ----------
 
@@ -1732,6 +2041,7 @@ func _fire() -> void:
 		return
 	recoil = 1.0
 	shake = 0.6
+	muzzle_t = 1.0 if int(progress.kit.get("supp", 0)) < 2 else 0.45  # a suppressor hides most of the flash
 	birds_scatter = 1.0 if int(progress.kit.get("supp", 0)) < 2 else 0.5
 	_play_shot()
 	for k in 7:
