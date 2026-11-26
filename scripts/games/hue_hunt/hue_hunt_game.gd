@@ -70,6 +70,8 @@ const FAMILY_TIPS := {
 var info = null
 var home
 var cam = null              # CameraService, or null on older apps
+const DRAG_SCROLL_PATH := "res://scripts/common/drag_scroll.gd"
+var _drag = null            # DragScroll on the open colour grid's card
 var prefs := {"safety_ok": false, "daily": {}, "superlative_best": {}}
 var book := {}              # colour id -> {pct, swatch, date, best_date}
 
@@ -578,7 +580,9 @@ func _start_camera() -> void:
 		_set_cam_msg(tr("Camera Hunter needs the newest version of the app for the camera. Please update the app."))
 		return
 	cam.visible = true
-	if cam.state == "running":
+	# App 0.45.0's stop() leaves state at "running" with no feed: trust the
+	# feed, or the second photo is taken from a dead camera (pink picture).
+	if cam.state == "running" and cam.feed != null:
 		_on_cam_state("running")
 	else:
 		cam.start()
@@ -1010,8 +1014,42 @@ func _colour_grid(body: Control, on_pick: Callable, show_locked: bool) -> void:
 		for st in ["normal", "hover", "pressed", "focus"]:
 			b.add_theme_stylebox_override(st, sb)
 		b.text = "" if (found or not show_locked) else "?"
-		b.pressed.connect(on_pick.bind(id))
+		b.pressed.connect(_on_grid_pick.bind(id, on_pick))
 		grid.add_child(b)
+	_drag_scroll_for(body)
+
+
+## The card's list scrolls by dragging anywhere, and its scrollbar is wide
+## enough for a thumb (owner, 2026-11-26: the thin bar was hard to grab).
+func _drag_scroll_for(body: Control) -> void:
+	_drag = null
+	var n: Node = body
+	while n != null and not n is ScrollContainer:
+		n = n.get_parent()
+	if n == null:
+		return
+	var sc := n as ScrollContainer
+	var bar := sc.get_v_scroll_bar()
+	bar.custom_minimum_size.x = 36
+	var grab := StyleBoxFlat.new()
+	grab.bg_color = Color(1, 1, 1, 0.55)
+	grab.set_corner_radius_all(18)
+	for st in ["grabber", "grabber_highlight", "grabber_pressed"]:
+		bar.add_theme_stylebox_override(st, grab)
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(1, 1, 1, 0.12)
+	track.set_corner_radius_all(18)
+	bar.add_theme_stylebox_override("scroll", track)
+	if ResourceLoader.exists(DRAG_SCROLL_PATH):
+		_drag = load(DRAG_SCROLL_PATH).new()
+		sc.add_child(_drag)
+
+
+## A colour button: ignore the release that ends a drag.
+func _on_grid_pick(id: String, on_pick: Callable) -> void:
+	if _drag != null and is_instance_valid(_drag) and _drag.moved:
+		return
+	on_pick.call(id)
 
 
 func _open_free_picker() -> void:

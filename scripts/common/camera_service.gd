@@ -28,7 +28,7 @@ class_name CameraService
 ##
 ## API (bump API_VERSION when it grows; packs can check it):
 ##   start() / stop() / request_permission() / next_camera()
-##   state + state_changed: starting, running, no_camera, need_permission, denied
+##   state + state_changed: starting, running, stopped, no_camera, need_permission, denied
 ##   snapshot() -> Image (await it): upright RGB frame, for a frozen photo
 ##   static patch(img, at, half) -> Array[Color] around a pixel
 ##   static thumbnail_jpg(img, max_side, quality) -> PackedByteArray
@@ -132,6 +132,9 @@ func stop() -> void:
 		CameraServer.monitoring_feeds = false
 	if _view:
 		_view.visible = false
+	# Not "running" any more: callers that check state restart the camera
+	# (0.45.0 left it "running" and the next snapshot came from a dead feed).
+	_set_state("stopped")
 
 
 func request_permission() -> void:
