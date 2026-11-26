@@ -176,7 +176,7 @@
     "whack_a_mole": {"version": 23, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/whack_a_mole.pck", "scene": "res://scenes/games/whack_a_mole/whack_a_mole.tscn", "updated": "2026-11-23"},
     "war": {"version": 18, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/war.pck", "scene": "res://scenes/games/war/war.tscn", "updated": "2026-11-23"},
     "snake": {"version": 23, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/snake.pck", "scene": "res://scenes/games/snake/snake.tscn", "updated": "2026-11-23"},
-    "chess": {"version": 24, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/chess.pck", "scene": "res://scenes/games/chess/chess.tscn", "updated": "2026-11-25"},
+    "chess": {"version": 25, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/chess.pck", "scene": "res://scenes/games/chess/chess.tscn", "updated": "2026-11-26"},
     "dots_boxes": {"version": 22, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/dots_boxes.pck", "scene": "res://scenes/games/dots_boxes/dots_boxes.tscn", "updated": "2026-11-23"},
     "minesweeper": {"version": 17, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/minesweeper.pck", "scene": "res://scenes/games/minesweeper/minesweeper.tscn", "updated": "2026-11-23"},
     "wordle": {"version": 20, "url": "https://github.com/voodoo-nicolas/voodoo-game-hub/releases/download/packs-v1/wordle.pck", "scene": "res://scenes/games/wordle/wordle.tscn", "updated": "2026-11-23"},
