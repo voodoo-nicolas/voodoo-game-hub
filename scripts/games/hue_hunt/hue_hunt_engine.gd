@@ -1,0 +1,522 @@
+extends RefCounted
+
+## Camera Hunter (id hue_hunt): pure logic, no Nodes, headless-testable
+## (tools/test_hue_hunt.gd). Colour maths, round specs, scoring and match plans.
+## Design + owner decisions: docs/hue_hunt/DESIGN.md.
+##
+## Colour: sRGB -> linear -> XYZ (D65) -> Lab; distance = CIEDE2000 with a
+## lightness weight kL (default 2: phone cameras get brightness wrong far more
+## than hue). Players see a % match, never raw dE.
+
+const Colors = preload("res://scripts/games/hue_hunt/hue_hunt_colors.gd")
+
+# --- tunables (placeholders; tune after playtests) ---------------------------
+const KL := 2.0
+const CLOSE := {"easy": 12.0, "normal": 8.0, "hard": 5.0}
+const PCT_ZERO_DE := 40.0      # dE at which the match % reaches 0
+const MIN_SEPARATION := 15.0   # no two targets in one match closer than this (kL = 1)
+const PATCH_HALF := 7          # 15x15 sample
+const CLIP_HI := 0.98          # a channel above this = blown out
+const CLIP_LO := 0.02          # all channels below this = crushed
+const CLIP_MAX_SHARE := 0.5    # more clipped pixels than this -> "retake"
+
+const POINTS := {"first_close": 1, "closest": 1, "superlative": 2, "first_find": 1, "best_find": 1}
+const COUNTDOWN := 30.0
+const MAX_ROUND := {"local": 90.0, "remote": 150.0}
+const SUPERLATIVE_TIME := 60.0
+const DEFAULT_ROUNDS := 10
+
+const T_CLASSIC := "classic"
+const T_DUO := "duo"
+const T_MIX := "mix"
+const T_OPPOSITE := "opposite"
+const T_BLIND := "blind"
+const T_SUPERLATIVE := "superlative"
+const T_OBJECT := "object"
+const TWISTS := [T_DUO, T_MIX, T_OPPOSITE, T_BLIND, T_SUPERLATIVE]
+const SOLO_TYPES := [T_CLASSIC, T_DUO, T_MIX, T_OPPOSITE, T_BLIND, T_SUPERLATIVE]
+const SUPERLATIVES := ["darkest", "lightest", "vivid"]
+
+
+# --- colour maths ------------------------------------------------------------
+
+static func _lin(c: float) -> float:
+	return c / 12.92 if c <= 0.04045 else pow((c + 0.055) / 1.055, 2.4)
+
+
+static func _f(t: float) -> float:
+	return pow(t, 1.0 / 3.0) if t > 216.0 / 24389.0 else (24389.0 / 27.0 * t + 16.0) / 116.0
+
+
+## sRGB Color (0..1) -> Lab as Vector3(L, a, b), D65.
+static func to_lab(c: Color) -> Vector3:
+	var r := _lin(c.r)
+	var g := _lin(c.g)
+	var b := _lin(c.b)
+	var x := (0.4124564 * r + 0.3575761 * g + 0.1804375 * b) / 0.95047
+	var y := 0.2126729 * r + 0.7151522 * g + 0.0721750 * b
+	var z := (0.0193339 * r + 0.1191920 * g + 0.9503041 * b) / 1.08883
+	var fx := _f(x)
+	var fy := _f(y)
+	var fz := _f(z)
+	return Vector3(116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz))
+
+
+static func _finv(t: float) -> float:
+	return t * t * t if t * t * t > 216.0 / 24389.0 else (116.0 * t - 16.0) * 27.0 / 24389.0
+
+
+static func _gam(c: float) -> float:
+	return 12.92 * c if c <= 0.0031308 else 1.055 * pow(c, 1.0 / 2.4) - 0.055
+
+
+## Lab -> sRGB Color (clamped to the gamut, for swatches).
+static func to_rgb(lab: Vector3) -> Color:
+	var fy := (lab.x + 16.0) / 116.0
+	var fx := fy + lab.y / 500.0
+	var fz := fy - lab.z / 200.0
+	var x := _finv(fx) * 0.95047
+	var y := _finv(fy)
+	var z := _finv(fz) * 1.08883
+	var r := 3.2404542 * x - 1.5371385 * y - 0.4985314 * z
+	var g := -0.9692660 * x + 1.8760108 * y + 0.0415560 * z
+	var b := 0.0556434 * x - 0.2040259 * y + 1.0572252 * z
+	return Color(clampf(_gam(r), 0, 1), clampf(_gam(g), 0, 1), clampf(_gam(b), 0, 1))
+
+
+static func chroma(lab: Vector3) -> float:
+	return Vector2(lab.y, lab.z).length()
+
+
+## Hue in degrees 0..360 (LCh).
+static func hue(lab: Vector3) -> float:
+	return fposmod(rad_to_deg(atan2(lab.z, lab.y)), 360.0)
+
+
+## CIEDE2000 (Sharma, Wu, Dalal 2005), lightness weight kl.
+static func de2000(l1: Vector3, l2: Vector3, kl: float = KL) -> float:
+	var c1 := chroma(l1)
+	var c2 := chroma(l2)
+	var cbar := (c1 + c2) / 2.0
+	var c7 := pow(cbar, 7.0)
+	var g := 0.5 * (1.0 - sqrt(c7 / (c7 + pow(25.0, 7.0))))
+	var a1 := (1.0 + g) * l1.y
+	var a2 := (1.0 + g) * l2.y
+	var cp1 := Vector2(a1, l1.z).length()
+	var cp2 := Vector2(a2, l2.z).length()
+	var hp1 := 0.0 if cp1 == 0.0 else fposmod(rad_to_deg(atan2(l1.z, a1)), 360.0)
+	var hp2 := 0.0 if cp2 == 0.0 else fposmod(rad_to_deg(atan2(l2.z, a2)), 360.0)
+	var dl := l2.x - l1.x
+	var dc := cp2 - cp1
+	var dh := 0.0
+	if cp1 * cp2 != 0.0:
+		dh = hp2 - hp1
+		if dh > 180.0:
+			dh -= 360.0
+		elif dh < -180.0:
+			dh += 360.0
+	var dhh := 2.0 * sqrt(cp1 * cp2) * sin(deg_to_rad(dh / 2.0))
+	var lbar := (l1.x + l2.x) / 2.0
+	var cpbar := (cp1 + cp2) / 2.0
+	var hbar := hp1 + hp2
+	if cp1 * cp2 != 0.0:
+		if absf(hp1 - hp2) <= 180.0:
+			hbar = (hp1 + hp2) / 2.0
+		elif hp1 + hp2 < 360.0:
+			hbar = (hp1 + hp2 + 360.0) / 2.0
+		else:
+			hbar = (hp1 + hp2 - 360.0) / 2.0
+	var t := 1.0 - 0.17 * cos(deg_to_rad(hbar - 30.0)) + 0.24 * cos(deg_to_rad(2.0 * hbar)) \
+		+ 0.32 * cos(deg_to_rad(3.0 * hbar + 6.0)) - 0.20 * cos(deg_to_rad(4.0 * hbar - 63.0))
+	var dtheta := 30.0 * exp(-pow((hbar - 275.0) / 25.0, 2.0))
+	var cp7 := pow(cpbar, 7.0)
+	var rc := 2.0 * sqrt(cp7 / (cp7 + pow(25.0, 7.0)))
+	var l50 := (lbar - 50.0) * (lbar - 50.0)
+	var sl := 1.0 + 0.015 * l50 / sqrt(20.0 + l50)
+	var sc := 1.0 + 0.045 * cpbar
+	var sh := 1.0 + 0.015 * cpbar * t
+	var rt := -sin(deg_to_rad(2.0 * dtheta)) * rc
+	var tl := dl / (kl * sl)
+	var tc := dc / sc
+	var th := dhh / sh
+	return sqrt(tl * tl + tc * tc + th * th + rt * tc * th)
+
+
+## dE -> 0..100 % match shown to players.
+static func pct(de: float) -> int:
+	return clampi(roundi(100.0 * (1.0 - de / PCT_ZERO_DE)), 0, 100)
+
+
+static func _median(v: Array) -> float:
+	v.sort()
+	var n := v.size()
+	return v[n / 2] if n % 2 else (v[n / 2 - 1] + v[n / 2]) / 2.0
+
+
+## Median Lab of a patch of Colors, skipping clipped pixels.
+## {ok, lab, clipped (0..1)}; ok = false means "retake" (too bright/dark).
+static func sample(pixels: Array) -> Dictionary:
+	var ls := []
+	var as_ := []
+	var bs := []
+	var clipped := 0
+	for p in pixels:
+		var c: Color = p
+		if maxf(c.r, maxf(c.g, c.b)) > CLIP_HI or maxf(c.r, maxf(c.g, c.b)) < CLIP_LO:
+			clipped += 1
+			continue
+		var lab := to_lab(c)
+		ls.append(lab.x)
+		as_.append(lab.y)
+		bs.append(lab.z)
+	var n := pixels.size()
+	var share := float(clipped) / n if n else 1.0
+	if n == 0 or share > CLIP_MAX_SHARE or ls.is_empty():
+		return {"ok": false, "lab": Vector3.ZERO, "clipped": share}
+	return {"ok": true, "lab": Vector3(_median(ls), _median(as_), _median(bs)), "clipped": share}
+
+
+# --- colour data -------------------------------------------------------------
+
+static func color_by_id(id: String) -> Array:
+	for c in Colors.COLORS:
+		if c[0] == id:
+			return c
+	return []
+
+
+static func color_lab(id: String) -> Vector3:
+	var c := color_by_id(id)
+	return to_lab(Color.html(c[3])) if c else Vector3.ZERO
+
+
+static func color_name(id: String, es: bool) -> String:
+	var c := color_by_id(id)
+	return "" if c.is_empty() else (c[2] if es else c[1])
+
+
+static func ids_by_tier(tier: String) -> Array:
+	var out := []
+	for c in Colors.COLORS:
+		if tier == "" or c[4] == tier:
+			out.append(c[0])
+	return out
+
+
+# --- round specs -------------------------------------------------------------
+## A RoundSpec is a Dictionary (sent over the network as-is, Vector3 as arrays):
+##   type, colors (ids shown), targets (Lab list as [L,a,b]), swatch (bool),
+##   superlative ("" / darkest / lightest / vivid), prompt (object id),
+##   points ({award: n}), countdown (s, 0 = none), max_time (s), taps (1 or 2),
+##   judge ("color" / "superlative" / "vote").
+
+static func _v(lab: Vector3) -> Array:
+	return [lab.x, lab.y, lab.z]
+
+
+static func _lab(a: Array) -> Vector3:
+	return Vector3(a[0], a[1], a[2])
+
+
+static func make_spec(type: String, colors: Array, extra: Dictionary = {}) -> Dictionary:
+	var place: String = extra.get("place", "local")
+	var spec := {
+		"type": type, "colors": colors, "targets": [], "swatch": true, "superlative": "",
+		"prompt": "", "points": {}, "countdown": COUNTDOWN, "max_time": MAX_ROUND[place],
+		"taps": 1, "judge": "color",
+	}
+	match type:
+		T_CLASSIC, T_BLIND:
+			spec.targets = [_v(color_lab(colors[0]))]
+			spec.swatch = type == T_CLASSIC
+		T_DUO:
+			spec.targets = [_v(color_lab(colors[0])), _v(color_lab(colors[1]))]
+			spec.taps = 2
+		T_MIX:
+			spec.targets = [_v((color_lab(colors[0]) + color_lab(colors[1])) / 2.0)]
+		T_OPPOSITE:
+			spec.targets = [_v(opposite(color_lab(colors[0])))]
+		T_SUPERLATIVE:
+			spec.superlative = extra.get("superlative", "darkest")
+			spec.judge = "superlative"
+			spec.countdown = 0.0
+			spec.max_time = SUPERLATIVE_TIME
+		T_OBJECT:
+			spec.prompt = extra.get("prompt", "")
+			spec.judge = "vote"
+			spec.swatch = false
+	if type == T_SUPERLATIVE:
+		spec.points = {"superlative": POINTS.superlative}
+	elif type == T_OBJECT:
+		spec.points = {"first_find": POINTS.first_find, "best_find": POINTS.best_find}
+	else:
+		spec.points = {"first_close": POINTS.first_close, "closest": POINTS.closest}
+	return spec
+
+
+## Complement: hue +180 in LCh, same L and C.
+static func opposite(lab: Vector3) -> Vector3:
+	return Vector3(lab.x, -lab.y, -lab.z)
+
+
+## Score one capture. `labs` = the sampled Lab(s) (two for Duo).
+## {value (lower = better), de, pct, close}. Superlative: value is
+## -L (lightest), L (darkest) or -C (vivid); de/pct are 0, close false.
+static func score(spec: Dictionary, labs: Array, difficulty: String = "normal") -> Dictionary:
+	if spec.judge == "superlative":
+		var l: Vector3 = labs[0]
+		var v := l.x
+		match spec.superlative:
+			"lightest":
+				v = -l.x
+			"vivid":
+				v = -chroma(l)
+		return {"value": v, "de": 0.0, "pct": 0, "close": false}
+	if spec.judge == "vote":
+		return {"value": 0.0, "de": 0.0, "pct": 0, "close": false}
+	var worst := 0.0
+	for i in spec.targets.size():
+		var d := de2000(_lab(spec.targets[i]), labs[mini(i, labs.size() - 1)])
+		worst = maxf(worst, d)   # Duo: the worse of the two
+	return {"value": worst, "de": worst, "pct": pct(worst), "close": worst <= CLOSE[difficulty]}
+
+
+# --- resolving a round -------------------------------------------------------
+## lockins: Array of {player, t (host time, s), labs, value, de, close,
+##   flagged (bool)}; object rounds: {player, t, yes, no, best_votes, flagged}.
+## Returns {awards: [{player, award, points}], ranking: [players best..worst],
+##   first_close_t (or -1)}.
+
+static func _better(a: Dictionary, b: Dictionary) -> bool:
+	if not is_equal_approx(float(a.value), float(b.value)):
+		return a.value < b.value
+	if not is_equal_approx(float(a.de), float(b.de)):
+		return a.de < b.de
+	return a.t < b.t
+
+
+static func resolve(spec: Dictionary, lockins: Array) -> Dictionary:
+	var awards := []
+	var valid := lockins.filter(_not_flagged)
+	if spec.judge == "vote":
+		valid = valid.filter(_vote_passes)
+		var by_t := valid.duplicate()
+		by_t.sort_custom(_earlier)
+		if not by_t.is_empty():
+			awards.append({"player": by_t[0].player, "award": "first_find", "points": spec.points.first_find})
+		var best := {}
+		for e in valid:
+			if best.is_empty() or int(e.get("best_votes", 0)) > int(best.get("best_votes", 0)) \
+					or (int(e.get("best_votes", 0)) == int(best.get("best_votes", 0)) and e.t < best.t):
+				best = e
+		if not best.is_empty() and int(best.get("best_votes", 0)) > 0:
+			awards.append({"player": best.player, "award": "best_find", "points": spec.points.best_find})
+		return {"awards": awards, "ranking": by_t.map(_player), "first_close_t": -1.0}
+	var ranked := valid.duplicate()
+	ranked.sort_custom(_better)
+	var first_t := -1.0
+	if spec.judge == "superlative":
+		if not ranked.is_empty():
+			awards.append({"player": ranked[0].player, "award": "superlative", "points": spec.points.superlative})
+	else:
+		var close := valid.filter(_is_close)
+		close.sort_custom(_earlier)
+		if not close.is_empty():
+			first_t = close[0].t
+			awards.append({"player": close[0].player, "award": "first_close", "points": spec.points.first_close})
+		if not ranked.is_empty():
+			awards.append({"player": ranked[0].player, "award": "closest", "points": spec.points.closest})
+	return {"awards": awards, "ranking": ranked.map(_player), "first_close_t": first_t}
+
+
+static func _not_flagged(e: Dictionary) -> bool:
+	return not e.get("flagged", false)
+
+
+static func _is_close(e: Dictionary) -> bool:
+	return e.get("close", false)
+
+
+static func _earlier(a: Dictionary, b: Dictionary) -> bool:
+	return a.t < b.t
+
+
+static func _player(e: Dictionary) -> String:
+	return e.player
+
+
+## Object rounds: at least 50% Yes among voters (ties pass; no votes = pass).
+static func _vote_passes(e: Dictionary) -> bool:
+	var yes := int(e.get("yes", 0))
+	var no := int(e.get("no", 0))
+	return yes >= no
+
+
+## Majority flag among the other players disqualifies a photo.
+static func flag_majority(flags: int, voters: int) -> bool:
+	return voters > 0 and flags * 2 > voters
+
+
+## When the round ends (host time). started = round start; first_close_t = -1 if none.
+static func round_deadline(spec: Dictionary, started: float, first_close_t: float) -> float:
+	var end: float = started + spec.max_time
+	if spec.countdown > 0.0 and first_close_t >= 0.0:
+		end = minf(end, first_close_t + spec.countdown)
+	return end
+
+
+## Adds this round's awards into scores {player: points}.
+static func add_awards(scores: Dictionary, awards: Array) -> Dictionary:
+	for a in awards:
+		scores[a.player] = int(scores.get(a.player, 0)) + int(a.points)
+	return scores
+
+
+## Match winner(s): highest points (ties share the win).
+static func winners(scores: Dictionary) -> Array:
+	var best := -1
+	var out := []
+	for p in scores:
+		if scores[p] > best:
+			best = scores[p]
+			out = [p]
+		elif scores[p] == best:
+			out.append(p)
+	return out
+
+
+# --- match plans -------------------------------------------------------------
+## opts: rounds, selection ("classic" / "mixed" / "chaos"), solo (bool),
+##   objects (Array of prompt ids; empty = no object rounds), place, seed.
+## Never the same type twice in a row; no colour twice; every target colour
+## at least MIN_SEPARATION (kL = 1) from every other; tiers mixed.
+
+static func plan_match(opts: Dictionary) -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(opts.get("seed", 1))
+	var n: int = opts.get("rounds", DEFAULT_ROUNDS)
+	var sel: String = opts.get("selection", "mixed")
+	var solo: bool = opts.get("solo", false)
+	var objects: Array = [] if solo else opts.get("objects", [])
+	var place: String = opts.get("place", "local")
+	var used := []        # colour ids
+	var used_labs := []   # every target and shown colour
+	var used_prompts := []
+	var specs := []
+	var last := ""
+	var tiers := ["easy", "medium", "hard"]
+	for i in n:
+		var type := _pick_type(rng, sel, solo, not objects.is_empty(), last, i)
+		var extra := {"place": place}
+		var colors := []
+		if type == T_OBJECT:
+			var left := objects.filter(func(o): return not used_prompts.has(o))
+			if left.is_empty():
+				left = objects
+			extra.prompt = left[rng.randi() % left.size()]
+			used_prompts.append(extra.prompt)
+		elif type == T_SUPERLATIVE:
+			extra.superlative = SUPERLATIVES[rng.randi() % SUPERLATIVES.size()]
+		else:
+			# Mix / Opposite: the derived target must be apart too; retry.
+			var need := 2 if type in [T_DUO, T_MIX] else 1
+			var skip := used.duplicate()
+			for attempt in 40:
+				colors = []
+				var labs := used_labs.duplicate()
+				for k in need:
+					var id := _pick_color(rng, tiers[(i + k) % 3], skip + colors, labs)
+					colors.append(id)
+					labs.append(color_lab(id))
+				if type not in [T_MIX, T_OPPOSITE]:
+					break
+				var t := _lab(make_spec(type, colors).targets[0])
+				var apart := true
+				for u in labs:
+					if de2000(t, u, 1.0) < MIN_SEPARATION:   # incl. its own source colours
+						apart = false
+						break
+				if apart:
+					break
+				skip.append(colors[0])
+			for id in colors:
+				used.append(id)
+				used_labs.append(color_lab(id))
+		var spec := make_spec(type, colors, extra)
+		if type in [T_MIX, T_OPPOSITE]:
+			used_labs.append(_lab(spec.targets[0]))
+		specs.append(spec)
+		last = type
+	return specs
+
+
+static func _pick_type(rng: RandomNumberGenerator, sel: String, solo: bool, objects: bool, last: String, i: int) -> String:
+	if sel == "classic":
+		return T_CLASSIC
+	var pool: Array = SOLO_TYPES.duplicate() if solo else SOLO_TYPES + ([T_OBJECT] if objects else [])
+	if sel == "chaos":
+		pool.erase(last)
+		return pool[rng.randi() % pool.size()]
+	# mixed: round 1 classic; after a twist/object always classic.
+	# With object rounds: after a classic always a special, half object, half
+	# twist -> object ~1 in 4, twist ~1 in 4. Without: a twist half the time
+	# after a classic -> a twist about every 3rd round.
+	if i == 0 or last != T_CLASSIC:
+		return T_CLASSIC
+	if objects:
+		return T_OBJECT if rng.randf() < 0.5 else TWISTS[rng.randi() % TWISTS.size()]
+	if rng.randf() < 0.5:
+		return TWISTS[rng.randi() % TWISTS.size()]
+	return T_CLASSIC
+
+
+static func _pick_color(rng: RandomNumberGenerator, tier: String, used: Array, used_labs: Array) -> String:
+	for pass_tier in [tier, ""]:
+		var cands := ids_by_tier(pass_tier)
+		# shuffle with our own rng (deterministic per seed)
+		for k in range(cands.size() - 1, 0, -1):
+			var j := rng.randi() % (k + 1)
+			var t = cands[k]
+			cands[k] = cands[j]
+			cands[j] = t
+		for id in cands:
+			if used.has(id):
+				continue
+			var lab := color_lab(id)
+			var ok := true
+			for u in used_labs:
+				if de2000(lab, u, 1.0) < MIN_SEPARATION:
+					ok = false
+					break
+			if ok:
+				return id
+	# palette exhausted: any unused colour
+	for id in ids_by_tier(""):
+		if not used.has(id):
+			return id
+	return ids_by_tier("")[0]
+
+
+# --- solo --------------------------------------------------------------------
+
+## Time Attack: score = sum of match % of the colours found in time.
+static func time_attack_score(pcts: Array) -> int:
+	var s := 0
+	for p in pcts:
+		s += int(p)
+	return s
+
+
+## Daily Color: the same colour id for everyone on a UTC day (YYYY-MM-DD).
+static func daily_color(day: String) -> String:
+	var ids := ids_by_tier("")
+	return ids[absi(hash("hue_hunt:" + day)) % ids.size()]
+
+
+## Colour Book entry update: keeps the best % and its swatch.
+static func book_add(book: Dictionary, id: String, match_pct: int, swatch_hex: String, day: String) -> bool:
+	var e: Dictionary = book.get(id, {})
+	if not e.is_empty() and int(e.get("pct", 0)) >= match_pct:
+		return false
+	book[id] = {"pct": match_pct, "swatch": swatch_hex, "date": day if e.is_empty() else e.get("date", day), "best_date": day}
+	return true

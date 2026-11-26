@@ -1,0 +1,151 @@
+name_en,name_es,tier,family
+red,rojo,easy,red
+bright red,rojo vivo,easy,red
+dark red,rojo oscuro,medium,red
+cherry red,rojo cereza,medium,red
+brick red,rojo ladrillo,medium,red
+tomato red,rojo tomate,easy,red
+crimson,carmesí,medium,red
+scarlet,escarlata,medium,red
+blood red,rojo sangre,hard,red
+rust,óxido,medium,red
+burgundy,borgoña,hard,red
+maroon,granate,medium,red
+wine,vino,hard,red
+salmon,salmón,medium,pink
+coral,coral,medium,pink
+pink,rosa,easy,pink
+hot pink,rosa fucsia,easy,pink
+light pink,rosa claro,easy,pink
+pale pink,rosa pálido,medium,pink
+baby pink,rosa bebé,medium,pink
+dusty pink,rosa empolvado,hard,pink
+bubblegum pink,rosa chicle,medium,pink
+magenta,magenta,medium,pink
+fuchsia,fucsia,medium,pink
+rose,rosa antiguo,hard,pink
+raspberry,frambuesa,hard,pink
+watermelon,sandía,hard,pink
+orange,naranja,easy,orange
+bright orange,naranja vivo,easy,orange
+dark orange,naranja oscuro,medium,orange
+burnt orange,naranja quemado,medium,orange
+tangerine,mandarina,medium,orange
+pumpkin,calabaza,medium,orange
+peach,melocotón,medium,orange
+apricot,albaricoque,hard,orange
+terracotta,terracota,medium,orange
+copper,cobre,hard,orange
+burnt sienna,siena tostada,hard,orange
+amber,ámbar,hard,orange
+yellow,amarillo,easy,yellow
+bright yellow,amarillo vivo,easy,yellow
+lemon,limón,medium,yellow
+lemon yellow,amarillo limón,easy,yellow
+banana,plátano,medium,yellow
+butter yellow,amarillo mantequilla,hard,yellow
+pale yellow,amarillo pálido,medium,yellow
+mustard,mostaza,medium,yellow
+golden yellow,amarillo dorado,medium,yellow
+gold,oro,medium,yellow
+sunflower,girasol,medium,yellow
+ochre,ocre,hard,yellow
+sand,arena,medium,yellow
+beige,beis,easy,yellow
+cream,crema,medium,yellow
+khaki,caqui,medium,yellow
+green,verde,easy,green
+bright green,verde vivo,easy,green
+dark green,verde oscuro,easy,green
+grass green,verde hierba,easy,green
+leaf green,verde hoja,easy,green
+lime green,verde lima,medium,green
+lime,lima,medium,green
+apple green,verde manzana,medium,green
+pea green,verde guisante,hard,green
+olive,oliva,medium,green
+olive green,verde oliva,medium,green
+moss green,verde musgo,hard,green
+forest green,verde bosque,medium,green
+emerald,esmeralda,hard,green
+jade,jade,hard,green
+mint,menta,medium,green
+mint green,verde menta,medium,green
+sage,salvia,hard,green
+pale green,verde pálido,medium,green
+seafoam,espuma de mar,hard,green
+bottle green,verde botella,hard,green
+teal,verde azulado,medium,cyan
+dark teal,verde azulado oscuro,hard,cyan
+turquoise,turquesa,medium,cyan
+aqua,agua,medium,cyan
+cyan,cian,medium,cyan
+aquamarine,aguamarina,hard,cyan
+light blue,azul claro,easy,blue
+sky blue,azul cielo,easy,blue
+baby blue,azul bebé,medium,blue
+pale blue,azul pálido,medium,blue
+powder blue,azul polvo,hard,blue
+blue,azul,easy,blue
+bright blue,azul vivo,easy,blue
+royal blue,azul real,medium,blue
+cobalt,cobalto,hard,blue
+cobalt blue,azul cobalto,medium,blue
+navy,marino,medium,blue
+navy blue,azul marino,easy,blue
+dark blue,azul oscuro,easy,blue
+denim,vaquero,medium,blue
+denim blue,azul vaquero,easy,blue
+steel blue,azul acero,hard,blue
+slate blue,azul pizarra,hard,blue
+cornflower,aciano,hard,blue
+periwinkle,vincapervinca,hard,blue
+ocean blue,azul océano,medium,blue
+azure,azur,hard,blue
+indigo,índigo,hard,purple
+purple,morado,easy,purple
+dark purple,morado oscuro,medium,purple
+bright purple,morado vivo,medium,purple
+violet,violeta,medium,purple
+lavender,lavanda,medium,purple
+lilac,lila,medium,purple
+light purple,morado claro,easy,purple
+plum,ciruela,hard,purple
+eggplant,berenjena,hard,purple
+grape,uva,medium,purple
+mauve,malva,hard,purple
+orchid,orquídea,hard,purple
+brown,marrón,easy,brown
+dark brown,marrón oscuro,easy,brown
+light brown,marrón claro,easy,brown
+chocolate,chocolate,medium,brown
+chocolate brown,marrón chocolate,easy,brown
+coffee,café,medium,brown
+mocha,moca,hard,brown
+caramel,caramelo,medium,brown
+tan,canela,medium,brown
+camel,camello,hard,brown
+chestnut,castaño,medium,brown
+mahogany,caoba,hard,brown
+cinnamon,canela tostada,hard,brown
+hazel,avellana,hard,brown
+taupe,topo,hard,brown
+sienna,siena,hard,brown
+umber,sombra,hard,brown
+white,blanco,easy,neutral
+off white,blanco roto,medium,neutral
+eggshell,cáscara de huevo,hard,neutral
+ivory,marfil,medium,neutral
+black,negro,easy,neutral
+charcoal,carbón,medium,neutral
+grey,gris,easy,neutral
+light grey,gris claro,easy,neutral
+dark grey,gris oscuro,easy,neutral
+silver,plata,medium,neutral
+slate,pizarra,hard,neutral
+stone,piedra,medium,neutral
+warm grey,gris cálido,hard,neutral
+cool grey,gris frío,hard,neutral
+mushroom,champiñón,hard,neutral
+strawberry,fresa,medium,red
+sea blue,azul mar,medium,blue
