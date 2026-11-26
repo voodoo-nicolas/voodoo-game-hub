@@ -59,6 +59,7 @@ const RESULT_MESSAGES := {
 	"draw_timeout": "Draw — out of time, but no mating material left",
 	"resign": "Resigned",
 	"draw_agreed": "Draw agreed",
+	"daily_timeout": "Out of time: the deadline passed",
 }
 
 ## Set before going 🏠 Home from a finished lesson: the Landing then opens
@@ -388,6 +389,7 @@ func _build_home() -> void:
 		"modes": modes,
 		"play": [
 			{"text": "♟ Ongoing Games", "sub": "Up to 6 games at once: pick one up", "action": _open_ongoing, "card": true},
+			{"text": "📮 Daily Games", "sub": "Friends, one move at a time, several games at once", "action": _open_daily, "card": true},
 			{"text": "📚 Lessons", "sub": "The pieces, the rules, checkmate", "action": _open_lessons, "card": true},
 			{"text": "📅 Daily Lesson", "sub": "Three new boards every day", "action": _start_daily},
 		],
@@ -538,6 +540,8 @@ func _bottom_side() -> int:
 
 func _side_name(side: int) -> String:
 	var white: bool = side == ChessEngine.WHITE
+	if _in_daily() and not daily.is_empty():
+		return str(daily.white_name) if white else str(daily.black_name)
 	if _is_online():
 		if not online.has_method("opponent_name"):  # apps before v0.22
 			return tr("You") if side == my_color else (tr("White") if white else tr("Black"))
@@ -812,6 +816,9 @@ func _set_result_buttons(specs: Array) -> void:
 
 func _on_play_again() -> void:
 	result_dialog.visible = false
+	if _in_daily():
+		_open_daily()
+		return
 	_start_new_game()
 
 func _go_home() -> void:
@@ -826,6 +833,8 @@ func _in_lesson() -> bool:
 	return mode == "lesson" or mode == "daily"
 
 func _start_new_game() -> void:
+	if _in_daily():
+		return  # a Daily game can't start again: it lives on the server
 	if _in_lesson():
 		_load_lesson_board(board_i)
 		return
@@ -878,6 +887,8 @@ func _on_square_pressed(r: int, c: int) -> void:
 		return
 	if (_vs_cpu() or _in_lesson()) and engine.current_player != ChessEngine.WHITE:
 		return  # the computer is thinking
+	if _in_daily() and (engine.current_player != my_color or daily_busy):
+		return  # their move, or ours is on its way
 	var pos := Vector2i(r, c)
 
 	if dest_map.has(pos):
@@ -920,6 +931,8 @@ func _apply_move(from: Vector2i, to: Vector2i, promotion_piece: int) -> void:
 		return
 	san_moves.append(san + engine.san_suffix())
 	ucis.append(ChessEngine.uci(from, to, promotion_piece if result.promotes else 0))
+	if _in_daily() and engine.current_player != my_color:  # our move: to the server
+		_daily_send(ucis[-1], san_moves[-1])
 	var mover: int = -engine.current_player
 	if increment > 0 and clock_limit > 0 and not _is_online() and not result.game_over:
 		clocks[mover] += increment
@@ -1062,7 +1075,9 @@ func _show_result() -> void:
 			_point_resume_at_latest()
 	var msg: String = tr(RESULT_MESSAGES.get(engine.result_reason, "Game over"))
 	var decisive: bool = engine.winner != 0
-	if decisive and _is_online():
+	if decisive and _in_daily():
+		msg += "\n" + (tr("You win!") if engine.winner == my_color else tr("%s wins!") % _opp_name(daily))
+	elif decisive and _is_online():
 		msg += "\n" + online.result_text(engine.winner == my_color)
 	elif decisive and _vs_cpu():
 		msg += "\n" + (tr("You win!") if engine.winner == ChessEngine.WHITE else tr("The computer wins!"))
@@ -1082,7 +1097,10 @@ func _show_result() -> void:
 			_earn(pts)
 			result_label.text += "\n" + tr("+%d ⭐ points") % pts
 	if info and just_ended:
-		if _is_online():
+		if _in_daily():
+			info.result("draw" if not decisive else ("win" if engine.winner == my_color else "loss"), true)
+			result_label.text += "\n" + info.summary(["Online wins", "Online losses", "Online draws"])
+		elif _is_online():
 			info.result("draw" if not decisive else ("win" if engine.winner == my_color else "loss"), true)
 			result_label.text += "\n" + info.summary(["Online wins", "Online losses", "Online draws"])
 		elif _vs_cpu():
@@ -1175,7 +1193,10 @@ func _render() -> void:
 		return
 	var check_suffix := tr(" — Check!") if checked_king.x >= 0 else ""
 	var side := tr("White") if engine.current_player == ChessEngine.WHITE else tr("Black")
-	if _is_online():
+	if _in_daily():
+		status_label.text = (tr("Your move (%s)") % side + check_suffix) if engine.current_player == my_color \
+			else tr("Waiting for %s's move · %s") % [_opp_name(daily), _left_text(_daily_left(daily))]
+	elif _is_online():
 		status_label.text = online.status_text(engine.current_player == my_color, side + check_suffix)
 	elif _vs_cpu():
 		status_label.text = (tr("Your turn (%s)") % side + check_suffix) if engine.current_player == ChessEngine.WHITE \
@@ -1630,7 +1651,7 @@ func _draw_swatch(pic: Control, kind: String, id: String) -> void:
 ## Games against the computer and on one phone are saved; online games and
 ## lessons are not (a lesson board takes a minute: it starts again).
 func _save_game() -> void:
-	if not started or not game_active or _is_online() or _in_lesson() or mode == "online":
+	if not started or not game_active or _is_online() or _in_lesson() or mode == "online" or _in_daily():
 		return
 	if slot_id == "" and not ChessSlots.is_full():
 		slot_id = ChessSlots.new_id()  # Play Again after a finished game
@@ -1922,7 +1943,7 @@ func _close_ask() -> void:
 
 ## Who gives up from this phone: you (vs computer, online), else the side to move.
 func _resigner() -> int:
-	if _is_online():
+	if _is_online() or _in_daily():
 		return my_color
 	if _vs_cpu():
 		return ChessEngine.WHITE
@@ -1931,11 +1952,15 @@ func _resigner() -> int:
 func _on_resign() -> void:
 	if not game_active or not started or _in_lesson():
 		return
-	var q := tr("Resign this game?") if (_is_online() or _vs_cpu()) else tr("Resign for %s?") % _side_name(_resigner())
+	var q := tr("Resign this game?") if (_is_online() or _vs_cpu() or _in_daily()) else tr("Resign for %s?") % _side_name(_resigner())
 	_ask(q, [["🏳 Resign", HomeKit.PINK, _do_resign], ["Cancel", HomeKit.BUTTON, _close_ask]])
 
 func _do_resign() -> void:
 	if not game_active:
+		return
+	if _in_daily():
+		result_dialog.visible = false
+		_daily_resign()
 		return
 	var side := _resigner()
 	engine.resign(side)
@@ -1947,7 +1972,9 @@ func _do_resign() -> void:
 func _on_draw() -> void:
 	if not game_active or not started or _in_lesson() or draw_offered:
 		return
-	if _is_online():
+	if _in_daily():
+		_daily_draw("offer")
+	elif _is_online():
 		draw_offered = true
 		online.send_move({"kind": "draw_offer", "from": [-1, -1], "to": [-1, -1]})
 		home.help_toast(tr("Draw offered. Waiting for an answer…"))
@@ -2415,6 +2442,392 @@ func _resume_slot(id: String) -> void:
 	_save_game()  # the game on the board now keeps its own slot
 	SaveUtil.write(SAVE_PATH, sl.data)
 	home.play_now(_load_saved_game)
+
+# ---------- Phase B2 (2026-11-25): 📮 Daily games with friends (turn-based, several at once) ----------
+# Server: supabase/migrations/20261126000000_chess_daily.sql (chess_daily_* functions).
+# Both phones check legality; the server checks turn, move number and deadlines.
+
+const DAILY_DAYS := [1, 3, 7]
+const DAILY_POLL := 30.0
+
+## The Daily game on the board (a chess_daily_list row), {} when none.
+var daily: Dictionary = {}
+var daily_busy := false  # a move / resign / draw call is on its way
+var daily_timer: Timer
+var daily_body: VBoxContainer
+var daily_card: Control
+var daily_rows: Array = []
+var daily_days_pick: int = 1  # index into DAILY_DAYS (3 days)
+var _daily_seen_offer := ""
+## Tests swap in a fake server: Callable(fn: String, args: Dictionary, on_done: Callable).
+var daily_backend: Callable = Callable()
+
+func _in_daily() -> bool:
+	return mode == "corr"
+
+## Calls a chess_daily_* function; on_done(ok, result). Fails (ok false)
+## signed out, offline, without the SQL, or with online play switched off.
+func _db(fn: String, args: Dictionary, on_done: Callable) -> void:
+	if daily_backend.is_valid():
+		daily_backend.call(fn, args, on_done)
+		return
+	var auth = get_node_or_null("/root/Auth")
+	if auth == null or not auth.has_method("db_call") or not auth.is_logged_in():
+		on_done.call(false, null)
+		return
+	auth.db_call(fn, args, on_done)
+
+func _my_id() -> String:
+	if daily_backend.is_valid():
+		return "me"
+	var auth = get_node_or_null("/root/Auth")
+	return str(auth.user_id) if auth else ""
+
+func _online_blocked() -> bool:
+	var cat = get_node_or_null("/root/Catalog")
+	return cat != null and cat.has_method("online_blocked") and cat.online_blocked()
+
+# --- the 📮 card ---
+
+func _open_daily() -> void:
+	var parts: Array = home.card(tr("📮 Daily Games"))
+	daily_card = parts[0]
+	daily_body = parts[1]
+	_daily_message(tr("Loading…"))
+	home.show_card(daily_card)
+	if _online_blocked():
+		_daily_message(tr("Online play is switched off in Options → Safety."))
+		return
+	if not daily_backend.is_valid() and _my_id() == "":
+		_daily_message(tr("Sign in and add friends to play Daily games: one move at a time, whenever you like, several games at once."))
+		return
+	_db("chess_daily_list", {}, _on_daily_list)
+
+func _daily_message(text: String) -> void:
+	if daily_body == null or not is_instance_valid(daily_body):
+		return
+	for c in daily_body.get_children():
+		c.queue_free()
+	daily_body.add_child(HomeKit.label(text, 24, HomeKit.WHITE, true))
+
+func _on_daily_list(ok: bool, result: Variant) -> void:
+	if not ok or not (result is Array):
+		_daily_message(tr("Daily games aren't available right now (no connection, or not switched on yet). Try again later."))
+		return
+	daily_rows = result
+	_fill_daily()
+
+func _turn_of(row: Dictionary) -> String:
+	return str(row.white) if int(row.ply) % 2 == 0 else str(row.black)
+
+func _opp_name(row: Dictionary) -> String:
+	return str(row.black_name) if str(row.white) == _my_id() else str(row.white_name)
+
+## Seconds until the row's deadline (server clock), or 0.
+func _daily_left(row: Dictionary) -> int:
+	if row.get("deadline") == null or row.get("now_at") == null:
+		return 0
+	var d := Time.get_unix_time_from_datetime_string(str(row.deadline).substr(0, 19))
+	var n := Time.get_unix_time_from_datetime_string(str(row.now_at).substr(0, 19))
+	return int(d - n)
+
+static func _left_text(secs: int) -> String:
+	if secs <= 0:
+		return str(TranslationServer.translate("time is up"))
+	if secs >= 86400:
+		return str(TranslationServer.translate("%d d left")) % (secs / 86400)
+	if secs >= 3600:
+		return str(TranslationServer.translate("%d h left")) % (secs / 3600)
+	return str(TranslationServer.translate("%d min left")) % maxi(1, secs / 60)
+
+func _fill_daily() -> void:
+	if daily_body == null or not is_instance_valid(daily_body):
+		return
+	for c in daily_body.get_children():
+		c.queue_free()
+	var me := _my_id()
+	daily_body.add_child(HomeKit.label(tr("One move at a time, whenever you like. Up to 10 games with friends at once. Miss your deadline and your opponent can claim the win."), 21, HomeKit.DIM, true))
+	var add := HomeKit.neon_button(tr("➕ Challenge a friend"), HomeKit.GO, 26, 66)
+	add.pressed.connect(_open_challenge)
+	daily_body.add_child(add)
+	var groups := {"invite_in": [], "mine": [], "theirs": [], "invite_out": [], "over": []}
+	for r in daily_rows:
+		if not (r is Dictionary):
+			continue
+		match str(r.status):
+			"invited":
+				groups["invite_out" if str(r.created_by) == me else "invite_in"].append(r)
+			"active":
+				groups["mine" if _turn_of(r) == me else "theirs"].append(r)
+			"over":
+				groups.over.append(r)
+	var heads := {"invite_in": "Challenges for you", "mine": "Your move", "theirs": "Their move",
+		"invite_out": "Waiting for an answer", "over": "Finished this week"}
+	var any := false
+	for key in ["invite_in", "mine", "theirs", "invite_out", "over"]:
+		if groups[key].is_empty():
+			continue
+		any = true
+		daily_body.add_child(home.section(heads[key]))
+		for r in groups[key]:
+			daily_body.add_child(_daily_row(r, key))
+	if not any:
+		daily_body.add_child(HomeKit.label(tr("No Daily games yet."), 24, HomeKit.WHITE, true))
+
+func _daily_row(r: Dictionary, key: String) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var me := _my_id()
+	var colour: String = tr("White") if str(r.white) == me else tr("Black")
+	var text := tr("vs %s") % _opp_name(r) + " · " + colour
+	if key in ["mine", "theirs"]:
+		text += " · " + tr("move %d") % (int(r.ply) / 2 + 1) + " · " + _left_text(_daily_left(r))
+		if str(r.get("draw_offer", "")) not in ["", "<null>"] and str(r.draw_offer) != me:
+			text += " · " + tr("draw offered")
+	elif key == "over":
+		text += " · " + str(r.result)
+	else:
+		text += " · " + tr("%d days a move") % int(r.days)
+	var b := HomeKit.neon_button(text, HomeKit.GO if key in ["mine", "invite_in"] else HomeKit.BUTTON, 21, 66)
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.custom_minimum_size.x = 0
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(b)
+	match key:
+		"invite_in":
+			b.text = tr("%s challenges you") % _opp_name(r) + " · " + colour + " · " + tr("%d days a move") % int(r.days)
+			b.pressed.connect(_daily_respond.bind(int(r.id), true))
+			var no := HomeKit.neon_button(tr("Decline"), HomeKit.BUTTON, 21, 66)
+			no.pressed.connect(_daily_respond.bind(int(r.id), false))
+			row.add_child(no)
+		"mine", "theirs":
+			b.pressed.connect(_play_daily.bind(r))
+			if key == "theirs" and _daily_left(r) <= 0:
+				var claim := HomeKit.neon_button(tr("🏁 Claim win"), HomeKit.GO, 21, 66)
+				claim.pressed.connect(_daily_claim.bind(int(r.id)))
+				row.add_child(claim)
+		"invite_out":
+			b.pressed.connect(_daily_cancel.bind(int(r.id)))
+			b.text = tr("Waiting for %s · tap to withdraw") % _opp_name(r)
+		"over":
+			b.pressed.connect(_open_replay.bind(_daily_entry(r)))
+	return row
+
+## A finished Daily game as a My Games entry.
+func _daily_entry(r: Dictionary) -> Dictionary:
+	return {"date": str(r.get("updated_at", "")).substr(0, 10), "white": str(r.white_name), "black": str(r.black_name),
+		"result": str(r.result), "reason": str(r.reason), "fen": "",
+		"ucis": Array(str(r.moves).split(" ", false)), "sans": Array(str(r.sans).split(" ", false)), "mode": "corr", "cpu": -1}
+
+func _daily_refresh() -> void:
+	_db("chess_daily_list", {}, _on_daily_list)
+
+func _daily_respond(id: int, accept: bool) -> void:
+	_db("chess_daily_respond", {"p_game": id, "p_accept": accept}, _after_daily_call)
+
+func _daily_cancel(id: int) -> void:
+	_db("chess_daily_resign", {"p_game": id}, _after_daily_call)
+
+func _daily_claim(id: int) -> void:
+	_db("chess_daily_claim", {"p_game": id}, _after_daily_call)
+
+func _after_daily_call(ok: bool, result: Variant) -> void:
+	if not ok:
+		home.help_toast(tr("No connection: try again."))
+	elif str(result) == "no":
+		home.help_toast(tr("That game has changed: the list is up to date now."))
+	_daily_refresh()
+
+# --- challenging a friend ---
+
+func _open_challenge() -> void:
+	for c in daily_body.get_children():
+		c.queue_free()
+	daily_body.add_child(home.section("Time for each move"))
+	daily_body.add_child(home.choice_row(["1 day", "3 days", "7 days"], daily_days_pick, _on_days_pick))
+	daily_body.add_child(home.section("Pick a friend"))
+	var social = get_node_or_null("/root/Social")
+	var friends: Array = []
+	if social:
+		for f in social.get("friends"):
+			if f is Dictionary and str(f.get("status", "")) == "friend":
+				friends.append(f)
+	if friends.is_empty():
+		daily_body.add_child(HomeKit.label(tr("No friends yet. Add friends on the hub's Friends screen with their friend code."), 22, HomeKit.WHITE, true))
+	for f in friends:
+		var b := HomeKit.neon_button(("🟢 " if f.get("online", false) else "") + str(f.get("display_name", "Player")), HomeKit.BUTTON, 24, 62)
+		b.custom_minimum_size.x = 0
+		b.pressed.connect(_send_challenge.bind(str(f.user_id), str(f.get("display_name", ""))))
+		daily_body.add_child(b)
+	var back := HomeKit.neon_button(tr("‹ Back"), HomeKit.BUTTON, 22, 58)
+	back.pressed.connect(_fill_daily)
+	daily_body.add_child(back)
+
+func _on_days_pick(i: int) -> void:
+	daily_days_pick = i
+
+func _send_challenge(user_id: String, name: String) -> void:
+	_db("chess_daily_challenge", {"p_other": user_id, "p_days": DAILY_DAYS[daily_days_pick]}, _on_challenged.bind(name))
+
+func _on_challenged(ok: bool, result: Variant, name: String) -> void:
+	if not ok:
+		home.help_toast(tr("No connection: try again."))
+	elif int(result) == -2:
+		home.help_toast(tr("You already have 10 Daily games: finish one first."))
+	elif int(result) < 0:
+		home.help_toast(tr("You can only challenge friends."))
+	else:
+		home.help_toast(tr("Challenge sent to %s.") % name)
+	_daily_refresh()
+
+# --- playing a Daily game ---
+
+func _play_daily(r: Dictionary) -> void:
+	if daily_card and is_instance_valid(daily_card):
+		home.close_card(daily_card)
+	home.play_now(_load_daily.bind(r))
+
+## Puts a Daily game on the board from its server row.
+func _load_daily(r: Dictionary) -> void:
+	_save_game()  # a local game on the board keeps its slot
+	daily = r
+	mode = "corr"
+	cpu_level = -1
+	slot_id = ""
+	clock_limit = 0
+	increment = 0
+	start_fen = ""
+	started = true
+	my_color = ChessEngine.WHITE if str(r.white) == _my_id() else ChessEngine.BLACK
+	flipped = my_color == ChessEngine.BLACK
+	_reset_board()
+	ucis = Array(str(r.moves).split(" ", false))
+	_rebuild_to(ucis.size())
+	game_active = str(r.status) == "active"
+	_daily_seen_offer = ""
+	_start_music()
+	if daily_timer == null:
+		daily_timer = Timer.new()
+		daily_timer.wait_time = DAILY_POLL
+		daily_timer.timeout.connect(_daily_poll)
+		add_child(daily_timer)
+	daily_timer.start()
+	_daily_check_offer()
+	_render()
+
+func _daily_poll() -> void:
+	if not _in_daily() or daily.is_empty() or daily_busy:
+		return
+	_db("chess_daily_list", {}, _on_daily_poll)
+
+func _on_daily_poll(ok: bool, result: Variant) -> void:
+	if not ok or not (result is Array) or not _in_daily():
+		return
+	for r in result:
+		if r is Dictionary and int(r.id) == int(daily.id):
+			_daily_update(r)
+			return
+
+## The server's copy changed (their move, a draw offer, the end): show it.
+func _daily_update(r: Dictionary) -> void:
+	var was_active := game_active
+	var changed: bool = int(r.ply) != int(daily.ply) or str(r.status) != str(daily.status)
+	daily = r
+	if int(r.ply) != ucis.size():
+		var server_moves := Array(str(r.moves).split(" ", false))
+		ucis = server_moves
+		_rebuild_to(server_moves.size())
+		if not last_move.is_empty():
+			board_view.animate(last_move[0], last_move[1])
+		_move_sound({})
+	if str(r.status) == "over" and was_active:
+		_daily_finish(r)
+		return
+	game_active = str(r.status) == "active"
+	_daily_check_offer()
+	if changed:
+		_render()
+
+## The game ended on the server (resign, draw, time, or mate played there).
+func _daily_finish(r: Dictionary) -> void:
+	if not engine.game_over:
+		match str(r.result):
+			"1-0":
+				engine.resign(ChessEngine.BLACK)
+			"0-1":
+				engine.resign(ChessEngine.WHITE)
+			_:
+				engine.agree_draw()
+		var why := str(r.reason)
+		if why in ["timeout", "resign", "draw_agreed"]:
+			engine.result_reason = "daily_timeout" if why == "timeout" else why
+	game_active = true  # so _show_result counts it once
+	_render()
+	_show_result()
+
+func _daily_check_offer() -> void:
+	var off := str(daily.get("draw_offer", ""))
+	if off in ["", "<null>"] or off == _my_id() or off == _daily_seen_offer or not game_active:
+		return
+	_daily_seen_offer = off
+	_ask(tr("%s offers a draw.") % _opp_name(daily), [["½ Accept draw", HomeKit.GO, _daily_draw.bind("accept")],
+		["Decline", HomeKit.BUTTON, _daily_draw.bind("decline")]])
+
+## Our move: sent to the server; refused or lost = the board goes back to the server's copy.
+func _daily_send(uci: String, san: String) -> void:
+	daily_busy = true
+	_db("chess_daily_move", {"p_game": int(daily.id), "p_ply": ucis.size() - 1, "p_uci": uci, "p_san": san,
+		"p_result": engine.result_token(), "p_reason": engine.result_reason}, _on_daily_sent)
+
+func _on_daily_sent(ok: bool, result: Variant) -> void:
+	daily_busy = false
+	if ok and str(result) == "ok":
+		daily.ply = ucis.size()
+		daily.moves = " ".join(PackedStringArray(ucis))
+		daily.sans = " ".join(PackedStringArray(san_moves))
+		return
+	home.help_toast(tr("No connection: your move wasn't sent.") if not ok else tr("That move didn't go through: the game was reloaded."))
+	# Back to the server's copy.
+	var server_moves := Array(str(daily.moves).split(" ", false))
+	ucis = server_moves
+	_rebuild_to(server_moves.size())
+	game_active = str(daily.status) == "active"
+	result_dialog.visible = false
+	_daily_poll()
+
+func _daily_resign() -> void:
+	daily_busy = true
+	_db("chess_daily_resign", {"p_game": int(daily.id)}, _on_daily_ended.bind("resign"))
+
+func _daily_draw(action: String) -> void:
+	result_dialog.visible = false
+	daily_busy = true
+	_db("chess_daily_draw", {"p_game": int(daily.id), "p_action": action}, _on_daily_draw.bind(action))
+
+func _on_daily_draw(ok: bool, result: Variant, action: String) -> void:
+	daily_busy = false
+	if not ok or str(result) != "ok":
+		home.help_toast(tr("No connection: try again.") if not ok else tr("That game has changed: the list is up to date now."))
+		_daily_poll()
+		return
+	if action == "offer":
+		draw_offered = true
+		home.help_toast(tr("Draw offered. Your opponent answers on their next visit."))
+		_update_actions()
+	elif action == "accept":
+		engine.agree_draw()
+		_render()
+		_show_result()
+
+func _on_daily_ended(ok: bool, result: Variant, what: String) -> void:
+	daily_busy = false
+	if not ok or str(result) != "ok":
+		home.help_toast(tr("No connection: try again."))
+		return
+	if what == "resign":
+		engine.resign(my_color)
+		_render()
+		_show_result()
 
 # ---------- helps (STANDARDS §17) ----------
 

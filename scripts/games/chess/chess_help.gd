@@ -15,6 +15,7 @@ const HOW := [
 	"Under the board: ⟲ Undo takes back a move (against the computer: your move and its answer; turn it off in ⚙ Options), ½ Draw offers a draw, 🏳 Resign gives up, ⇅ Flip turns the board round, 📋 Copy copies the game (PGN) or the position (FEN).",
 	"A game with a takeback doesn't change your rating or earn points. The computer accepts a draw only when it stands worse, or late in an even game.",
 	"♟ Ongoing Games keeps up to 6 games against the computer or on one phone. Starting a new game keeps the others; ▶ Resume opens the last one you played. When all 6 are in use, a new game asks which one to replace.",
+	"📮 Daily Games: challenge a friend to a game played one move at a time, whenever you like (1, 3 or 7 days a move). Up to 10 at once. Miss your deadline and your friend can claim the win. Needs an account and friends.",
 	"📜 My Games keeps your last 50 finished games: replay them move by move. Paste a PGN to replay a game from another app, or a FEN to play from that position.",
 	"📚 Lessons teach each piece, the rules and checkmate on short boards. 📅 Daily Lesson gives three new boards every day. Lessons aren't saved halfway: a board starts again.",
 	"Solving lesson boards (the first time), the daily lesson and beating the computer earn ⭐ points. Spend them in the 🛒 Shop on new boards and piece sets.",

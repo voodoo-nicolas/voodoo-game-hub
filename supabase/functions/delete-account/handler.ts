@@ -35,6 +35,10 @@ export const USER_ROWS: [string, string][] = [
   ["friendships", "target"],
   ["game_invites", "sender"],
   ["game_invites", "recipient"],
+  // Chess Daily games the player is in (either colour); the opponent's copy goes too.
+  ["chess_daily", "white"],
+  ["chess_daily", "black"],
+  ["chess_daily", "created_by"],
   // Store: trials, entitlements (incl. grants), legacy purchase tables. Nothing kept.
   ["store_trials", "user_id"],
   ["store_entitlements", "user_id"],

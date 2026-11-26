@@ -38,6 +38,7 @@ For the caller's user id, in this order. Missing tables are skipped.
 | `user_favorites` | `user_id` | ★ favorites across devices (since 2026-11-20; also cascades from `auth.users`) |
 | `friendships` | `requester` **and** `target` | friends and friend requests, both directions |
 | `game_invites` | `sender` **and** `recipient` | online game invites / room invitations, both directions |
+| `chess_daily` | `white`, `black` **and** `created_by` | Chess Daily (turn-based) games and challenges the player is in; the opponent loses that game too (since 2026-11-25; also cascades from `auth.users`) |
 | `store_trials` | `user_id` | free-trial start dates |
 | `store_entitlements` | `user_id` | subscriptions, grants, purchase tokens, order ids |
 | `user_purchases`, `purchase_history` | `user_id` | legacy store tables (if they still exist) |
