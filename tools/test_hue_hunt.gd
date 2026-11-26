@@ -5,12 +5,15 @@ extends SceneTree
 ## Touches no save files.
 
 const E = preload("res://scripts/games/hue_hunt/hue_hunt_engine.gd")
-const C = preload("res://scripts/games/hue_hunt/hue_hunt_colors.gd")
 
 var fails := 0
 
 
 func _initialize() -> void:
+	if E.colors().is_empty():
+		print("hue_hunt: engine failed to load")
+		quit(1)
+		return
 	_colour_maths()
 	_sampling()
 	_data()
@@ -95,9 +98,9 @@ func _sampling() -> void:
 
 
 func _data() -> void:
-	ok(C.COLORS.size() == 150, "150 colours: %d" % C.COLORS.size())
+	ok(E.colors().size() == 150, "150 colours: %d" % E.colors().size())
 	var ids := {}
-	for c in C.COLORS:
+	for c in E.colors():
 		ok(not ids.has(c[0]), "unique id " + c[0])
 		ids[c[0]] = true
 		ok(c[2] != "", "ES name " + c[0])

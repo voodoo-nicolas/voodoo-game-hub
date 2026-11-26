@@ -9811,6 +9811,16 @@
    "proof": "media/licenses/LICHESS_PUZZLES_CC0.md",
    "url": "https://database.lichess.org/#puzzles",
    "date": "2026-11-25"
+  },
+  {
+   "file": "games/hue_hunt/title.ttf",
+   "what": "Title font of the hue_hunt (Camera Hunter) Landing (menu style S11, MENU_STYLES.md; copy of the Bubble Pop one)",
+   "source": "Google Fonts: Luckiest Guy",
+   "author": "Astigmatic",
+   "licence": "Apache-2.0",
+   "proof": "media/licenses/fonts/luckiestguy-LICENSE.txt",
+   "url": "https://github.com/google/fonts/tree/main/apache/luckiestguy",
+   "date": "2026-11-26"
   }
  ]
 }

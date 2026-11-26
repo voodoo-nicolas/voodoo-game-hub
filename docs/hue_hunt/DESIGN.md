@@ -15,6 +15,18 @@ Briefs: the owner's first prompt + addendum (2026-11-26, in the session log).
 7. Menu style named in the game file header.
 8. Android only; ignore iPhone/web.
 
+## Phase 3 (solo) notes, 2026-11-26
+- Time Attack = 5 colours in 3 min (mixed solo plan); Free Hunt = one Classic round on a picked
+  colour; Daily Color = one Classic round, colour from the UTC date.
+- Colour Book: only Classic / Blind / Duo captures that reach "close" (normal threshold) count;
+  Mix / Opposite targets aren't palette colours. Superlatives rank against your own best.
+- Tips are per family, not per colour (no unchecked per-colour facts). OPEN: per-colour tips
+  for the owner to review.
+- OPEN: Daily Color has no per-day leaderboard yet: that needs a Supabase table (schema
+  change, owner's OK). For now "Best daily match" is a local stat; the 🏆 board ranks Time Attack.
+- Achievements (10/50/100 found, 95%+, all easy, rainbow, win without power-up, win an Object
+  round) come in phase 7 with the multiplayer ones.
+
 ## Themes (owner, 2026-11-26: "different themes of stuff to search for, not just colours")
 The round engine is theme-based. A Theme = a prompt pool + a judge:
 
