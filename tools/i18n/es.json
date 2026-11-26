@@ -13513,5 +13513,20 @@
  "Clock: pick one on the setup screen. 3+2 means 3 minutes each, and 2 seconds are added after each of your moves. Run out of time and you lose, unless your opponent has nothing left that could checkmate: then it's a draw.": "Reloj: elige uno en la pantalla de preparación. 3+2 son 3 minutos para cada uno, y se suman 2 segundos tras cada jugada tuya. Si se te acaba el tiempo, pierdes, salvo que tu rival no tenga nada con qué dar jaque mate: entonces son tablas.",
  "Under the board: ⟲ Undo takes back a move (against the computer: your move and its answer; turn it off in ⚙ Options), ½ Draw offers a draw, 🏳 Resign gives up, ⇅ Flip turns the board round, 📋 Copy copies the game (PGN) or the position (FEN).": "Bajo el tablero: ⟲ Deshacer retira una jugada (contra la computadora: tu jugada y su respuesta; desactívalo en ⚙ Opciones), ½ Tablas ofrece tablas, 🏳 Rendirse abandona, ⇅ Girar da la vuelta al tablero, 📋 Copiar copia la partida (PGN) o la posición (FEN).",
  "A game with a takeback doesn't change your rating or earn points. The computer accepts a draw only when it stands worse, or late in an even game.": "Una partida en la que deshaces una jugada no cambia tu puntuación ni da puntos. La computadora acepta tablas solo cuando está peor, o al final de una partida igualada.",
- "📜 My Games keeps your last 50 finished games: replay them move by move. Paste a PGN to replay a game from another app, or a FEN to play from that position.": "📜 Mis partidas guarda tus últimas 50 partidas terminadas: repítelas jugada a jugada. Pega un PGN para repetir una partida de otra app, o un FEN para jugar desde esa posición."
+ "📜 My Games keeps your last 50 finished games: replay them move by move. Paste a PGN to replay a game from another app, or a FEN to play from that position.": "📜 Mis partidas guarda tus últimas 50 partidas terminadas: repítelas jugada a jugada. Pega un PGN para repetir una partida de otra app, o un FEN para jugar desde esa posición.",
+ "♟ Ongoing Games": "♟ Partidas en curso",
+ "Up to 6 games at once: pick one up": "Hasta 6 partidas a la vez: retoma una",
+ "♟ All 6 games in use": "♟ Las 6 partidas están en uso",
+ "Pick a game to replace. It is deleted and the new game takes its place.": "Elige una partida para reemplazar. Se borra y la nueva ocupa su lugar.",
+ "vs Computer (%s)": "vs Computadora (%s)",
+ "your move": "te toca",
+ "computer's move": "le toca a la computadora",
+ "White to move": "juegan las blancas",
+ "Black to move": "juegan las negras",
+ "move %d": "jugada %d",
+ "Up to %d games against the computer or on one phone, kept where you left them. Starting a new game keeps the others here.": "Hasta %d partidas contra la computadora o en un solo teléfono, guardadas donde las dejaste. Empezar una partida nueva mantiene las demás aquí.",
+ "%d of %d in use": "%d de %d en uso",
+ "No games going. Start one from vs Computer or 2 Players.": "No hay partidas en curso. Empieza una desde vs Computadora o 2 jugadores.",
+ "Delete?": "¿Borrar?",
+ "♟ Ongoing Games keeps up to 6 games against the computer or on one phone. Starting a new game keeps the others; ▶ Resume opens the last one you played. When all 6 are in use, a new game asks which one to replace.": "♟ Partidas en curso guarda hasta 6 partidas contra la computadora o en un solo teléfono. Empezar una nueva mantiene las demás; ▶ Continuar abre la última que jugaste. Si las 6 están en uso, una partida nueva te pregunta cuál reemplazar."
 }

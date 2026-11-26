@@ -14,6 +14,7 @@ const CLOUD_SAVE := "res://scripts/common/cloud_save.gd"  # [NEW 2026-11-24] STA
 var cloud: Node = null
 const BoardView = preload("res://scripts/games/chess/chess_board_view.gd")
 const ChessArchive = preload("res://scripts/games/chess/chess_archive.gd")
+const ChessSlots = preload("res://scripts/games/chess/chess_slots.gd")
 const SoundLib = preload("res://scripts/games/chess/sound_lib.gd")
 ## How to Play + stats. Not preloaded: apps before v0.20 don't have it,
 ## and the game must still run there (without the ? button).
@@ -157,6 +158,12 @@ var lesson_feedback: Label
 var hint_btn: Button
 var retry_btn: Button
 var next_btn: Button
+## [Phase B 2026-11-25] The ♟ Ongoing Games slot this game is kept in ("" = none:
+## online, lessons, or nothing started).
+var slot_id: String = ""
+## A start waiting for a full slot to be picked (all MAX in use).
+var _pending_start: Callable = Callable()
+var ongoing_body: VBoxContainer
 
 func _ready() -> void:
 	preload("res://scripts/games/chess/chess_i18n.gd").install(self)
@@ -169,6 +176,7 @@ func _ready() -> void:
 		cloud.setup("chess", ChessProgress.PATH, ChessProgress.score, progress.load_file)
 		add_child(cloud)
 	_build_ui()
+	_migrate_save()
 	_reset_board()
 	_prepare_music()
 	if reopen_lessons:
@@ -379,6 +387,7 @@ func _build_home() -> void:
 		"art": ART,
 		"modes": modes,
 		"play": [
+			{"text": "♟ Ongoing Games", "sub": "Up to 6 games at once: pick one up", "action": _open_ongoing, "card": true},
 			{"text": "📚 Lessons", "sub": "The pieces, the rules, checkmate", "action": _open_lessons, "card": true},
 			{"text": "📅 Daily Lesson", "sub": "Three new boards every day", "action": _start_daily},
 		],
@@ -635,12 +644,16 @@ func _my_clock(side: int) -> bool:
 # ---------- starting games ----------
 
 func _new_vs_cpu(level: int) -> void:
+	if _slots_full(_new_vs_cpu.bind(level)):
+		return
 	mode = "cpu"
 	cpu_level = level
 	SaveUtil.delete(SAVE_PATH)
 	_begin()
 
 func _new_two_player() -> void:
+	if _slots_full(_new_two_player):
+		return
 	mode = "local"
 	cpu_level = -1
 	SaveUtil.delete(SAVE_PATH)
@@ -654,6 +667,7 @@ func _begin(fen: String = "") -> void:
 	increment = preset[1] if clock_limit > 0 else 0
 	start_fen = fen
 	started = true
+	slot_id = ChessSlots.new_id()  # a new ♟ Ongoing Games slot (the other games stay)
 	_reset_board()
 	_start_music()
 	_maybe_cpu()  # a pasted position with Black (the computer) to move
@@ -975,6 +989,7 @@ func _on_online_started(my_player: int) -> void:
 	increment = 0
 	start_fen = ""
 	started = true
+	slot_id = ""  # online games are never kept on the phone
 	home.hide_home()
 	_reset_board()
 	_start_music()
@@ -1041,6 +1056,10 @@ func _show_result() -> void:
 	game_active = false
 	if not _is_online():  # an online game ending mustn't wipe a paused local one
 		SaveUtil.delete(SAVE_PATH)
+		if slot_id != "" and not _in_lesson():
+			ChessSlots.remove(slot_id)
+			slot_id = ""
+			_point_resume_at_latest()
 	var msg: String = tr(RESULT_MESSAGES.get(engine.result_reason, "Game over"))
 	var decisive: bool = engine.winner != 0
 	if decisive and _is_online():
@@ -1613,6 +1632,8 @@ func _draw_swatch(pic: Control, kind: String, id: String) -> void:
 func _save_game() -> void:
 	if not started or not game_active or _is_online() or _in_lesson() or mode == "online":
 		return
+	if slot_id == "" and not ChessSlots.is_full():
+		slot_id = ChessSlots.new_id()  # Play Again after a finished game
 	SaveUtil.write(SAVE_PATH, {
 		"board": engine.board,
 		"current_player": engine.current_player,
@@ -1626,7 +1647,12 @@ func _save_game() -> void:
 		"clock_limit": clock_limit,
 		"clocks": [clocks[ChessEngine.WHITE], clocks[ChessEngine.BLACK]],
 		"ucis": ucis, "start_fen": start_fen, "increment": increment, "takebacks": takebacks_used,
+		"slot": slot_id,
 	})
+	if slot_id != "":
+		var saved = SaveUtil.read(SAVE_PATH)
+		if saved is Dictionary:
+			ChessSlots.upsert(slot_id, saved)
 
 func _load_saved_game() -> bool:
 	var data = SaveUtil.read(SAVE_PATH)
@@ -1679,6 +1705,12 @@ func _load_saved_game() -> bool:
 	increment = int(data.get("increment", 0))
 	start_fen = str(data.get("start_fen", ""))
 	takebacks_used = int(data.get("takebacks", 0))
+	slot_id = str(data.get("slot", ""))
+	if slot_id == "":  # a save from before ♟ Ongoing Games: it becomes a slot
+		slot_id = ChessSlots.new_id()
+		data["slot"] = slot_id
+		SaveUtil.write(SAVE_PATH, data)
+		ChessSlots.upsert(slot_id, data)
 	draw_offered = false
 	ucis = []
 	for u in data.get("ucis", []):
@@ -2097,6 +2129,8 @@ func _start_from_fen(fen: String, level: int) -> void:
 	home.play_now(_begin_fen.bind(fen, level))
 
 func _begin_fen(fen: String, level: int) -> void:
+	if _slots_full(_begin_fen.bind(fen, level)):
+		return
 	mode = "cpu" if level >= 0 else "local"
 	cpu_level = level
 	SaveUtil.delete(SAVE_PATH)
@@ -2247,6 +2281,140 @@ func _replay_copy_fen() -> void:
 	if _replay_ok():
 		DisplayServer.clipboard_set(str(rp.positions[rp.i].fen))
 		home.help_toast(tr("FEN copied: the position as one line of text."))
+
+# ---------- Phase B (2026-11-25): ♟ Ongoing Games, up to 6 local games at once ----------
+
+## The single save from before Phase B becomes the first slot.
+func _migrate_save() -> void:
+	if ChessSlots.exists():
+		return
+	var data = SaveUtil.read(SAVE_PATH)
+	if data is Dictionary:
+		if str(data.get("slot", "")) == "":
+			data["slot"] = ChessSlots.new_id()
+			SaveUtil.write(SAVE_PATH, data)
+		ChessSlots.upsert(str(data.slot), data)
+	else:
+		ChessSlots._write([], ChessSlots.PATH)
+
+## ▶ Resume opens the most recent game still going (after one ends).
+func _point_resume_at_latest() -> void:
+	var all := ChessSlots.sorted()
+	if not all.is_empty():
+		SaveUtil.write(SAVE_PATH, all[0].data)
+
+## True if every slot is taken: the replace picker opens, and `then` runs
+## once one is freed. Closing the picker goes back to the Landing.
+func _slots_full(then: Callable) -> bool:
+	if not ChessSlots.is_full():
+		return false
+	_pending_start = then
+	var parts: Array = home.card(tr("♟ All 6 games in use"))
+	var card: Control = parts[0]
+	var body: VBoxContainer = parts[1]
+	body.add_child(HomeKit.label(tr("Pick a game to replace. It is deleted and the new game takes its place."), 22, HomeKit.DIM, true))
+	for sl in ChessSlots.sorted():
+		var b := HomeKit.neon_button(_slot_text(sl.data, float(sl.get("updated", 0))), HomeKit.BUTTON, 21, 62)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.custom_minimum_size.x = 0
+		b.pressed.connect(_replace_slot.bind(str(sl.id), card))
+		body.add_child(b)
+	card.tree_exiting.connect(_on_picker_closed)
+	home.show_card(card)
+	return true
+
+func _replace_slot(id: String, card: Control) -> void:
+	var then := _pending_start
+	_pending_start = Callable()
+	_delete_slot(id)
+	home.close_card(card)
+	if then.is_valid():
+		then.call()
+
+func _on_picker_closed() -> void:
+	if _pending_start.is_valid():
+		_pending_start = Callable()
+		started = false
+		home.show_home()
+
+func _delete_slot(id: String) -> void:
+	ChessSlots.remove(id)
+	var cur = SaveUtil.read(SAVE_PATH)
+	if cur is Dictionary and str(cur.get("slot", "")) == id:
+		SaveUtil.delete(SAVE_PATH)
+		_point_resume_at_latest()
+
+## One line about a kept game: who, move number, whose turn, clock, when.
+func _slot_text(d: Dictionary, updated: float) -> String:
+	var lvl := int(d.get("cpu", -1))
+	var who: String = tr("2 Players") if lvl < 0 else tr("vs Computer (%s)") % tr(LEVELS[clampi(lvl, 0, 2)])
+	var sans: Array = d.get("sans", [])
+	var white_to_move: bool = int(d.get("current_player", 1)) == ChessEngine.WHITE
+	var turn: String
+	if lvl >= 0:
+		turn = tr("your move") if white_to_move else tr("computer's move")
+	else:
+		turn = tr("White to move") if white_to_move else tr("Black to move")
+	var line := "%s · %s · %s" % [who, tr("move %d") % (sans.size() / 2 + 1), turn]
+	var limit := int(d.get("clock_limit", 0))
+	var cl: Array = d.get("clocks", [])
+	if limit > 0 and cl.size() == 2:
+		var secs := int(ceil(float(cl[0] if white_to_move else cl[1])))
+		line += " · ⏱ %d:%02d" % [secs / 60, secs % 60]
+	if updated > 0:
+		line += "\n" + Time.get_datetime_string_from_unix_time(int(updated) + _tz_offset(), true).substr(0, 16)
+	return line
+
+func _tz_offset() -> int:
+	return int(Time.get_time_zone_from_system().get("bias", 0)) * 60
+
+func _open_ongoing() -> void:
+	var parts: Array = home.card(tr("♟ Ongoing Games"))
+	ongoing_body = parts[1]
+	_fill_ongoing()
+	home.show_card(parts[0])
+
+func _fill_ongoing() -> void:
+	for c in ongoing_body.get_children():
+		c.queue_free()
+	var all := ChessSlots.sorted()
+	ongoing_body.add_child(HomeKit.label(tr("Up to %d games against the computer or on one phone, kept where you left them. Starting a new game keeps the others here.") % ChessSlots.MAX, 21, HomeKit.DIM, true))
+	ongoing_body.add_child(HomeKit.label(tr("%d of %d in use") % [all.size(), ChessSlots.MAX], 24, HomeKit.GOLD))
+	if all.is_empty():
+		ongoing_body.add_child(HomeKit.label(tr("No games going. Start one from vs Computer or 2 Players."), 24, HomeKit.WHITE, true))
+	for sl in all:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		var b := HomeKit.neon_button(_slot_text(sl.data, float(sl.get("updated", 0))), HomeKit.GO, 21, 72)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.custom_minimum_size.x = 0
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(_resume_slot.bind(str(sl.id)))
+		row.add_child(b)
+		var del := HomeKit.neon_button("🗑", HomeKit.BUTTON, 24, 72)
+		del.custom_minimum_size.x = 84
+		del.pressed.connect(_on_delete_pressed.bind(del, str(sl.id)))
+		row.add_child(del)
+		ongoing_body.add_child(row)
+
+## 🗑 asks once ("Delete?"); the second tap deletes.
+func _on_delete_pressed(b: Button, id: String) -> void:
+	if not b.has_meta("armed"):
+		b.set_meta("armed", true)
+		b.text = tr("Delete?")
+		b.custom_minimum_size.x = 150
+		return
+	_delete_slot(id)
+	_fill_ongoing()
+
+func _resume_slot(id: String) -> void:
+	var sl := ChessSlots.find(id)
+	if sl.is_empty():
+		_fill_ongoing()
+		return
+	_save_game()  # the game on the board now keeps its own slot
+	SaveUtil.write(SAVE_PATH, sl.data)
+	home.play_now(_load_saved_game)
 
 # ---------- helps (STANDARDS §17) ----------
 
