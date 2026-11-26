@@ -27,6 +27,20 @@ Briefs: the owner's first prompt + addendum (2026-11-26, in the session log).
 - Achievements (10/50/100 found, 95%+, all easy, rainbow, win without power-up, win an Object
   round) come in phase 7 with the multiplayer ones.
 
+## Phase 4 (multiplayer) notes, 2026-11-26
+- Built on the shared OnlineTable (APK). Its cap goes 6 -> 8 (APK change, ships with the bump).
+  Codes stay **5 letters** (shared convention: 5 = table, 4 = two-player room), not 4.
+- Host migration is in the game: the acting host = lowest-numbered player still here; it runs
+  hue_hunt_room.gd and broadcasts the whole state (ver-numbered, match_id per match).
+- Times are Unix seconds; each state carries the host's "now", clients keep the offset.
+- Reveal: target, then each lock-in worst -> best (0.7 s apart): 128 px thumbnail, sampled
+  swatch(es), %, ⚡ First Close / 🥇 Closest, 🚩 flag. Majority of the other players flags =
+  out for the round (awards re-worked at once). 25 s, or the host taps Next.
+- Multiplayer captures also feed the Colour Book.
+- Rating set to 12+ with online_interaction + user_generated_content (players see each other's
+  photo thumbnails). OPEN: owner confirms the rating.
+- OPEN: the "fun fact" line on the reveal is the family tip for now (no unchecked facts).
+
 ## Themes (owner, 2026-11-26: "different themes of stuff to search for, not just colours")
 The round engine is theme-based. A Theme = a prompt pool + a judge:
 

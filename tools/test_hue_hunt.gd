@@ -20,6 +20,7 @@ func _initialize() -> void:
 	_round_types()
 	_ties()
 	_plans()
+	_room()
 	print("hue_hunt: %s" % ("OK" if fails == 0 else "%d FAILED" % fails))
 	quit(1 if fails else 0)
 
@@ -253,3 +254,73 @@ func _plans() -> void:
 	for k in counts:
 		parts.append("%s %d%%" % [k, roundi(100.0 * counts[k] / total)])
 	print("mixed multiplayer type mix: ", ", ".join(parts))
+
+
+## Over the wire every state is JSON: test with that round trip.
+func _wire(st: Dictionary) -> Dictionary:
+	return JSON.parse_string(JSON.stringify(st))
+
+
+func _lab_arr(v: Vector3) -> Array:
+	return [v.x, v.y, v.z]
+
+
+func _room() -> void:
+	const R = preload("res://scripts/games/hue_hunt/hue_hunt_room.gd")
+	var st := _wire(R.new_match({"rounds": 3}, [1, 2, 3], 7, 100.0))
+	ok(st.phase == "round" and st.plan.size() == 3 and float(st.deadline) == 190.0, "room starts: local 90 s")
+	var target := E._lab(R.spec(st).targets[0])
+	var near := target + Vector3(0, 3, 0)
+	var far := target + Vector3(0, 30, 0)
+	ok(not R.lock_in(st, 9, [_lab_arr(target)], 101.0), "stranger can't lock in")
+	ok(R.lock_in(st, 2, [_lab_arr(far)], 105.0), "P2 locks in (far)")
+	ok(not R.lock_in(st, 2, [_lab_arr(target)], 106.0), "one lock-in per round")
+	ok(float(st.first_close_t) < 0.0, "far is not close")
+	ok(R.lock_in(st, 3, [_lab_arr(near)], 110.0), "P3 locks in (close)")
+	ok(float(st.first_close_t) == 110.0 and float(st.deadline) == 140.0, "first close starts 30 s countdown")
+	st = _wire(st)
+	ok(not R.tick(st, [1, 2, 3], 120.0), "round goes on while P1 hunts")
+	ok(R.tick(st, [2, 3], 121.0), "P1 gone: everyone present locked -> reveal")
+	ok(st.phase == "reveal", "reveal phase")
+	var aw := {}
+	for a in st.awards:
+		aw[a.award] = a.player
+	ok(aw.get("first_close") == "3" and aw.get("closest") == "3", "P3 first close + closest: %s" % str(aw))
+	ok(R.reveal_order(st) == ["2", "3"], "reveal worst first: %s" % str(R.reveal_order(st)))
+	# flags: 2 of 2 other voters flag P3 -> out
+	ok(not R.flag(st, 3, 3), "no self flag")
+	ok(R.flag(st, 1, 3), "P1 flags P3")
+	ok(not R.flag(st, 1, 3), "no double flag")
+	ok(not R.flagged(st, 3), "1 of 2 is not a majority")
+	ok(R.flag(st, 2, 3), "P2 flags P3")
+	ok(R.flagged(st, 3), "2 of 2 flags P3")
+	aw = {}
+	for a in st.awards:
+		aw[a.award] = a.player
+	ok(aw.get("closest") == "2" and not aw.has("first_close"), "after flag: P2 closest, no first close: %s" % str(aw))
+	ok(R.reveal_order(st)[0] == "3", "flagged first in reveal")
+	st = _wire(st)
+	ok(not R.tick(st, [1, 2, 3], 130.0), "reveal stays 25 s")
+	ok(R.tick(st, [1, 2, 3], 121.0 + R.REVEAL_TIME), "reveal closes")
+	ok(st.phase == "round" and int(st.round_i) == 1 and st.lockins.is_empty(), "round 2 starts clean")
+	ok(int(st.scores["2"]) == 1 and int(st.scores["3"]) == 0, "points after flags: %s" % str(st.scores))
+	# time-out round with no lock-ins, then the last round -> final
+	ok(R.tick(st, [1, 2, 3], float(st.deadline)), "deadline ends round")
+	ok(st.awards.is_empty(), "nobody locked: no awards")
+	ok(R.end_reveal(st, 400.0) and int(st.round_i) == 2, "to round 3")
+	var t3 := E._lab(R.spec(st).targets[0])
+	R.lock_in(st, 1, [_lab_arr(t3)], 401.0)
+	R.lock_in(st, 2, [_lab_arr(t3)], 402.0)
+	ok(R.unlock(st, 2) and not st.lockins.has("2"), "second chance unlocks")
+	ok(R.lock_in(st, 2, [_lab_arr(t3)], 403.0), "and locks again")
+	ok(not R.lock_in(st, 3, [_lab_arr(t3)], float(st.deadline) + 1.0), "late lock-in refused")
+	R.tick(st, [1, 2, 3], float(st.deadline))
+	R.end_reveal(st, 999.0)
+	ok(st.phase == "final", "final after last round")
+	var stand := R.standings(st)
+	ok(stand[0][0] == 1 and stand[0][1] == 2, "P1 wins on the equal-dE tie (earlier): %s" % str(stand))
+	ok(R.acting_host([3, 2]) == 2 and R.acting_host([]) == 0, "acting host = lowest present seat")
+	ok(int(st.ver) > 10, "ver counts changes")
+	# remote timers
+	var rs := R.new_match({"rounds": 1, "place": "remote"}, [1, 2], 1, 0.0)
+	ok(float(rs.deadline) == 150.0, "remote round 150 s")

@@ -1,6 +1,6 @@
 extends Control
 
-## OnlineMatch for tables of 2 to 6 people (since v0.39): friends sit at one
+## OnlineMatch for tables of 2 to 8 people (6 since v0.39, 8 since v0.45): friends sit at one
 ## table, each on their own phone. Same idea as OnlineMatch (its header):
 ## the host is the authority, every move carries the sender's whole state,
 ## a mismatch re-syncs. What's new is the seat list (online_room.gd): player
@@ -99,7 +99,7 @@ func _save_room() -> void:
 
 ## Host a table of up to `max_players` people; `note` describes it in the lobby.
 func host_table(max_players: int, note: String = "", min_players: int = 2) -> void:
-	lobby.max_players = clampi(max_players, 2, 6)
+	lobby.max_players = clampi(max_players, 2, 8)
 	lobby.min_players = clampi(min_players, 2, lobby.max_players)
 	lobby.note = note
 	lobby.open_host()

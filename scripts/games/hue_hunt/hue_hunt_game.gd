@@ -9,8 +9,15 @@ extends Control
 ## Color, the six solo round types (Classic, Duo, Mix, Opposite, Blind,
 ## Superlative), Colour Book, helps (Hot/Cold, Peek, Second Chance, More
 ## Time; solo only), first-launch safety notice, save / Resume of a Time
-## Attack. Not built yet: multiplayer rooms, reveal, power-ups, object
-## rounds (phases 4-6, docs/hue_hunt/DESIGN.md).
+## Attack.
+## Phase 4: multiplayer over the shared OnlineTable (2-8 phones, 5-letter
+## code). hue_hunt_room.gd is the table's state machine; the acting host
+## (lowest-numbered player still here, so the host can drop and someone
+## else carries on) runs it and broadcasts the whole state as event
+## "state" (ver-numbered). Lock-ins, flags and 128 px thumbnails are events
+## to everyone. Times are Unix seconds (phones' clocks agree to a second or
+## so); each state carries the host's "now" and clients keep the offset.
+## Not built yet: power-ups, object rounds (phases 5-6).
 ##
 ## Camera: the APK's shared scripts/common/camera_service.gd (app build 65+),
 ## loaded guarded; older apps get an "Update the app" screen.
@@ -27,6 +34,10 @@ const HomeKit = preload("res://scripts/games/hue_hunt/home_kit.gd")
 const Help = preload("res://scripts/games/hue_hunt/hue_hunt_help.gd")
 const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const CAM_PATH := "res://scripts/common/camera_service.gd"
+const ONLINE_TABLE_PATH := "res://scripts/common/online_table.gd"
+const Room = preload("res://scripts/games/hue_hunt/hue_hunt_room.gd")
+const MAX_PLAYERS := 8
+const REVEAL_STEP := 0.7   # seconds between reveal rows
 
 const SAVE_PATH := "user://hue_hunt_run.json"
 const BOOK_PATH := "user://hue_hunt_book.json"
@@ -77,6 +88,18 @@ var hot_t := 0.0
 var _meter_t := 0.0
 var _meter_busy := false
 var skin := "classic"
+
+# multiplayer
+var tbl = null              # OnlineTable, or null on older apps
+var mp := false
+var st := {}                # the table state (hue_hunt_room.gd)
+var mp_settings := {"rounds": 10, "selection": "classic", "place": "local"}
+var offset := 0.0           # host clock - my clock (s)
+var thumbs := {}            # "n" -> ImageTexture, this round only
+var shown_phase := ""       # match start, round and phase last drawn
+var result_done := false    # info.result() sent for this match
+var reveal_box: VBoxContainer
+var reveal_scroll: ScrollContainer
 
 # nodes
 var stage: Control
@@ -196,6 +219,19 @@ func _build_ui() -> void:
 	result_box.add_theme_constant_override("separation", 12)
 	result_box.visible = false
 	col.add_child(result_box)
+	reveal_scroll = ScrollContainer.new()
+	reveal_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	reveal_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	reveal_scroll.visible = false
+	col.add_child(reveal_scroll)
+	var rm := MarginContainer.new()
+	rm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for side in ["left", "right"]:
+		rm.add_theme_constant_override("margin_" + side, 14)
+	reveal_scroll.add_child(rm)
+	reveal_box = VBoxContainer.new()
+	reveal_box.add_theme_constant_override("separation", 10)
+	rm.add_child(reveal_box)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -222,6 +258,14 @@ func _build_ui() -> void:
 
 	if ResourceLoader.exists(GAME_INFO_PATH):
 		info = load(GAME_INFO_PATH).new(Help)
+	if ResourceLoader.exists(ONLINE_TABLE_PATH):
+		tbl = load(ONLINE_TABLE_PATH).new("hue_hunt", "Camera Hunter", _online_state)
+		tbl.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(tbl)
+		tbl.started.connect(_on_table_started)
+		tbl.remote_state.connect(_take_state)
+		tbl.remote_event.connect(_on_remote_event)
+		tbl.status_changed.connect(_on_table_status)
 	_build_home()
 	if info:
 		add_child(info)
@@ -239,7 +283,17 @@ func _big_button(text: String, action: Callable) -> Button:
 
 
 func _build_home() -> void:
+	var modes := [
+		{"text": "⏱ Time Attack", "sub": "5 colours, 3 minutes", "action": _start_attack},
+		{"text": "📅 Daily Color", "sub": "Same colour for everyone today", "action": _start_daily},
+	]
+	# Cards keep the Landing up ("play" entries); plain modes hide it.
+	var play := [{"text": "🎨 Free Hunt", "sub": "Pick any colour", "action": _open_free_picker, "card": true}]
+	if tbl:
+		play.append({"text": "👥 Host a game", "sub": "2-8 phones, same place or far apart", "action": _open_mp_setup, "card": true})
+		play.append({"text": "🔑 Join with a code", "sub": "A friend hosts, you type the code", "action": _open_join, "card": true})
 	home = HomeKit.new({
+		"play": play,
 		# Menu style (docs/MENU_STYLES.md): S11 Sticker Board; colours: a red-green-blue
 		# camera-sensor triad.
 		"landing": "stickers",
@@ -253,11 +307,7 @@ func _build_home() -> void:
 		"accent": HomeKit.CYAN,
 		"subtitle": "Find real things that match the colour. Snap, tap, score.",
 		"logo": _draw_home_logo,
-		"modes": [
-			{"text": "⏱ Time Attack", "sub": "5 colours, 3 minutes", "action": _start_attack},
-			{"text": "🎨 Free Hunt", "sub": "Pick any colour", "action": _open_free_picker, "card": true},
-			{"text": "📅 Daily Color", "sub": "Same colour for everyone today", "action": _start_daily},
-		],
+		"modes": modes,
 		"save_path": SAVE_PATH,
 		"resume": _resume,
 		"restart": _restart,
@@ -381,7 +431,8 @@ func _resume() -> void:
 
 
 func _save_game() -> void:
-	if not started or not run_on or mode != "attack":
+	# Online matches are never saved locally (the table keeps the game).
+	if mp or not started or not run_on or mode != "attack":
 		return
 	SaveUtil.write(SAVE_PATH, {"mode": mode, "seed": seed_v, "round_i": round_i, "pcts": pcts, "time_left": time_left})
 
@@ -394,6 +445,8 @@ func _notification(what: int) -> void:
 # ---------- a round ----------
 
 func spec() -> Dictionary:
+	if mp:
+		return Room.spec(st) if not st.is_empty() else {}
 	return plan[round_i] if round_i < plan.size() else {}
 
 
@@ -461,13 +514,18 @@ func _add_swatch(c: Color) -> void:
 
 func _show_phase(p: String) -> void:
 	phase = p
-	bar_top.visible = p in ["live", "frozen", "preview", "result"]
+	bar_top.visible = p in ["live", "frozen", "preview", "result", "waiting"]
 	shutter.visible = p == "live" and cam != null and cam.state == "running"
 	retake_btn.visible = p in ["frozen", "preview"]
 	lock_btn.visible = p == "preview"
-	next_btn.visible = p == "result"
-	frozen.visible = p in ["frozen", "preview", "result"]
+	next_btn.visible = p == "result" or (p in ["reveal", "final"] and mp and _am_acting_host())
+	frozen.visible = p in ["frozen", "preview", "result", "waiting"]
 	result_box.visible = p in ["result", "end"]
+	reveal_scroll.visible = p in ["reveal", "final"]
+	if p == "reveal":
+		next_btn.text = tr("Next") + " ▶"
+	elif p == "final":
+		next_btn.text = "↺ " + tr("Play again")
 	meter.visible = p == "live" and hot_t > 0.0
 	marks.queue_redraw()
 	match p:
@@ -478,6 +536,8 @@ func _show_phase(p: String) -> void:
 				hint.text = tr("Tap the spot to sample.")
 			else:
 				hint.text = tr("Tap one spot for each colour (%d of 2).") % (taps.size() + 1)
+		"waiting":
+			hint.text = tr("Locked in! Waiting for the others…")
 		_:
 			hint.text = ""
 	if p != "live":
@@ -627,18 +687,15 @@ func _on_lock() -> void:
 		return
 	var sp := spec()
 	var p := E.solo_pct(sp, samples)
-	pcts.append(p)
 	_sfx("success" if p >= 80 else "tap")
 	var day := _today()
+	if mp:
+		_book_from(sp, p, day)
+		_mp_lock()
+		return
+	pcts.append(p)
 	if sp.judge == "color":
-		if info:
-			info.high("Best match", p)
-		if E.score(sp, samples).close and sp.type in [E.T_CLASSIC, E.T_BLIND, E.T_DUO]:
-			for i in sp.colors.size():
-				E.book_add(book, sp.colors[i], p, E.to_rgb(samples[mini(i, samples.size() - 1)]).to_html(false), day)
-			SaveUtil.write(BOOK_PATH, book)
-			if info:
-				info.high("Colors found", book.size())
+		_book_from(sp, p, day)
 	else:
 		var best: Dictionary = prefs.superlative_best
 		if p > int(best.get(sp.superlative, 0)):
@@ -651,6 +708,20 @@ func _on_lock() -> void:
 	_save_prefs()
 	_save_game()
 	_show_result(p)
+
+
+## Solo and multiplayer captures both feed the Colour Book.
+func _book_from(sp: Dictionary, p: int, day: String) -> void:
+	if sp.judge != "color":
+		return
+	if info:
+		info.high("Best match", p)
+	if E.score(sp, samples).close and sp.type in [E.T_CLASSIC, E.T_BLIND, E.T_DUO]:
+		for i in sp.colors.size():
+			E.book_add(book, sp.colors[i], p, E.to_rgb(samples[mini(i, samples.size() - 1)]).to_html(false), day)
+		SaveUtil.write(BOOK_PATH, book)
+		if info:
+			info.high("Colors found", book.size())
 
 
 func _show_result(p: int) -> void:
@@ -705,6 +776,9 @@ func _swatch_card(title: String, c: Color) -> VBoxContainer:
 
 
 func _on_next() -> void:
+	if mp:
+		_mp_next()
+		return
 	if mode == "attack" and round_i + 1 < plan.size() and time_left > 0.0:
 		round_i += 1
 		_save_game()
@@ -746,6 +820,9 @@ func _go_home() -> void:
 
 
 func _process(delta: float) -> void:
+	if mp:
+		_mp_process()
+		return
 	if not run_on:
 		return
 	if mode == "attack" and phase in ["live", "frozen", "preview"]:
@@ -794,6 +871,8 @@ func _save_prefs() -> void:
 # ---------- helps (solo only; STANDARDS §17) ----------
 
 func _help_hot_cold() -> bool:
+	if mp:
+		return false   # helps are solo only (power-ups come in phase 5)
 	if not run_on or phase != "live" or spec().get("judge", "") != "color":
 		return false
 	hot_t = HOTCOLD_TIME
@@ -805,6 +884,8 @@ func _help_hot_cold() -> bool:
 
 
 func _help_peek() -> bool:
+	if mp:
+		return false   # helps are solo only (power-ups come in phase 5)
 	if not run_on or spec().get("type", "") != E.T_BLIND or peeked or phase in ["result", "end"]:
 		return false
 	peeked = true
@@ -813,6 +894,8 @@ func _help_peek() -> bool:
 
 
 func _help_second() -> bool:
+	if mp:
+		return false   # helps are solo only (power-ups come in phase 5)
 	if not run_on or phase != "result" or pcts.is_empty():
 		return false
 	pcts.pop_back()
@@ -821,6 +904,8 @@ func _help_second() -> bool:
 
 
 func _help_time() -> bool:
+	if mp:
+		return false   # helps are solo only (power-ups come in phase 5)
 	if not run_on or mode != "attack":
 		return false
 	time_left += MORE_TIME
@@ -935,3 +1020,396 @@ func _on_book_pick(id: String) -> void:
 		l.add_theme_font_size_override("font_size", 26)
 		body.add_child(l)
 	home.show_card(parts[0])
+
+
+# ---------- multiplayer (phase 4) ----------
+
+func _open_mp_setup() -> void:
+	var parts: Array = home.card("👥 " + tr("Host a game"))
+	var body: VBoxContainer = parts[1]
+	body.add_child(home.section("Where are you playing?"))
+	body.add_child(home.choice_row(["Same place", "Far apart"], 0 if mp_settings.place == "local" else 1, _pick_place))
+	body.add_child(_small(tr("Same place: rounds up to 90 s. Far apart: up to 150 s.")))
+	body.add_child(home.section("Rounds"))
+	var counts := [5, 10, 15]
+	body.add_child(home.choice_row(["5", "10", "15"], maxi(0, counts.find(int(mp_settings.rounds))), _pick_rounds))
+	body.add_child(home.section("Round types"))
+	var sels := ["classic", "mixed", "chaos"]
+	body.add_child(home.choice_row(["Classic only", "Mixed", "Chaos"], maxi(0, sels.find(mp_settings.selection)), _pick_selection))
+	var go := _big_button("▶ " + tr("Open the table"), _host_now.bind(parts[0]))
+	go.modulate = Color(0.6, 1.0, 0.6)
+	body.add_child(go)
+	home.show_card(parts[0])
+
+
+func _small(text: String) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", 22)
+	return l
+
+
+func _pick_place(i: int) -> void:
+	mp_settings.place = "local" if i == 0 else "remote"
+
+
+func _pick_rounds(i: int) -> void:
+	mp_settings.rounds = [5, 10, 15][i]
+
+
+func _pick_selection(i: int) -> void:
+	mp_settings.selection = ["classic", "mixed", "chaos"][i]
+
+
+func _host_now(c: Control) -> void:
+	home.close_card(c)
+	_watch_lobby()
+	tbl.host_table(MAX_PLAYERS, tr("%d rounds") % int(mp_settings.rounds))
+
+
+func _open_join() -> void:
+	_watch_lobby()
+	tbl.open_lobby()
+
+
+func _watch_lobby() -> void:
+	if not tbl.lobby.visibility_changed.is_connected(_on_lobby_shown):
+		tbl.lobby.visibility_changed.connect(_on_lobby_shown)
+		tbl.lobby.cancelled.connect(_on_lobby_cancelled)
+
+
+func _on_lobby_shown() -> void:
+	if tbl.lobby.visible:
+		home.hide_home()
+
+
+func _on_lobby_cancelled() -> void:
+	if not mp:
+		home.show_home()
+
+
+## OnlineTable's whole-state callback (rejoin / sync).
+func _online_state() -> Dictionary:
+	return st
+
+
+func _clock() -> float:
+	return Time.get_unix_time_from_system()
+
+
+## The table's clock: mine plus the offset to the acting host's.
+func _now() -> float:
+	return _clock() + (0.0 if _am_acting_host() else offset)
+
+
+func _present() -> Array:
+	var out := []
+	if tbl == null:
+		return out
+	for p in tbl.players():
+		if bool(p.here) or int(p.n) == tbl.my_player:
+			out.append(int(p.n))
+	return out
+
+
+func _am_acting_host() -> bool:
+	return mp and tbl != null and Room.acting_host(_present()) == tbl.my_player
+
+
+func _on_table_started(my_player: int) -> void:
+	mp = true
+	mode = "online"
+	run_on = true
+	result_done = false
+	home.hide_home()
+	if not prefs.safety_ok:
+		_show_safety()
+	if my_player == 1 and not tbl.adopting:
+		var seats := []
+		for p in tbl.players():
+			seats.append(int(p.n))
+		_new_table(seats)
+	else:
+		_show_phase("waiting")
+		hint.text = tr("Waiting for the host…")
+
+
+func _new_table(seats: Array) -> void:
+	st = Room.new_match(mp_settings, seats, randi(), _clock())
+	thumbs = {}
+	result_done = false
+	_broadcast()
+	_draw_state()
+
+
+func _broadcast() -> void:
+	st.now = _clock()
+	tbl.send_event("state", st)
+
+
+## A state from the table: newer (or same) version wins.
+func _take_state(s: Dictionary) -> void:
+	if s.is_empty() or not s.has("ver"):
+		return
+	var new_match: bool = st.is_empty() or int(s.get("match_id", 0)) != int(st.get("match_id", 0))
+	if not new_match and int(s.ver) < int(st.ver):
+		return
+	offset = float(s.get("now", _clock())) - _clock()
+	if new_match or int(s.round_i) != int(st.get("round_i", -1)):
+		thumbs = {}
+		result_done = false if new_match else result_done
+	st = s
+	mp = true
+	_draw_state()
+
+
+func _on_remote_event(event: String, from: int, p: Dictionary) -> void:
+	match event:
+		"state":
+			_take_state(p)
+		"lock":
+			if _am_acting_host() and Room.lock_in(st, from, p.get("labs", []), _now()):
+				_broadcast()
+				_draw_state()
+		"flag":
+			if _am_acting_host() and Room.flag(st, from, int(p.get("target", 0))):
+				_broadcast()
+				_draw_state()
+		"thumb":
+			_store_thumb(str(p.get("n", from)), str(p.get("jpg", "")))
+
+
+func _on_table_status() -> void:
+	# Someone came or went: the acting host may now be me.
+	if _am_acting_host() and not st.is_empty():
+		_broadcast()
+	if mp:
+		_draw_state(true)
+
+
+func _store_thumb(key: String, b64: String) -> void:
+	if b64 == "":
+		return
+	var img := Image.new()
+	if img.load_jpg_from_buffer(Marshalls.base64_to_raw(b64)) == OK:
+		thumbs[key] = ImageTexture.create_from_image(img)
+		if phase == "reveal":
+			_draw_reveal(false)
+
+
+func _mp_lock() -> void:
+	var labs := []
+	for s in samples:
+		labs.append([s.x, s.y, s.z])
+	var me: int = tbl.my_player
+	# Thumbnail: 128 px JPEG of the frozen photo, sent once, dropped after the reveal.
+	var jpg: PackedByteArray = load(CAM_PATH).thumbnail_jpg(photo, 128, 0.7)
+	var b64 := Marshalls.raw_to_base64(jpg)
+	_store_thumb(str(me), b64)
+	tbl.send_event("thumb", {"n": me, "jpg": b64})
+	if _am_acting_host():
+		if Room.lock_in(st, me, labs, _now()):
+			_broadcast()
+	else:
+		tbl.send_event("lock", {"labs": labs})
+	_show_phase("waiting")
+
+
+func _mp_next() -> void:
+	if not _am_acting_host():
+		return
+	if st.phase == "reveal" and Room.end_reveal(st, _now()):
+		_broadcast()
+		_draw_state()
+	elif st.phase == "final":
+		_new_table(st.seats)
+
+
+func _mp_process() -> void:
+	if st.is_empty():
+		return
+	if _am_acting_host() and Room.tick(st, _present(), _now()):
+		_broadcast()
+		_draw_state()
+	var left := 0.0
+	if st.phase == "round":
+		left = float(st.deadline) - _now()
+	elif st.phase == "reveal":
+		left = float(st.reveal_end) - _now()
+	timer_label.text = ("%d" % maxi(0, ceili(left))) if st.phase in ["round", "reveal"] else ""
+	if st.phase == "round" and float(st.first_close_t) >= 0.0 and phase in ["live", "frozen", "preview"]:
+		hint.text = tr("Someone is close! %d s left.") % maxi(0, ceili(left))
+
+
+## Draws whatever the state says; `soft` = only refresh, keep the camera.
+func _draw_state(soft: bool = false) -> void:
+	if st.is_empty():
+		return
+	var key := "%s:%d:%s" % [str(st.started), int(st.round_i), str(st.phase)]
+	var changed := key != shown_phase
+	shown_phase = key
+	match st.phase:
+		"round":
+			if changed and not soft:
+				_fill_target()
+				if st.lockins.has(str(tbl.my_player)):
+					_show_phase("waiting")
+				else:
+					photo = null
+					_start_round_mp()
+		"reveal":
+			if cam:
+				cam.stop()
+			_show_phase("reveal")
+			_draw_reveal(changed)
+		"final":
+			if cam:
+				cam.stop()
+			thumbs = {}
+			_show_phase("final")
+			_draw_final()
+
+
+func _start_round_mp() -> void:
+	taps = []
+	samples = []
+	_show_phase("live")
+	_start_camera()
+
+
+func _award_icons(key: String) -> String:
+	var out := ""
+	for a in st.awards:
+		if str(a.player) == key:
+			match str(a.award):
+				"first_close":
+					out += " ⚡"
+				"closest":
+					out += " 🥇"
+				"superlative":
+					out += " 🏆"
+	return out
+
+
+func _draw_reveal(animate: bool) -> void:
+	for ch in reveal_box.get_children():
+		ch.queue_free()
+	var sp := spec()
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 12)
+	reveal_box.add_child(head)
+	if sp.judge == "color":
+		for i in sp.targets.size():
+			var r := ColorRect.new()
+			r.color = _target_rgb(i)
+			r.custom_minimum_size = Vector2(90, 90)
+			head.add_child(r)
+	var title := Label.new()
+	title.text = target_name.text
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.add_theme_font_size_override("font_size", 30)
+	head.add_child(title)
+	if sp.colors.size() > 0:
+		reveal_box.add_child(_small("💡 " + tr(FAMILY_TIPS.get(E.color_by_id(sp.colors[0])[5], FAMILY_TIPS.neutral))))
+	reveal_box.add_child(_small(tr("Photos can show people or private places: tap 🚩 if one shouldn't be here. Most players flag = it's out.")))
+	var order := Room.reveal_order(st)
+	if order.is_empty():
+		reveal_box.add_child(_small(tr("Nobody locked in this round.")))
+	for i in order.size():
+		var row := _reveal_row(str(order[i]))
+		reveal_box.add_child(row)
+		if animate:
+			row.modulate.a = 0.0
+			var tw := row.create_tween()
+			tw.tween_interval(REVEAL_STEP * i)
+			tw.tween_property(row, "modulate:a", 1.0, 0.35)
+	reveal_box.add_child(_scores_line())
+
+
+func _reveal_row(key: String) -> HBoxContainer:
+	var e: Dictionary = st.lockins[key]
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var th := TextureRect.new()
+	th.custom_minimum_size = Vector2(96, 96)
+	th.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	th.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	th.texture = thumbs.get(key)
+	row.add_child(th)
+	var labs: Array = e.labs
+	for l in labs:
+		var sw := ColorRect.new()
+		sw.color = E.to_rgb(Vector3(float(l[0]), float(l[1]), float(l[2])))
+		sw.custom_minimum_size = Vector2(48, 96)
+		row.add_child(sw)
+	var out := Room.flagged(st, int(key))
+	var name_l := Label.new()
+	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_l.add_theme_font_size_override("font_size", 26)
+	var who: String = tbl.name_of(int(key))
+	if out:
+		name_l.text = "%s\n🚩 %s" % [who, tr("Flagged: out this round")]
+		th.texture = null
+	else:
+		name_l.text = "%s\n%d%%%s" % [who, int(e.pct), _award_icons(key)]
+	row.add_child(name_l)
+	if int(key) != tbl.my_player and not out and st.phase == "reveal":
+		var votes: Array = st.flags.get(key, [])
+		var fb := Button.new()
+		fb.text = "🚩"
+		fb.custom_minimum_size = Vector2(64, 64)
+		for v in votes:
+			if int(v) == tbl.my_player:
+				fb.disabled = true
+		fb.pressed.connect(_on_flag.bind(int(key)))
+		row.add_child(fb)
+	return row
+
+
+func _on_flag(target: int) -> void:
+	if _am_acting_host():
+		if Room.flag(st, tbl.my_player, target):
+			_broadcast()
+			_draw_reveal(false)
+	else:
+		tbl.send_event("flag", {"target": target})
+
+
+func _scores_line() -> Label:
+	var parts := []
+	for s in Room.standings(st):
+		parts.append("%s %d" % [tbl.name_of(int(s[0])), int(s[1])])
+	var l := _small("🏁 " + " · ".join(parts))
+	l.add_theme_font_size_override("font_size", 24)
+	return l
+
+
+func _draw_final() -> void:
+	for ch in reveal_box.get_children():
+		ch.queue_free()
+	var stand := Room.standings(st)
+	var top: int = stand[0][1] if not stand.is_empty() else 0
+	var winners := 0
+	for s in stand:
+		if int(s[1]) == top:
+			winners += 1
+	var title := Label.new()
+	title.text = "🏆 " + tr("Final scores")
+	title.add_theme_font_size_override("font_size", 40)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	reveal_box.add_child(title)
+	for s in stand:
+		var l := Label.new()
+		l.text = "%s %s: %d" % ["🥇" if int(s[1]) == top else "▫", tbl.name_of(int(s[0])), int(s[1])]
+		l.add_theme_font_size_override("font_size", 32)
+		reveal_box.add_child(l)
+	if not result_done and info:
+		result_done = true
+		var mine := int(st.scores.get(str(tbl.my_player), 0))
+		info.result("win" if mine == top and winners == 1 else ("draw" if mine == top else "loss"))
+	if not _am_acting_host():
+		reveal_box.add_child(_small(tr("The host can start another match.")))
+	reveal_box.add_child(_big_button("🏠 " + tr("Home"), _go_home))

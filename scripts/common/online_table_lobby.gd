@@ -1,6 +1,6 @@
 extends ColorRect
 
-## The shared lobby for tables of 2 to 6 people (since v0.39): host a table
+## The shared lobby for tables of 2 to 8 people (6 since v0.39, 8 since v0.45): host a table
 ## (a code, QR, invites to several friends) or join one by code, see who has
 ## sat down, and -- for the host -- Start. Emits `started(room, my_player)`
 ## on every phone when the host starts (host = player 1), then hides. The
