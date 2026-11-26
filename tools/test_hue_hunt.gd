@@ -21,6 +21,7 @@ func _initialize() -> void:
 	_ties()
 	_plans()
 	_room()
+	_powers()
 	print("hue_hunt: %s" % ("OK" if fails == 0 else "%d FAILED" % fails))
 	quit(1 if fails else 0)
 
@@ -324,3 +325,63 @@ func _room() -> void:
 	# remote timers
 	var rs := R.new_match({"rounds": 1, "place": "remote"}, [1, 2], 1, 0.0)
 	ok(float(rs.deadline) == 150.0, "remote round 150 s")
+
+
+func _powers() -> void:
+	const R = preload("res://scripts/games/hue_hunt/hue_hunt_room.gd")
+	const P = preload("res://scripts/games/hue_hunt/hue_hunt_powerups.gd")
+	# everyone starts with one; off = none
+	var st := _wire(R.new_match({"rounds": 6, "selection": "classic"}, [1, 2, 3], 11, 0.0))
+	for k in ["1", "2", "3"]:
+		ok(st.powers[k].size() == P.START_WITH and int(st.granted[k]) == 1, "starts with one (%s)" % k)
+	var off := R.new_match({"rounds": 2, "powerups": false}, [1, 2], 3, 0.0)
+	ok(off.powers.is_empty(), "host can switch power-ups off")
+	ok(R.catch_up(off).is_empty(), "no catch-up when off")
+	# force known hands
+	st.powers = {"1": ["hot_cold", "second_chance"], "2": ["peek"], "3": []}
+	ok(not R.use_power(st, 3, "hot_cold", 1.0), "can't use what you don't hold")
+	ok(not R.use_power(st, 2, "peek", 1.0), "peek only in Blind rounds")
+	ok(R.use_power(st, 1, "hot_cold", 1.0), "hot/cold used")
+	ok(R.active(st, 1, "hot_cold", 10.9) and not R.active(st, 1, "hot_cold", 11.1), "hot/cold lasts 10 s of host time")
+	ok(not st.powers["1"].has("hot_cold") and int(st.used["1"]) == 1, "spent + counted")
+	ok(not R.use_power(st, 1, "second_chance", 2.0), "second chance needs a lock-in")
+	var t := E._lab(R.spec(st).targets[0])
+	R.lock_in(st, 1, [_lab_arr(t)], 3.0)
+	ok(not P.can_use(st, 1, "hot_cold", 3.0), "hot/cold not after locking")
+	ok(R.use_power(st, 1, "second_chance", 4.0) and not st.lockins.has("1"), "second chance unlocks")
+	ok(R.lock_in(st, 1, [_lab_arr(t)], 5.0), "can lock again")
+	ok(not R.use_power(st, 1, "second_chance", float(st.deadline) + 1.0), "nothing after the deadline")
+	# Blind round: peek works once
+	var spec: Dictionary = R.spec(st)
+	spec.type = E.T_BLIND
+	spec.swatch = false
+	st.powers["2"] = ["peek", "peek"]
+	ok(R.use_power(st, 2, "peek", 6.0) and R.peeked(st, 2), "peek in Blind")
+	ok(not R.use_power(st, 2, "peek", 7.0), "peek once per round")
+	# superlative: no hot/cold
+	spec.type = E.T_SUPERLATIVE
+	spec.judge = "superlative"
+	st.powers["3"] = ["hot_cold"]
+	ok(not R.use_power(st, 3, "hot_cold", 8.0), "no hot/cold in Superlative")
+	# catch-up: trailing player gets one, capped at 3 per match
+	st = _wire(st)
+	st.scores = {"1": 3, "2": 1, "3": 1}
+	st.granted = {"1": 1, "2": 1, "3": 3}
+	var got := R.catch_up(st)
+	ok(got == [2], "catch-up to the trailing player under the cap: %s" % str(got))
+	ok(int(st.granted["2"]) == 2 and int(st.granted["3"]) == 3, "cap 3 per match")
+	st.scores = {"1": 2, "2": 2, "3": 2}
+	ok(R.catch_up(st).is_empty(), "all level: nobody")
+	# end_reveal grants catch-up and clears running power-ups
+	var m := R.new_match({"rounds": 3}, [1, 2], 5, 0.0)
+	var mt := E._lab(R.spec(m).targets[0])
+	R.lock_in(m, 1, [_lab_arr(mt)], 1.0)
+	R.tick(m, [1, 2], 2.0)
+	ok(m.phase == "round" or m.phase == "reveal", "round ended by time or lock")
+	R.tick(m, [1, 2], float(m.deadline) + 1.0)
+	R.end_reveal(m, 200.0)
+	ok(int(m.granted["2"]) == 2 and int(m.granted["1"]) == 1, "P2 (trailing) got a catch-up power-up")
+	ok(m.active.is_empty(), "running power-ups end with the round")
+	for k in 40:
+		ok(P.pick(k, 3) in P.ids(), "pick is a known power-up")
+	ok(P.pick(9, 4) == P.pick(9, 4), "pick is deterministic")

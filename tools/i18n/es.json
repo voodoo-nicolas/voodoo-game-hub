@@ -13746,5 +13746,17 @@
  "Waiting for the host…": "Esperando a quien creó la partida…",
  "Where are you playing?": "¿Dónde están jugando?",
  "👥 Host a game": "👥 Crear una partida",
- "🔑 Join with a code": "🔑 Unirse con un código"
+ "🔑 Join with a code": "🔑 Unirse con un código",
+ "After each round every photo is shown, worst to best. Tap 🚩 on a photo that shows people or shouldn't be there: if most players flag it, it's out.": "Después de cada ronda se muestran todas las fotos, de la peor a la mejor. Toca 🚩 en una foto que muestre personas o que no debería estar: si la mayoría la marca, queda fuera.",
+ "Everyone starts with one; whoever is last after a round gets another (3 at most per match).": "Todos empiezan con uno; quien va último después de una ronda recibe otro (3 como máximo por partida).",
+ "For 10 seconds a meter shows how close the middle of your camera is.": "Durante 10 segundos un medidor muestra qué tan cerca está el centro de tu cámara.",
+ "Hot / Cold": "Frío / caliente",
+ "Mixed: a twist about every 3rd round (Duo, Mix, Opposite, Blind, Darkest / Lightest / Most vivid). Chaos: any type, never the same twice.": "Mixto: una variante cada 3 rondas más o menos (Dúo, Mezcla, Opuesto, A ciegas, Lo más oscuro / claro / intenso). Caos: cualquier tipo, nunca el mismo dos veces seguidas.",
+ "Peek": "Espiar",
+ "Power-ups": "Poderes",
+ "Power-ups (with friends): everyone starts with one; whoever is last after a round gets another, 3 at most per match. 🌡 Hot / Cold, 👁 Peek, 🔁 Second Chance. The host can switch them off.": "Poderes (con amigos): todos empiezan con uno; quien va último después de una ronda recibe otro, 3 como máximo por partida. 🌡 Frío / caliente, 👁 Espiar, 🔁 Segunda oportunidad. Quien crea la partida puede desactivarlos.",
+ "Second Chance": "Segunda oportunidad",
+ "Take back your lock-in and shoot again.": "Retira tu confirmación y vuelve a sacar la foto.",
+ "With friends (2-8 phones): everyone hunts the same colour. The first close lock-in scores ⚡ First Close (+1) and starts a 30-second countdown; the closest photo scores 🥇 Closest (+1). Darkest / Lightest / Most vivid rounds give the winner 2.": "Con amigos (2-8 teléfonos): todos buscan el mismo color. La primera confirmación muy cercana gana ⚡ Primero cerca (+1) y empieza una cuenta atrás de 30 segundos; la foto más parecida gana 🥇 Más cercana (+1). Las rondas de Lo más oscuro / claro / intenso le dan 2 al ganador.",
+ "🛟 Helps (solo): Hot / Cold, Peek, Second Chance and More Time. You have 3; one comes back 24 hours after you last used one.": "🛟 Ayudas (solo): Frío / caliente, Espiar, Segunda oportunidad y Más tiempo. Tienes 3; una vuelve 24 horas después de usar la última."
 }

@@ -36,6 +36,7 @@ const GAME_INFO_PATH := "res://scripts/common/game_info.gd"
 const CAM_PATH := "res://scripts/common/camera_service.gd"
 const ONLINE_TABLE_PATH := "res://scripts/common/online_table.gd"
 const Room = preload("res://scripts/games/hue_hunt/hue_hunt_room.gd")
+const Powers = preload("res://scripts/games/hue_hunt/hue_hunt_powerups.gd")
 const MAX_PLAYERS := 8
 const REVEAL_STEP := 0.7   # seconds between reveal rows
 
@@ -100,6 +101,8 @@ var shown_phase := ""       # match start, round and phase last drawn
 var result_done := false    # info.result() sent for this match
 var reveal_box: VBoxContainer
 var reveal_scroll: ScrollContainer
+var power_bar: HBoxContainer
+var _power_key := ""         # what the power bar last showed
 
 # nodes
 var stage: Control
@@ -207,6 +210,11 @@ func _build_ui() -> void:
 	meter.custom_minimum_size = Vector2(0, 22)
 	meter.visible = false
 	col.add_child(meter)
+	power_bar = HBoxContainer.new()
+	power_bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	power_bar.add_theme_constant_override("separation", 10)
+	power_bar.visible = false
+	col.add_child(power_bar)
 
 	cam_msg = VBoxContainer.new()
 	cam_msg.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -477,7 +485,7 @@ func _fill_target() -> void:
 			_add_swatch(_target_rgb(0))
 		E.T_BLIND:
 			target_name.text = "🙈 " + names[0]
-			if peeked:
+			if peeked or (mp and Room.peeked(st, tbl.my_player)):
 				_add_swatch(_target_rgb(0))
 		E.T_DUO:
 			target_name.text = tr("Both in one photo: %s + %s") % [names[0], names[1]]
@@ -1036,6 +1044,10 @@ func _open_mp_setup() -> void:
 	body.add_child(home.section("Round types"))
 	var sels := ["classic", "mixed", "chaos"]
 	body.add_child(home.choice_row(["Classic only", "Mixed", "Chaos"], maxi(0, sels.find(mp_settings.selection)), _pick_selection))
+	body.add_child(_small(tr("Mixed: a twist about every 3rd round (Duo, Mix, Opposite, Blind, Darkest / Lightest / Most vivid). Chaos: any type, never the same twice.")))
+	body.add_child(home.section("Power-ups"))
+	body.add_child(home.choice_row(["On", "Off"], 0 if mp_settings.get("powerups", true) else 1, _pick_powerups))
+	body.add_child(_small(tr("Everyone starts with one; whoever is last after a round gets another (3 at most per match).")))
 	var go := _big_button("▶ " + tr("Open the table"), _host_now.bind(parts[0]))
 	go.modulate = Color(0.6, 1.0, 0.6)
 	body.add_child(go)
@@ -1060,6 +1072,10 @@ func _pick_rounds(i: int) -> void:
 
 func _pick_selection(i: int) -> void:
 	mp_settings.selection = ["classic", "mixed", "chaos"][i]
+
+
+func _pick_powerups(i: int) -> void:
+	mp_settings.powerups = i == 0
 
 
 func _host_now(c: Control) -> void:
@@ -1168,6 +1184,10 @@ func _on_remote_event(event: String, from: int, p: Dictionary) -> void:
 	match event:
 		"state":
 			_take_state(p)
+		"power":
+			if _am_acting_host() and Room.use_power(st, from, str(p.get("id", "")), _now()):
+				_broadcast()
+				_draw_state()
 		"lock":
 			if _am_acting_host() and Room.lock_in(st, from, p.get("labs", []), _now()):
 				_broadcast()
@@ -1229,6 +1249,14 @@ func _mp_next() -> void:
 func _mp_process() -> void:
 	if st.is_empty():
 		return
+	_update_power_bar()
+	var hot: bool = st.phase == "round" and phase == "live" and Room.active(st, tbl.my_player, "hot_cold", _now())
+	meter.visible = hot
+	if hot:
+		_meter_t -= get_process_delta_time()
+		if _meter_t <= 0.0 and not _meter_busy:
+			_meter_t = METER_EVERY
+			_read_meter()
 	if _am_acting_host() and Room.tick(st, _present(), _now()):
 		_broadcast()
 		_draw_state()
@@ -1253,10 +1281,15 @@ func _draw_state(soft: bool = false) -> void:
 		"round":
 			if changed and not soft:
 				_fill_target()
-				if st.lockins.has(str(tbl.my_player)):
+				if st.lockins.has(str(tbl.my_player)) and phase != "live":
 					_show_phase("waiting")
 				else:
 					photo = null
+					_start_round_mp()
+			else:
+				_fill_target()   # a Peek may have shown the swatch
+				if phase == "waiting" and not st.lockins.has(str(tbl.my_player)):
+					photo = null   # Second Chance: shoot again
 					_start_round_mp()
 		"reveal":
 			if cam:
@@ -1413,3 +1446,46 @@ func _draw_final() -> void:
 	if not _am_acting_host():
 		reveal_box.add_child(_small(tr("The host can start another match.")))
 	reveal_box.add_child(_big_button("🏠 " + tr("Home"), _go_home))
+
+
+# ---------- power-ups (phase 5; multiplayer only) ----------
+
+## The bar of my power-ups; rebuilt only when what it shows changes.
+func _update_power_bar() -> void:
+	var held: Array = st.get("powers", {}).get(str(tbl.my_player), []) if mp else []
+	var show: bool = mp and st.phase == "round" and phase in ["live", "frozen", "preview", "waiting"] and not held.is_empty()
+	var usable := []
+	for id in held:
+		usable.append(Powers.can_use(st, tbl.my_player, id, _now()))
+	var key := "%s|%s|%s" % [str(show), str(held), str(usable)]
+	if key == _power_key:
+		return
+	_power_key = key
+	power_bar.visible = show
+	for ch in power_bar.get_children():
+		ch.queue_free()
+	if not show:
+		return
+	for i in held.size():
+		var id: String = held[i]
+		var pw: Dictionary = Powers.POWERS.get(id, {})
+		var b := Button.new()
+		b.text = "%s %s" % [pw.get("icon", "?"), tr(pw.get("name", id))]
+		b.custom_minimum_size = Vector2(0, 60)
+		b.add_theme_font_size_override("font_size", 22)
+		b.disabled = not usable[i]
+		b.pressed.connect(_use_power.bind(id))
+		power_bar.add_child(b)
+
+
+func _use_power(id: String) -> void:
+	_sfx("tap")
+	if _am_acting_host():
+		if Room.use_power(st, tbl.my_player, id, _now()):
+			_broadcast()
+			_draw_state()
+	else:
+		tbl.send_event("power", {"id": id})
+	if id == "hot_cold":
+		_meter_t = 0.0
+		hint.text = tr("Hot / Cold: aim the middle of the screen.")
