@@ -41,7 +41,7 @@ var engine: E
 var world: World
 var view: SubViewport
 var title_label: Label
-var hearts_label: Label
+var hearts_label: Control  # drawn hearts (the ♥ glyph came from a fixed-size emoji font and stayed small)
 var feedback_label: Label
 var undo_btn: Button
 var safe_btn: Button
@@ -124,10 +124,10 @@ func _build_ui() -> void:
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.clip_text = true
 	bar.add_child(title_label)
-	hearts_label = Label.new()
-	hearts_label.add_theme_font_size_override("font_size", 30)
-	hearts_label.custom_minimum_size = Vector2(120, 0)
-	hearts_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hearts_label = Control.new()
+	hearts_label.custom_minimum_size = Vector2(170, 64)  # owner wanted bigger hearts (were a 30 px glyph)
+	hearts_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hearts_label.draw.connect(_draw_hearts)
 	bar.add_child(hearts_label)
 
 	feedback_label = Label.new()
@@ -244,28 +244,56 @@ func _set_skin(name: String) -> void:
 		title_label.add_theme_color_override("font_color", ink)
 	for b in my_buttons:
 		for st in ["normal", "hover", "pressed", "focus", "disabled"]:
-			if skin == "classic":
-				var sb := StyleBoxFlat.new()
-				sb.bg_color = Color("2f74d0").darkened(0.15 if st == "pressed" else 0.0).lightened(0.08 if st == "hover" else 0.0)
-				if st == "disabled":
-					sb.bg_color = Color("8fa9cc")
-				sb.set_corner_radius_all(18)
-				sb.border_color = Color("1d4f96")
-				sb.set_border_width_all(2)
-				b.add_theme_stylebox_override(st, sb)
-			else:
-				b.remove_theme_stylebox_override(st)
+			b.add_theme_stylebox_override(st, _btn_box(st))
 		for fc in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-			if skin == "classic":
-				b.add_theme_color_override(fc, Color.WHITE)
-			else:
-				b.remove_theme_color_override(fc)
-		if skin == "classic":
-			b.add_theme_color_override("font_disabled_color", Color(1, 1, 1, 0.7))
-		else:
-			b.remove_theme_color_override("font_disabled_color")
+			b.add_theme_color_override(fc, Color.WHITE if skin == "classic" else Color("e9f1ff"))
+		b.add_theme_color_override("font_disabled_color", Color(1, 1, 1, 0.6))
 	if hearts_label:
 		_update_hud()
+
+## Full hearts for lives left, faint ones for lives lost; right-aligned, ~44 px each.
+func _draw_hearts() -> void:
+	var c := hearts_label
+	var r := 11.0
+	var red := Color("e03131") if skin == "classic" else Color("ff4f4f")
+	var lost := Color(0.12, 0.16, 0.25, 0.22) if skin == "classic" else Color(1, 1, 1, 0.18)
+	var n := E.MAX_HEARTS
+	var have := engine.hearts if engine else n
+	for i in n:
+		var cx := c.size.x - (n - i - 0.5) * r * 4.6
+		var cy := c.size.y * 0.5 - 3.0
+		var k := red if i < have else lost
+		c.draw_circle(Vector2(cx - r * 0.95, cy), r, k)
+		c.draw_circle(Vector2(cx + r * 0.95, cy), r, k)
+		c.draw_colored_polygon(PackedVector2Array([Vector2(cx - r * 1.93, cy + r * 0.25),
+			Vector2(cx + r * 1.93, cy + r * 0.25), Vector2(cx, cy + r * 2.3)]), k)
+
+## Raised "key" buttons: rounded, a darker bottom lip and a soft shadow; pressed sinks the lip.
+func _btn_box(st: String) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	var face := Color("3b86e6") if skin == "classic" else Color("232a6e")
+	var lip := Color("1f58a8") if skin == "classic" else Color("27e0d0")
+	if st == "hover":
+		face = face.lightened(0.08)
+	elif st == "pressed":
+		face = face.darkened(0.12)
+	elif st == "disabled":
+		face = Color("93aacb") if skin == "classic" else Color("1a1f4a")
+		lip = Color("7d93b4") if skin == "classic" else Color("3b4590")
+	sb.bg_color = face
+	sb.set_corner_radius_all(22)
+	sb.border_color = lip
+	sb.set_border_width_all(0 if skin == "classic" else 2)
+	sb.border_width_bottom = 2 if st == "pressed" else 6
+	sb.shadow_color = Color(0, 0, 0, 0.22 if skin == "classic" else 0.4)
+	sb.shadow_size = 0 if st == "pressed" else 6
+	sb.shadow_offset = Vector2(0, 3)
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
+	sb.content_margin_top = 6 if st != "pressed" else 10
+	sb.content_margin_bottom = 6
+	sb.anti_aliasing = true
+	return sb
 
 func _ink_soft() -> Color:
 	return Color("2c5d8f") if skin == "classic" else Color(0.95, 0.88, 0.6)
@@ -372,8 +400,7 @@ func _update_hud() -> void:
 		title_label.text = tr("Endless %d") % (level - E.LEVEL_COUNT)
 	else:
 		title_label.text = tr("Level %d") % level
-	hearts_label.text = "♥".repeat(engine.hearts) + "♡".repeat(E.MAX_HEARTS - engine.hearts)
-	hearts_label.add_theme_color_override("font_color", Color("e03131") if skin == "classic" else Color("ff4f4f"))
+	hearts_label.queue_redraw()
 	undo_btn.disabled = engine.history.is_empty()
 
 # ---------- play ----------

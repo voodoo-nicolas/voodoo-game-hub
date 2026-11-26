@@ -13,7 +13,7 @@ const LIFT := 0.004
 ## Per-face darkening (+x, -x, +y, -y, +z, -z): fixed shading so the faces read apart from any angle.
 const FACE_SHADE := [0.07, 0.13, 0.0, 0.2, 0.04, 0.1]
 const TAP_SLOP := 14.0
-const LINE_W := 0.075     # ribbon half-width in cells (was 0.13: owner wanted thinner so the tip reads)
+const LINE_W := 0.058     # ribbon half-width in cells (was 0.13, then 0.075: owner wanted thinner so the tip reads)
 const SLIDE_SPEED := 11.0 # cells per second for the snake move
 
 var engine: E
@@ -44,7 +44,8 @@ var _pinch_d: float = 0.0
 # ---------- colours ----------
 
 const PAL := {
-	"classic": {"bg": Color("e8eef6"), "shape": Color("fbfcfe"), "line": Color("1d2433"), "two_a": Color("2fb95a"),
+	"classic": {"bg": Color("a9b9cf"),  # was e8eef6: owner wanted more contrast with the white cube
+		 "shape": Color("fbfcfe"), "line": Color("1d2433"), "two_a": Color("2fb95a"),
 		"two_b": Color("f0b51e"), "fork": Color("ef7d22"), "stop": Color("e03131"), "wrap": Color("4dabf7"),
 		"edge": Color("c5cfdc"), "safe": Color("16c060"), "bad": Color("e03131"), "pick": Color("7048e8")},
 	"voodoo": {"bg": Color("0a0d26"), "shape": Color("1b2156"), "line": Color("e9f1ff"), "two_a": Color("8cff5a"),
@@ -322,7 +323,7 @@ func _arrow_mesh(a: Dictionary, over = null) -> ArrayMesh:
 ## Line half-width / head size in world units: scale with the cell, but capped so big-cell
 ## levels (level 1) don't get chunky arrows.
 func _line_w() -> float:
-	return minf(LINE_W / engine.n, 0.024)
+	return minf(LINE_W / engine.n, 0.018)  # cap was 0.024
 
 func _head_s() -> float:
 	return minf(1.0 / engine.n, 0.36)
