@@ -143,8 +143,12 @@ static func _try(level: int, rng: RandomNumberGenerator, fast: bool) -> Dictiona
 static func time_for(level: int, block_count: int) -> int:
 	var d := difficulty(level)
 	# var per := lerpf(9.0, 4.6, d)
-	var per := lerpf(9.0, 4.6, d) if level <= 3 else lerpf(6.5, 3.6, d)  # tighter clock from level 4
-	var s := 15.0 + per * block_count
+	# var per := lerpf(9.0, 4.6, d) if level <= 3 else lerpf(6.5, 3.6, d)  # tighter clock from level 4
+	# var s := 15.0 + per * block_count
+	# Owner 2026-11-25: level ~45 took 20-25 s against a ~75 s clock, so 3 ★ was free. Clock cut ~40 % from level 4.
+	if level <= 3:
+		return int(ceil((15.0 + lerpf(9.0, 4.6, d) * block_count) / 5.0)) * 5
+	var s := 8.0 + lerpf(4.0, 2.2, d) * block_count
 	return int(ceil(s / 5.0)) * 5
 
 ## Holes: cut corners and a few inner cells from level 12.
