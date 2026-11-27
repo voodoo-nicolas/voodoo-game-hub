@@ -9,7 +9,9 @@ extends RefCounted
 ## plus ▶ Resume when a save exists and ← Hub (STANDARDS N1).
 ## Plugged into the Landing kit as cfg "landing": "amazonia" + "landing_style": this script
 ## (the kit's styled-Landing hook, docs/claude/landing-styles.md; Beached's wilson_landing.gd is the model).
-## The game passes cfg "aa_shop" (opens the Shop), "aa_wallet" (-> stars) and "aa_quick" (-> the mode to start).
+## The game passes cfg "aa_shop" (opens the Shop), "aa_wallet" (-> stars), "aa_quick" (-> the mode to start)
+## and "aa_avatar" (-> {"ch": her dressed character, "emote": id}). Since 2026-11-27 (owner) the menu sits
+## on the left and your amazon stands on the right, about 75% of the screen tall; tap her for your emote.
 
 static func build(kit, home: Control) -> Control:
 	if str(kit.cfg.get("landing", "")) != "amazonia":
@@ -42,6 +44,9 @@ class AmazoniaLanding extends Control:
 	const LEAF := Color("7fe08a")
 	const GREEN := Color("2bff88")
 	const SUB_H := 62.0
+	const CHAR_SCRIPT := "res://scripts/games/ancient_assassins/aa_character.gd"
+	const MENU_W := 0.58          # the menu's share of the width (left); she stands in the right half
+	const AVATAR_H := 0.82        # the stage's share of the height; she fills ~92% of it = ~75% of the screen
 
 	var kit
 	var _col: VBoxContainer
@@ -51,6 +56,10 @@ class AmazoniaLanding extends Control:
 	var _rows: Array = []          # every top-level button, for the entrance
 	var _groups: Array = []        # [head Button, holder Control, inner VBox, arrow text]
 	var _open := -1
+	var _stage: Control            # holds the 3D viewport of her
+	var _view: SubViewport
+	var _hero: Node3D
+	var _hero_sig := ""
 
 	func _init(k) -> void:
 		kit = k
@@ -92,6 +101,8 @@ class AmazoniaLanding extends Control:
 		add_child(shade)
 		shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
+		_make_stage()
+
 		_title = Label.new()
 		_title.text = kit.tr("Amazonia")
 		_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -126,6 +137,51 @@ class AmazoniaLanding extends Control:
 		visibility_changed.connect(_on_visible)
 		refresh()
 		_enter()
+
+	## The 3D stage of her, behind the menu (added before it).
+	func _make_stage() -> void:
+		var cs = load(CHAR_SCRIPT)
+		if cs == null:
+			return
+		_stage = Control.new()
+		_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_stage)
+		_view = cs.make_stage(_stage, 100.0, false)
+		var vc := _view.get_parent() as Control
+		vc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		vc.mouse_filter = Control.MOUSE_FILTER_STOP
+		vc.gui_input.connect(_on_avatar_input)
+		_view.get_node("Cam").fov = 40.0
+		cs.frame_cam(_view, 1.13)
+
+	## Her, dressed as she is now (rebuilt only when her look changed).
+	func _refresh_hero() -> void:
+		if _view == null:
+			return
+		var a = kit.cfg.get("aa_avatar")
+		if not (a is Callable):
+			return
+		var info: Dictionary = a.call()
+		var ch: Dictionary = info.get("ch", {})
+		var sig := str(ch)
+		if sig == _hero_sig and _hero and is_instance_valid(_hero):
+			return
+		_hero_sig = sig
+		if _hero and is_instance_valid(_hero):
+			_hero.queue_free()
+		_hero = load(CHAR_SCRIPT).new()
+		_view.add_child(_hero)
+		_hero.build(ch, false)
+		_hero.play("idle", 0.0)
+		_hero.rotation.y = -0.4      # a little turned towards the menu
+
+	func _on_avatar_input(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+			var a = kit.cfg.get("aa_avatar")
+			if a is Callable and _hero and is_instance_valid(_hero):
+				var id := str((a.call() as Dictionary).get("emote", ""))
+				if id != "":
+					_hero.play_emote(id)
 
 	func _button(parent: Control, text: String, color: Color, action: Callable, h: float = 70.0, fs: int = 30) -> Button:
 		var b := Button.new()
@@ -251,6 +307,10 @@ class AmazoniaLanding extends Control:
 		_col.position.x = x + off
 		var ct := _col.create_tween().set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 		ct.tween_property(_col, "position:x", x, 0.5)
+		if _stage:
+			_stage.modulate.a = 0.0
+			var st := _stage.create_tween().set_parallel(true).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+			st.tween_property(_stage, "modulate:a", 1.0, 0.5).set_delay(0.15)
 
 	func _on_visible() -> void:
 		if is_visible_in_tree():
@@ -261,17 +321,29 @@ class AmazoniaLanding extends Control:
 		var vs := size
 		if vs.x <= 0.0:
 			return
-		var w := clampf(vs.x - 64.0, 280.0, 560.0)
+		# Menu on the left, her on the right.
+		var w := clampf(vs.x * MENU_W, 270.0, 520.0)
+		var fs := 28 if w < 440.0 else 30
+		var sub_fs := 24 if w < 440.0 else 26
 		_title.size = Vector2(vs.x, 100)
 		_title.position = Vector2(0, maxf(70.0, vs.y * 0.09))
 		_title.pivot_offset = _title.size * 0.5
+		for r in _rows:
+			(r as Button).add_theme_font_size_override("font_size", fs)
 		for g in _groups:
 			(g[2] as Control).size.x = w
+			for b in (g[2] as Control).get_children():
+				(b as Button).add_theme_font_size_override("font_size", sub_fs)
 		_col.custom_minimum_size.x = w
 		_col.reset_size()
 		var h := _col.get_combined_minimum_size().y
 		_col.size = Vector2(w, h)
-		_col.position = Vector2((vs.x - w) * 0.5, vs.y - h - 40.0 - vs.y * 0.03)
+		_col.position = Vector2(18.0, vs.y - h - 40.0 - vs.y * 0.03)
+		if _stage:
+			var sh := vs.y * AVATAR_H
+			var x0 := vs.x * 0.46
+			_stage.position = Vector2(x0, vs.y - sh - vs.y * 0.02)
+			_stage.size = Vector2(vs.x - x0, sh)
 
 	func _on_shop() -> void:
 		if kit._dragged():
@@ -298,6 +370,7 @@ class AmazoniaLanding extends Control:
 	func refresh() -> void:
 		if _resume == null:
 			return
+		_refresh_hero()
 		_resume.visible = kit.resume_btn.visible
 		var w = kit.cfg.get("aa_wallet")
 		_shop.text = "🛒  " + kit.tr("Shop") + ("     ⭐ %d" % int(w.call()) if w is Callable else "")

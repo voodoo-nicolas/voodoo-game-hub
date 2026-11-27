@@ -21,6 +21,21 @@ const HAIR := {
 	"parted": DIR + "Hair_SimpleParted.gltf", "short": DIR + "Hair_BuzzedFemale.gltf",
 }
 
+## Shop dances (2026-11-27): the clip each one stands on while its overlay (_overlay) moves the
+## body on top of it. "" (the default) is Quaternius' Dance_Loop ("win").
+const DANCES := {
+	"samba": {"clip": "win", "speed": 1.35},
+	"belly": {"clip": "idle", "speed": 1.0},
+	"twirl": {"clip": "idle", "speed": 1.0},
+	"strut": {"clip": "strut", "speed": 1.0},
+	"pump": {"clip": "idle", "speed": 1.0},
+}
+## Shop emotes: one-shot overlays on the idle pose, seconds long.
+const EMOTES := {"wave": 2.6, "kiss": 2.4, "hips": 2.8, "flex": 2.6, "flip": 2.4, "salute": 2.2}
+## Bones the pose layer may turn (parents first); each is keyed in every clip.
+const POSE_BONES := ["root", "pelvis", "spine_01", "spine_02", "spine_03", "neck_01", "Head", "clavicle_l", "clavicle_r",
+	"upperarm_l", "upperarm_r", "lowerarm_l", "lowerarm_r", "hand_l", "hand_r", "thigh_l", "thigh_r", "calf_l", "calf_r", "foot_l", "foot_r"]
+
 const BODY_SHADER := """
 shader_type spatial;
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap;
@@ -69,6 +84,10 @@ uniform float sheen = 0.0;
 uniform int stock_net = 0;
 uniform bool seams = false;
 uniform vec4 decal_col : source_color = vec4(1.0);
+// Tattoos (2026-11-27): 0 none, 1 tribal armbands, 2 rose (left thigh), 3 butterfly (lower back),
+// 4 sun (belly), 5 ankle vines, 6 tribal sleeve (left arm). Ink only shows on skin.
+uniform int tat = 0;
+uniform vec4 tat_col : source_color = vec4(0.03, 0.03, 0.05, 0.95);
 varying vec3 rp;
 void vertex() {
 	rp = CUSTOM0.xyz;
@@ -100,6 +119,61 @@ vec3 pat(vec3 base) {
 	}
 	return base;
 }
+float ringm(float a, float b, float x) {
+	return step(a, x) * step(x, b);
+}
+float tattoo(vec3 r) {
+	float ax = abs(r.x);
+	float m = 0.0;
+	bool arm = ax > 0.17 && r.y > 1.3;
+	bool leg = r.y < 0.86;
+	bool front = r.z > -0.03;
+	if (tat == 1 && arm && ax > 0.2 && ax < 0.36) {
+		float th = atan(r.z, r.y - 1.42);
+		float zz = abs(fract(th * 2.4) - 0.5) * 0.03;
+		float mid = step(abs(ax - 0.268 - zz + 0.0075), 0.0065);
+		m = max(ringm(0.215, 0.235, ax), max(ringm(0.30, 0.32, ax), mid));
+	} else if (tat == 2 && leg && front && r.x > 0.0) {
+		vec2 d = vec2(r.x - 0.12, r.y - 0.66);
+		float R = length(d);
+		float a = atan(d.y, d.x);
+		if (R < 0.062) {
+			float petals = 1.0 - smoothstep(0.25, 0.45, abs(sin(R * 120.0 - a * 2.0)));
+			m = max(petals, step(0.055, R) * 0.9);
+		}
+		vec2 l1 = (d - vec2(0.05, -0.065)) / vec2(0.035, 0.014);
+		vec2 l2 = (d - vec2(-0.045, -0.07)) / vec2(0.035, 0.014);
+		if (length(l1) < 1.0 || length(l2) < 1.0) m = 0.9;
+	} else if (tat == 3 && !leg && !arm && r.z < -0.03) {
+		vec2 q = vec2(ax, r.y - 1.11);
+		float up = length((q - vec2(0.055, 0.032)) / vec2(0.055, 0.034));
+		float lo = length((q - vec2(0.04, -0.03)) / vec2(0.036, 0.026));
+		float w = min(up, lo);
+		if (w < 1.0) m = (w > 0.78) ? 1.0 : 0.4;
+		if (ax < 0.006 && abs(q.y) < 0.055) m = 1.0;
+		if (ax < 0.035 && q.y > 0.055 && q.y < 0.1 && abs(ax - (q.y - 0.055) * 0.8) < 0.004) m = 1.0;
+	} else if (tat == 4 && !leg && !arm && front) {
+		vec2 d = vec2(r.x, r.y - 1.07);
+		float R = length(d);
+		float a = atan(d.y, d.x);
+		if (R < 0.016) m = 1.0;
+		else if (R > 0.021 && R < 0.026) m = 1.0;
+		else if (R > 0.031 && R < 0.052 && abs(sin(a * 8.0)) > 0.7) m = 1.0;
+	} else if (tat == 5 && leg && r.y > 0.07 && r.y < 0.24) {
+		float th = atan(r.z + 0.03, r.x - sign(r.x) * 0.11);
+		float vine = r.y - 0.15 - 0.022 * sin(th * 3.0);
+		m = step(abs(vine), 0.007);
+		float leaf = length(vec2(fract(th * 2.0) - 0.5, (r.y - 0.17) * 18.0));
+		if (leaf < 0.34 && r.y > 0.17) m = 1.0;
+	} else if (tat == 6 && arm && r.x > 0.0 && ax > 0.2 && ax < 0.64) {
+		float th = atan(r.z, r.y - 1.42);
+		float s1 = step(0.8, fract(ax * 16.0 + th * 0.9));
+		float s2 = 1.0 - smoothstep(0.1, 0.2, abs(sin(th * 5.0 + ax * 26.0)));
+		m = max(s1, s2 * 0.9);
+		if (ax < 0.3) m = max(m, 0.6);
+	}
+	return m;
+}
 void fragment() {
 	vec3 c = texture(albedo_tex, UV).rgb;
 	float mx = max(c.r, max(c.g, c.b));
@@ -110,6 +184,9 @@ void fragment() {
 	float shade = clamp(lum / 0.5, 0.45, 1.25);
 	vec3 fabric = pattern == 0 ? outfit.rgb * shade : pat(outfit.rgb) * mix(1.0, shade, 0.6);
 	vec3 col = mix(c * skin.rgb, fabric, cloth);
+	if (tat > 0) {
+		col = mix(col, tat_col.rgb * (0.5 + 0.5 * lum), tattoo(rp) * tat_col.a * (1.0 - cloth));
+	}
 	float rough = mix(texture(rough_tex, UV).g * 0.85, 0.35, cloth);
 	// Painted garments, in the rest pose.
 	vec3 r = rp;
@@ -276,6 +353,23 @@ var _knock_s := 0.0
 var _knock_side := 1.0
 var _knock_ko := false
 var _model_base := Transform3D.IDENTITY
+# Pose layer (2026-11-27): each amazon stands her own way (stance = degrees per bone, turned in
+# MODEL space on top of the clip), and the Shop's emotes / dances move the body the same way.
+signal emote_done
+var _bones := {}          # bone name -> index
+var _base_rot := {}       # index -> local rotation the clip gave it this frame (before the layer)
+var _stance := {}         # bone -> Vector3 degrees
+var _stance_w := 1.0
+var _state := "idle"      # the clip name the game asked for ("idle", "ready", "aim", "win"...)
+var _dance := ""
+var _ov := ""             # running overlay: an emote id or "d:<dance>"
+var _ov_t := 0.0
+var _ov_len := 0.0
+var _ov_w := 0.0
+var _ov_off := false
+var _spin := 0.0
+var _idle_clip := "idle"
+var _hair_tint := Color("2a1a10")
 
 func build(ch: Dictionary, skull: bool = false) -> void:
 	if _body_shader == null:
@@ -288,8 +382,13 @@ func build(ch: Dictionary, skull: bool = false) -> void:
 		_anims = load(ANIMS)
 	model = (load(BODY) as PackedScene).instantiate()
 	add_child(model)
+	model.scale = ch.get("scale", Vector3.ONE)   # height / build, so they are not clones
+	model.position.y = -float(ch.get("drop", 0.0))   # bent knees keep her feet on the ground
 	_model_base = model.transform
 	skel = model.find_child("Skeleton3D", true, false)
+	_stance = ch.get("stance", {})
+	_idle_clip = str(ch.get("idle_clip", "idle"))
+	_hair_tint = ch.get("hair_col", Color("2a1a10"))
 	# Body: the recolouring shader.
 	body_mat = ShaderMaterial.new()
 	body_mat.shader = _body_shader
@@ -303,6 +402,7 @@ func build(ch: Dictionary, skull: bool = false) -> void:
 		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	# Hair, skinned to the same skeleton.
 	var hair_path: String = HAIR.get(str(ch.get("hair3d", "long")), HAIR.long)
+	var extra := str(ch.get("hair_extra", ""))
 	var hair_scene: Node3D = (load(hair_path) as PackedScene).instantiate()
 	var hair_mat := ShaderMaterial.new()
 	hair_mat.shader = _hair_shader
@@ -320,6 +420,9 @@ func build(ch: Dictionary, skull: bool = false) -> void:
 		mi.skeleton = NodePath("..")
 		mi.material_override = hair_mat
 	hair_scene.free()
+	if extra != "":
+		_hair_extra(extra, _attach("Head"))
+	body_mat.set_shader_parameter("tat", int(ch.get("tattoo", 0)))
 	_dress(ch)
 	weapon_holder = _attach("hand_r")
 	weapon_holder.transform = skel.get_bone_global_rest(skel.find_bone("hand_r")).affine_inverse() * Transform3D(Basis.IDENTITY, Vector3(-0.66, 1.39, 0.0))
@@ -328,13 +431,20 @@ func build(ch: Dictionary, skull: bool = false) -> void:
 	anim = AnimationPlayer.new()
 	model.add_child(anim)
 	anim.root_node = NodePath("..")
+	anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL   # _process advances it, then the pose layer
 	if _anims:
 		anim.add_animation_library("", _anims)
+	for b in POSE_BONES:
+		var bi := skel.find_bone(b)
+		if bi >= 0:
+			_bones[b] = bi
+			_base_rot[bi] = skel.get_bone_pose_rotation(bi)
 	play("idle", 0.0)
-	# No two assassins breathe in step: a random start and a slightly different pace.
-	if anim.has_animation("idle"):
-		anim.seek(randf() * anim.get_animation("idle").length, true)
-	anim.speed_scale = randf_range(0.93, 1.07)
+	# No two assassins breathe in step: a random start and her own pace.
+	var clip := _idle_clip if anim.has_animation(_idle_clip) else "idle"
+	if anim.has_animation(clip):
+		anim.seek(randf() * anim.get_animation(clip).length, true)
+	anim.speed_scale = float(ch.get("pace", 1.0)) * randf_range(0.97, 1.03)
 
 ## A node that follows `bone` (sits exactly on it).
 func _attach(bone: String) -> Node3D:
@@ -664,6 +774,155 @@ func _costume(id: String) -> void:
 			_place(hips, tip, "pelvis", Transform3D(Basis(Vector3.BACK, -0.9), Vector3(0.23, 0.58, -0.14)))
 			for sx in [-1.0, 1.0]:
 				_demon_wing(chest, sx)
+		"domina":
+			# Glossy black: a studded corset with silver trim and lacing, tiny shorts, thigh-high
+			# boots, long gloves, a spiked choker, silver cuffs, garter straps, a belt and a riding crop.
+			var silver_m := _mat(Color("d6dae2"), 0.2, 0.95)
+			var latex := _mat(Color("0a0a0d"), 0.12, 0.2)
+			_paint({"top_col": Color("08080b"), "top_y": Vector2(1.0, 1.4), "trim_col": Color("c8ccd4"), "decal": 4,
+				"corset": 1, "sheen": 0.8, "top_rough": 0.14, "bot_col": Color("08080b"), "bot_y": 0.82, "bot_top": 1.04,
+				"boot_col": Color("060608"), "boot_y": 0.8, "glove_col": Color("060608"), "glove_x": 0.3})
+			# Studs down the corset front.
+			for k in 5:
+				_place(chest, _ball(0.009, silver_m), "spine_03", Transform3D(Basis.IDENTITY, Vector3(0.055, 1.07 + k * 0.058, 0.108 - absf(k - 2) * 0.004)))
+			# Garter straps from the belt to the boot tops.
+			for sx in [-1.0, 1.0]:
+				_rod(hips, "pelvis", Vector3(sx * 0.115, 1.02, 0.1), Vector3(sx * 0.125, 0.83, 0.1), 0.008, 0.008, latex)
+				_rod(hips, "pelvis", Vector3(sx * 0.17, 1.02, -0.02), Vector3(sx * 0.2, 0.83, -0.02), 0.008, 0.008, latex)
+				_place(hips, _ball(0.013, silver_m), "pelvis", Transform3D(Basis.IDENTITY, Vector3(sx * 0.125, 0.835, 0.1)))
+			# A belt with a ring buckle, the crop at the hip.
+			_place(hips, _flare_mesh(1.06, 0.035, 0.19, 0.135, 0.195, 0.138, 1, 0.0, 0.0, TAU, false, Color("0a0a0d"), Color("0a0a0d")), "pelvis", Transform3D.IDENTITY)
+			_place(hips, _torus(0.016, 0.024, silver_m), "pelvis", Transform3D(Basis(Vector3.RIGHT, PI / 2), Vector3(0, 1.04, 0.12)))
+			_rod(hips, "pelvis", Vector3(-0.2, 1.03, 0.0), Vector3(-0.36, 0.78, 0.1), 0.007, 0.006, latex)
+			_place(hips, _box(Vector3(0.035, 0.05, 0.006), latex), "pelvis", Transform3D(Basis(Vector3.BACK, 0.5), Vector3(-0.375, 0.76, 0.105)))
+			# Choker with spikes, a ring at the front.
+			_place(chest, _torus(0.055, 0.064, latex), "spine_03", Transform3D.IDENTITY.translated(Vector3(0, 1.52, -0.005)))
+			for k in 9:
+				var a := PI * 0.15 + PI * 0.7 * k / 8.0
+				var sp := MeshInstance3D.new()
+				var pm := PrismMesh.new()
+				pm.size = Vector3(0.012, 0.022, 0.012)
+				sp.mesh = pm
+				sp.material_override = silver_m
+				_place(chest, sp, "spine_03", Transform3D(Basis(Vector3.UP, a - PI / 2).rotated(Vector3.RIGHT, 0.0), Vector3(sin(a - PI / 2) * -0.07, 1.525, cos(a - PI / 2) * 0.07 - 0.005)))
+			_place(chest, _torus(0.009, 0.014, silver_m), "spine_03", Transform3D(Basis(Vector3.RIGHT, PI / 2), Vector3(0, 1.495, 0.065)))
+			# Silver cuffs on both wrists.
+			for side in ["l", "r"]:
+				var sxx := 1.0 if side == "l" else -1.0
+				var arm := _attach("lowerarm_" + side)
+				_place(arm, _cyl(0.038, 0.038, 0.045, silver_m), "lowerarm_" + side, Transform3D(Basis(Vector3.BACK, PI / 2), Vector3(sxx * 0.6, 1.415, -0.03)))
+			# A peaked cap, tilted, with a silver badge.
+			_place(head, _cyl(0.112, 0.1, 0.06, latex), "Head", Transform3D(Basis(Vector3.RIGHT, -0.1).rotated(Vector3.BACK, 0.12), Vector3(0.01, 1.775, 0.0)))
+			_place(head, _cyl(0.12, 0.12, 0.008, latex), "Head", Transform3D(Basis(Vector3.RIGHT, -0.1).rotated(Vector3.BACK, 0.12).scaled(Vector3(1.0, 1.0, 1.2)), Vector3(0.01, 1.748, 0.045)))
+			_place(head, _ball(0.016, silver_m), "Head", Transform3D(Basis.IDENTITY.scaled(Vector3(1.0, 1.0, 0.4)), Vector3(0.012, 1.775, 0.112)))
+		"belly":
+			# Teal and gold: a jewelled top with straps, a low hip band, sheer harem trousers gathered
+			# at gold ankle cuffs, a coin belt, bangles, a tiara and a face veil. Bare midriff.
+			var teal_c := Color("0aa6a8")
+			var gold_m := _mat(Color("f0c04a"), 0.25, 0.85)
+			var sheer := StandardMaterial3D.new()
+			sheer.albedo_color = Color(0.12, 0.78, 0.8, 0.5)
+			sheer.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			sheer.cull_mode = BaseMaterial3D.CULL_DISABLED
+			sheer.roughness = 0.3
+			sheer.rim_enabled = true
+			sheer.rim = 0.4
+			_paint({"top_col": teal_c, "top_y": Vector2(1.25, 1.4), "trim_col": Color("f0c04a"), "decal": 4, "sheen": 0.6, "top_rough": 0.3,
+				"bot_col": teal_c, "bot_y": 0.9, "bot_top": 0.98})
+			# Gold fringe and a jewel on the top.
+			for k in 7:
+				_place(chest, _ball(0.011, gold_m), "spine_03", Transform3D(Basis.IDENTITY, Vector3(-0.065 + k * 0.0217, 1.255, 0.098)))
+			_place(chest, _ball(0.016, _mat(Color("e0206a"), 0.1, 0.4)), "spine_03", Transform3D(Basis.IDENTITY, Vector3(0, 1.33, 0.12)))
+			# Harem trousers: a wide thigh and a wide calf per leg, gathered at the ankle.
+			for sx in [-1.0, 1.0]:
+				var side := "l" if sx > 0.0 else "r"
+				var th := _attach("thigh_" + side)
+				var cf := _attach("calf_" + side)
+				_rod(th, "thigh_" + side, Vector3(sx * 0.098, 0.93, -0.01), Vector3(sx * 0.098, 0.53, -0.015), 0.115, 0.125, sheer)
+				_rod(cf, "calf_" + side, Vector3(sx * 0.098, 0.53, -0.015), Vector3(sx * 0.098, 0.12, 0.0), 0.125, 0.075, sheer)
+				_place(cf, _cyl(0.064, 0.064, 0.035, gold_m), "calf_" + side, Transform3D(Basis.IDENTITY, Vector3(sx * 0.098, 0.11, 0.0)))
+				_place(th, _cyl(0.06, 0.06, 0.03, gold_m), "thigh_" + side, Transform3D(Basis.IDENTITY, Vector3(sx * 0.098, 0.62, -0.012)))
+			# The coin belt: a gold band and hanging coins all round the hips.
+			_place(hips, _flare_mesh(1.0, 0.03, 0.2, 0.145, 0.205, 0.148, 1, 0.0, 0.0, TAU, false, Color("f0c04a"), Color("f0c04a")), "pelvis", Transform3D.IDENTITY)
+			for k in 26:
+				var a := TAU * k / 26.0
+				var cn := _cyl(0.012, 0.012, 0.004, gold_m)
+				_place(hips, cn, "pelvis", Transform3D(Basis(Vector3.RIGHT, PI / 2.0 - 0.0).rotated(Vector3.UP, a), Vector3(sin(a) * 0.212, 0.955 - (k % 2) * 0.03, -0.04 + cos(a) * 0.152)))
+			# Bangles and upper-arm bands.
+			for side in ["l", "r"]:
+				var sxx := 1.0 if side == "l" else -1.0
+				var lo := _attach("lowerarm_" + side)
+				for k in 3:
+					_place(lo, _cyl(0.034, 0.034, 0.008, gold_m), "lowerarm_" + side, Transform3D(Basis(Vector3.BACK, PI / 2), Vector3(sxx * (0.58 + k * 0.014), 1.415, -0.03)))
+				var up := _attach("upperarm_" + side)
+				_place(up, _cyl(0.05, 0.05, 0.03, gold_m), "upperarm_" + side, Transform3D(Basis(Vector3.BACK, PI / 2), Vector3(sxx * 0.27, 1.42, -0.01)))
+			# Tiara and a face veil under the eyes.
+			_place(head, _torus(0.096, 0.104, gold_m), "Head", Transform3D(Basis(Vector3.RIGHT, 0.32), Vector3(0, 1.735, 0.01)))
+			_place(head, _ball(0.016, _mat(Color("e0206a"), 0.1, 0.4)), "Head", Transform3D(Basis.IDENTITY, Vector3(0, 1.775, 0.095)))
+			var veil := StandardMaterial3D.new()
+			veil.albedo_color = Color(0.12, 0.78, 0.8, 0.38)
+			veil.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			veil.cull_mode = BaseMaterial3D.CULL_DISABLED
+			_place(head, _box(Vector3(0.14, 0.05, 0.004), veil), "Head", Transform3D(Basis(Vector3.RIGHT, 0.12), Vector3(0, 1.628, 0.098)))
+			for k in 5:
+				_place(head, _ball(0.007, gold_m), "Head", Transform3D(Basis.IDENTITY, Vector3(-0.06 + k * 0.03, 1.646, 0.104)))
+
+# ---------- Shop hairstyles (2026-11-27): the base hair plus pieces made of simple shapes ----------
+
+func _hair_mat() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = _hair_tint
+	m.roughness = 0.5
+	m.metallic_specular = 0.5
+	return m
+
+## A tail of balls and tapered rods through points (model rest space) under the Head bone.
+func _tail(head: Node3D, pts: Array, rad: Array, m: Material) -> void:
+	for k in pts.size() - 1:
+		_rod(head, "Head", pts[k], pts[k + 1], rad[k], rad[k + 1], m)
+	for k in pts.size():
+		_place(head, _ball(rad[k], m), "Head", Transform3D(Basis.IDENTITY, pts[k]))
+
+func _hair_extra(kind: String, head: Node3D) -> void:
+	var hm := _hair_mat()
+	var tie := _mat(Color("e8b84a"), 0.3, 0.8)
+	match kind:
+		"ponytail":
+			_tail(head, [Vector3(0, 1.765, -0.07), Vector3(0, 1.735, -0.15), Vector3(0, 1.66, -0.2), Vector3(0, 1.55, -0.2), Vector3(0, 1.43, -0.16)], [0.04, 0.052, 0.05, 0.038, 0.012], hm)
+			_place(head, _ball(0.036, tie), "Head", Transform3D(Basis.IDENTITY, Vector3(0, 1.755, -0.095)))
+		"pigtails":
+			for sx in [-1.0, 1.0]:
+				_tail(head, [Vector3(sx * 0.1, 1.745, -0.03), Vector3(sx * 0.14, 1.7, -0.04), Vector3(sx * 0.16, 1.6, -0.03), Vector3(sx * 0.16, 1.5, -0.02), Vector3(sx * 0.15, 1.42, -0.01)], [0.036, 0.046, 0.042, 0.03, 0.01], hm)
+				_place(head, _ball(0.03, tie), "Head", Transform3D(Basis.IDENTITY, Vector3(sx * 0.115, 1.735, -0.035)))
+		"braids":
+			for sx in [-1.0, 1.0]:
+				for k in 11:
+					var t := k / 10.0
+					var c := Vector3(sx * (0.12 - 0.01 * t) + (0.011 if k % 2 == 0 else -0.011), 1.62 - 0.34 * t, 0.045 + 0.02 * t)
+					var b := _ball(0.026 - 0.011 * t, hm)
+					_place(head, b, "Head", Transform3D(Basis.IDENTITY.scaled(Vector3(1.0, 1.45, 1.0)), c))
+				_place(head, _ball(0.016, tie), "Head", Transform3D(Basis.IDENTITY, Vector3(sx * 0.11, 1.28, 0.065)))
+		"afro":
+			_place(head, _ball(0.17, hm), "Head", Transform3D(Basis.IDENTITY.scaled(Vector3(1.0, 0.95, 1.0)), Vector3(0, 1.775, -0.02)))
+			for k in 22:
+				var y := 1.0 - 2.0 * (k + 0.5) / 22.0
+				var r := sqrt(1.0 - y * y)
+				var a := k * 2.39996
+				var dir := Vector3(cos(a) * r, y * 0.95, sin(a) * r)
+				if dir.y < -0.35 or dir.z > 0.55:
+					continue
+				_place(head, _ball(0.055, hm), "Head", Transform3D(Basis.IDENTITY, Vector3(0, 1.775, -0.02) + dir * 0.15))
+		"topknot":
+			_place(head, _ball(0.07, hm), "Head", Transform3D(Basis.IDENTITY, Vector3(0, 1.85, -0.02)))
+			_place(head, _cyl(0.04, 0.05, 0.05, hm), "Head", Transform3D(Basis.IDENTITY, Vector3(0, 1.8, -0.015)))
+			_place(head, _torus(0.045, 0.054, tie), "Head", Transform3D(Basis.IDENTITY, Vector3(0, 1.815, -0.015)))
+		"mohawk":
+			for k in 11:
+				var t := k / 10.0
+				var h := 0.07 + 0.06 * sin(t * PI)
+				var z := lerpf(0.09, -0.13, t)
+				var y := 1.8 - 0.05 * absf(t - 0.35) + h * 0.45 - 0.02
+				_place(head, _box(Vector3(0.026, h, 0.05), hm), "Head", Transform3D(Basis(Vector3.RIGHT, -0.5 * (t - 0.4)), Vector3(0, y, z)))
 
 ## The wing's frame: (u outward, v up) in metres on her back -> model rest space.
 func _wing_pt(sx: float, u: float, v: float) -> Vector3:
@@ -742,6 +1001,69 @@ func _demon_wing(chest: Node3D, sx: float) -> void:
 	mem.material_override = mm
 	_place(chest, mem, "spine_03", Transform3D.IDENTITY)
 
+## A little 3D stage for the amazon: its own world, transparent, warm lights, (optionally) a
+## gold plinth under her feet. Returns the SubViewport; the camera is its child "Cam".
+## The Shop's preview, Options and the Landing all use it.
+static func make_stage(parent: Control, h: float, plinth: bool = true) -> SubViewport:
+	var vc := SubViewportContainer.new()
+	vc.stretch = true
+	vc.custom_minimum_size = Vector2(0, h)
+	vc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(vc)
+	var vp := SubViewport.new()
+	vp.own_world_3d = true
+	vp.transparent_bg = true
+	vp.msaa_3d = Viewport.MSAA_2X
+	vc.add_child(vp)
+	var we := WorldEnvironment.new()
+	var e := Environment.new()
+	e.background_mode = Environment.BG_CLEAR_COLOR
+	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	e.ambient_light_color = Color(0.8, 0.85, 0.95)
+	e.ambient_light_energy = 0.7
+	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	we.environment = e
+	vp.add_child(we)
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-30, 25, 0)
+	sun.light_energy = 1.2
+	vp.add_child(sun)
+	var rim := DirectionalLight3D.new()   # a warm rim from behind
+	rim.rotation_degrees = Vector3(-15, 200, 0)
+	rim.light_energy = 1.6
+	rim.light_color = Color("ffb877")
+	vp.add_child(rim)
+	if plinth:
+		var disc := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = 0.42
+		tm.outer_radius = 0.5
+		tm.rings = 40
+		disc.mesh = tm
+		disc.scale = Vector3(1, 0.15, 1)
+		var dm := StandardMaterial3D.new()
+		dm.albedo_color = Color("e8b84a")
+		dm.metallic = 0.8
+		dm.roughness = 0.3
+		dm.emission_enabled = true
+		dm.emission = Color("ffb84a") * 0.4
+		disc.material_override = dm
+		vp.add_child(disc)
+	var cam := Camera3D.new()
+	cam.name = "Cam"
+	cam.fov = 40
+	vp.add_child(cam)
+	frame_cam(vp, 1.0)
+	return vp
+
+## Camera for the stage: zoom 1 = the whole amazon, 2+ = closer (looks higher up her body).
+static func frame_cam(vp: SubViewport, zoom: float) -> void:
+	var cam: Camera3D = vp.get_node("Cam")
+	var z := clampf(zoom, 0.55, 3.2)
+	var look := Vector3(0, lerpf(0.95, 1.5, clampf((z - 1.0) / 1.6, 0.0, 1.0)) , 0)
+	cam.position = Vector3(0, look.y + 0.12, 3.1 / z)
+	cam.look_at(look)
+
 ## Puts `node` under `holder` (which follows `bone`) so it sits at `rest_xf`
 ## (model space, metres) in the T-pose.
 func _place(holder: Node3D, node: Node3D, bone: String, rest_xf: Transform3D) -> void:
@@ -773,16 +1095,63 @@ func set_weapon(w: int, mesh_maker: Callable) -> void:
 	m.transform = Transform3D(Basis.IDENTITY, Vector3(0, -0.02, 0)) if w == 0 else Transform3D(Basis(Vector3.RIGHT, -PI / 2.0), Vector3(0, -0.03, 0.05))
 
 ## Plays a clip unless it's already the current one (a one-shot clip that has
-## ended keeps its last pose); `force` restarts it (a second hit).
+## ended keeps its last pose); `force` restarts it (a second hit). "idle" uses her own idle
+## clip; "win" plays her Shop dance when she has one.
 func play(name: String, blend: float = 0.2, force: bool = false) -> void:
-	if anim == null or not anim.has_animation(name):
+	if anim == null:
 		return
-	if name == current and not force:
+	_state = name
+	var clip := name
+	if name == "win" and _dance != "" and DANCES.has(_dance):
+		clip = str(DANCES[_dance].clip)
+		if _ov != "d:" + _dance:
+			_start_ov("d:" + _dance, 0.0)
+		anim.speed_scale = float(DANCES[_dance].speed)
+	else:
+		if _ov.begins_with("d:"):
+			_ov_off = true
+		if name == "idle" and anim.has_animation(_idle_clip):
+			clip = _idle_clip
+	if not anim.has_animation(clip):
+		return
+	if clip == current and not force:
 		return
 	if force:
 		anim.stop()
-	current = name
-	anim.play(name, blend)
+	current = clip
+	anim.play(clip, blend)
+
+## The dance she does when she wins ("" = the classic one).
+func set_dance(id: String) -> void:
+	_dance = id
+
+## Dance now (the Shop preview and the Landing); stop_overlay() ends it.
+func start_dance(id: String) -> void:
+	_dance = id
+	_ov = ""
+	play("win", 0.3, true)
+
+func play_emote(id: String) -> void:
+	if not EMOTES.has(id) or _ov.begins_with("d:"):
+		return
+	_start_ov(id, float(EMOTES[id]))
+
+func stop_overlay() -> void:
+	_ov_off = true
+	if _state == "win":
+		play("idle", 0.4)
+
+func is_emoting() -> bool:
+	return _ov != "" and not _ov_off and not _ov.begins_with("d:")
+
+func _start_ov(id: String, length: float) -> void:
+	_ov = id
+	_ov_t = 0.0
+	_ov_len = length
+	_ov_off = false
+	_ov_w = 0.0
+	if id.begins_with("d:"):
+		_spin = 0.0
 
 func queue_after(name: String) -> void:
 	if anim:
@@ -825,6 +1194,165 @@ func _apply_knock(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_apply_knock(delta)
+	if anim:
+		_pose_step(delta)
 	if _flash_t > 0.0 and body_mat:
 		_flash_t = maxf(0.0, _flash_t - delta)
 		body_mat.set_shader_parameter("flash", Color(1, 1, 1, _flash_t * 2.4))
+
+## Restore the clip's own rotations, advance the clip, then turn the bones by stance + overlay.
+func _pose_step(delta: float) -> void:
+	for bi in _base_rot:
+		skel.set_bone_pose_rotation(bi, _base_rot[bi])
+	anim.advance(delta)
+	for bi in _base_rot:
+		_base_rot[bi] = skel.get_bone_pose_rotation(bi)
+	# Her stance shows when she stands (idle / ready / dance), half while aiming, not mid-hit or throw.
+	var want := 1.0 if _state in ["idle", "ready", "win"] else (0.35 if _state == "aim" else 0.0)
+	_stance_w = move_toward(_stance_w, want, delta * 3.0)
+	var d := {}
+	if _stance_w > 0.001:
+		for b in _stance:
+			d[b] = (_stance[b] as Vector3) * _stance_w
+	if _ov != "":
+		_ov_t += delta
+		var dance := _ov.begins_with("d:")
+		var w := 1.0
+		if dance:
+			_ov_w = move_toward(_ov_w, 0.0 if _ov_off else 1.0, delta * 2.5)
+			w = _ov_w
+			if _ov_off and _ov_w <= 0.0:
+				_ov = ""
+		else:
+			if _ov_off:
+				_ov_len = minf(_ov_len, _ov_t + 0.3)
+			w = smoothstep(0.0, 0.3, _ov_t) * (1.0 - smoothstep(_ov_len - 0.35, _ov_len, _ov_t))
+			if _ov_t >= _ov_len:
+				_ov = ""
+				emote_done.emit()
+		if _ov != "":
+			var o := _overlay(_ov.substr(2) if dance else _ov, _ov_t, w, delta)
+			for b in o:
+				d[b] = (d.get(b, Vector3.ZERO) as Vector3) + (o[b] as Vector3) * w
+			if _ov == "d:twirl":
+				d["root"] = (d.get("root", Vector3.ZERO) as Vector3) + Vector3(0, rad_to_deg(_spin), 0)
+	for b in POSE_BONES:
+		if not d.has(b) or not _bones.has(b):
+			continue
+		var bi: int = _bones[b]
+		var par := skel.get_bone_parent(bi)
+		var pg := skel.get_bone_global_pose(par).basis.orthonormalized() if par >= 0 else Basis.IDENTITY
+		var e: Vector3 = d[b]
+		var q := Basis.from_euler(Vector3(deg_to_rad(e.x), deg_to_rad(e.y), deg_to_rad(e.z)))
+		var nl := (pg.inverse() * q * pg).get_rotation_quaternion() * (_base_rot[bi] as Quaternion)
+		skel.set_bone_pose_rotation(bi, nl)
+
+## Degrees to add per bone (turned about MODEL axes: x = her left-right line, y up, z forward;
+## her left is +x): an arm out to her side is rz = +abd on the left arm, -abd on the right; an arm
+## forward is -rx. Gestures lean on the idle pose; w = the fade weight (it drives the spin speed).
+func _overlay(id: String, t: float, w: float, delta: float) -> Dictionary:
+	var d := {}
+	match id:
+		"wave":
+			d["upperarm_r"] = Vector3(-10, 0, -112)
+			d["lowerarm_r"] = Vector3(0, 0, -(38 + 24 * sin(t * 11.0)))
+			d["Head"] = Vector3(0, -6, -7)
+			d["spine_03"] = Vector3(0, 0, 4)
+			d["pelvis"] = Vector3(0, 0, -5)
+		"kiss":
+			var blow := smoothstep(0.7, 1.0, t) * (1.0 - smoothstep(1.3, 1.7, t))
+			d["upperarm_r"] = Vector3(-50 - 10 * blow, 0, -16)
+			d["lowerarm_r"] = Vector3(-112 + 70 * blow, 0, 0)
+			d["hand_r"] = Vector3(-20 * blow, 0, 0)
+			d["Head"] = Vector3(-6 * blow - 4, 0, 9)
+			d["spine_02"] = Vector3(-5 * blow, 0, 0)
+			d["pelvis"] = Vector3(0, 0, 8)
+			d["thigh_l"] = Vector3(0, 0, -4)
+		"hips":
+			d["upperarm_l"] = Vector3(0, 0, 52)
+			d["upperarm_r"] = Vector3(0, 0, -52)
+			d["lowerarm_l"] = Vector3(-14, 0, -88)
+			d["lowerarm_r"] = Vector3(-14, 0, 88)
+			d["pelvis"] = Vector3(0, 7 * sin(t * 2.0), 8 * sin(t * 2.0 + 0.5))
+			d["Head"] = Vector3(-3, 10 * sin(t * 1.6), 6 * sin(t * 2.0))
+			d["spine_03"] = Vector3(-5, 0, -4 * sin(t * 2.0 + 0.5))
+		"flex":
+			var pulse := 0.5 + 0.5 * sin(t * 7.0)
+			d["upperarm_l"] = Vector3(0, 0, 84)
+			d["upperarm_r"] = Vector3(0, 0, -84)
+			d["lowerarm_l"] = Vector3(-18, 0, 92 + 14 * pulse)
+			d["lowerarm_r"] = Vector3(-18, 0, -92 - 14 * pulse)
+			d["spine_03"] = Vector3(-7, 0, 0)
+			d["Head"] = Vector3(-5, 0, 0)
+			d["thigh_l"] = Vector3(0, 0, 5)
+			d["thigh_r"] = Vector3(0, 0, -5)
+		"flip":
+			var toss := smoothstep(0.8, 1.15, t) * (1.0 - smoothstep(1.3, 1.9, t))
+			d["upperarm_r"] = Vector3(-34, 0, -66)
+			d["lowerarm_r"] = Vector3(-60, 0, -30)
+			d["Head"] = Vector3(-4 * toss, 34 * toss, -20 + 38 * toss)
+			d["neck_01"] = Vector3(0, 0, 8 * toss)
+			d["spine_03"] = Vector3(0, -8 * toss, 0)
+			d["pelvis"] = Vector3(0, 0, 6)
+		"salute":
+			d["upperarm_r"] = Vector3(-18, 0, -104)
+			d["lowerarm_r"] = Vector3(-20, 0, -88)
+			d["hand_r"] = Vector3(0, 0, -10)
+			d["Head"] = Vector3(-5, 0, 0)
+			d["spine_03"] = Vector3(-4, 0, 0)
+			d["thigh_l"] = Vector3(0, 0, 3)
+			d["thigh_r"] = Vector3(0, 0, -3)
+		"samba":
+			var k := t * 6.5
+			d["pelvis"] = Vector3(0, 10 * sin(k * 0.5), 15 * sin(k))
+			d["spine_01"] = Vector3(0, 0, -9 * sin(k))
+			d["spine_03"] = Vector3(0, -8 * sin(k * 0.5), -5 * sin(k))
+			d["upperarm_l"] = Vector3(-20, 0, 128 + 12 * sin(k))
+			d["upperarm_r"] = Vector3(-20, 0, -128 + 12 * sin(k + PI))
+			d["lowerarm_l"] = Vector3(0, 0, 22 * sin(k * 2.0))
+			d["lowerarm_r"] = Vector3(0, 0, 22 * sin(k * 2.0 + PI))
+			d["Head"] = Vector3(0, 0, 6 * sin(k))
+		"belly":
+			var k := t * 4.2
+			d["pelvis"] = Vector3(7 * sin(k * 2.0), 30 * sin(k), 11 * sin(k + 1.57))
+			d["spine_01"] = Vector3(0, -16 * sin(k), -6 * sin(k + 1.57))
+			d["spine_03"] = Vector3(0, -8 * sin(k), 0)
+			d["upperarm_l"] = Vector3(-8, 0, 148 + 12 * sin(k + 0.4))
+			d["upperarm_r"] = Vector3(-8, 0, -148 + 12 * sin(k + 0.4 + PI))
+			d["lowerarm_l"] = Vector3(0, 0, -22 + 24 * sin(k * 2.0))
+			d["lowerarm_r"] = Vector3(0, 0, 22 + 24 * sin(k * 2.0 + PI))
+			d["hand_l"] = Vector3(0, 0, 22 * sin(k * 2.0 + 1.0))
+			d["hand_r"] = Vector3(0, 0, 22 * sin(k * 2.0 + 1.0 + PI))
+			d["thigh_l"] = Vector3(-8 + 9 * sin(k), 0, 0)
+			d["thigh_r"] = Vector3(-8 - 9 * sin(k), 0, 0)
+			d["calf_l"] = Vector3(10 - 9 * sin(k), 0, 0)
+			d["calf_r"] = Vector3(10 + 9 * sin(k), 0, 0)
+			d["Head"] = Vector3(0, 0, 8 * sin(k))
+		"twirl":
+			_spin += delta * w * 6.0
+			var bob := 0.5 + 0.5 * sin(t * 11.0)
+			d["upperarm_l"] = Vector3(0, 0, 76)
+			d["upperarm_r"] = Vector3(0, 0, -118)
+			d["lowerarm_r"] = Vector3(0, 0, -16)
+			d["thigh_l"] = Vector3(-6 * bob, 0, 4)
+			d["thigh_r"] = Vector3(-6 * bob, 0, -4)
+			d["calf_l"] = Vector3(10 * bob, 0, 0)
+			d["calf_r"] = Vector3(10 * bob, 0, 0)
+			d["Head"] = Vector3(-4, 0, 0)
+		"strut":
+			d["Head"] = Vector3(-4, 0, 0)
+			d["spine_03"] = Vector3(-3, 0, 0)
+		"pump":
+			var k := t * 8.0
+			d["upperarm_l"] = Vector3(-22, 0, 150 + 16 * sin(k))
+			d["upperarm_r"] = Vector3(-22, 0, -150 + 16 * sin(k + PI))
+			d["lowerarm_l"] = Vector3(0, 0, 26 + 22 * sin(k))
+			d["lowerarm_r"] = Vector3(0, 0, -26 + 22 * sin(k + PI))
+			var down := 0.5 + 0.5 * sin(k * 2.0)
+			d["thigh_l"] = Vector3(-16 * down, 0, 5)
+			d["thigh_r"] = Vector3(-16 * down, 0, -5)
+			d["calf_l"] = Vector3(26 * down, 0, 0)
+			d["calf_r"] = Vector3(26 * down, 0, 0)
+			d["spine_01"] = Vector3(8 * down, 0, 0)
+			d["Head"] = Vector3(-8 + 6 * down, 0, 0)
+	return d

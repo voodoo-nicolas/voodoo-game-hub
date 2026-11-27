@@ -20,6 +20,8 @@ const KEEP := {
 	"Death01": "death",
 	"Dance_Loop": "win",
 	"Sword_Idle": "ready",
+	"Walk_Formal_Loop": "strut",       # Shop dance "Catwalk" (walks in place)
+	"Idle_Talking_Loop": "idle_talk",
 }
 
 func _initialize() -> void:
@@ -61,6 +63,10 @@ func _initialize() -> void:
 			var tt := a.track_get_type(t)
 			if tt == Animation.TYPE_SCALE_3D or (tt == Animation.TYPE_POSITION_3D and not path.ends_with(":pelvis") and not path.ends_with(":root")):
 				a.remove_track(t)
+		if KEEP[src_name] == "strut":   # in place: no travelling root
+			for t in range(a.get_track_count() - 1, -1, -1):
+				if str(a.track_get_path(t)).ends_with(":root") or str(a.track_get_path(t)).ends_with(":pelvis") and a.track_get_type(t) == Animation.TYPE_POSITION_3D:
+					a.remove_track(t)
 		lib.add_animation(KEEP[src_name], a)
 		print("kept ", src_name, " -> ", KEEP[src_name], "  ", snappedf(a.length, 0.01), " s, ", a.get_track_count(), " tracks, e.g. ", a.track_get_path(0) if a.get_track_count() > 0 else "")
 	print("skeleton path in source: ", skel_path, "  anim root: ", player.root_node)

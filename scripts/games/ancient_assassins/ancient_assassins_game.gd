@@ -49,12 +49,26 @@ const LEVELS := ["Easy", "Normal", "Hard", "Expert"]
 ## red / spear, blue / blonde braid, gold / curls, green / red hair, purple / bun,
 ## teal / feathers; no capes, leather headbands.
 const CHARS := [
-	{"name": "Yara", "c1": Color("b8262c"), "c2": Color("7a4a24"), "hair3d": "long", "hair_col": Color("140e0c"), "skin3d": Color(0.86, 0.66, 0.5), "circlet": false, "cape": false},
-	{"name": "Ilka", "c1": Color("2a5d9a"), "c2": Color("7a5a3a"), "hair3d": "long", "hair_col": Color("e2c06a"), "skin3d": Color(1.05, 0.93, 0.84), "circlet": false, "cape": false},
-	{"name": "Amani", "c1": Color("e0a020"), "c2": Color("6a4020"), "hair3d": "short", "hair_col": Color("100a08"), "skin3d": Color(0.45, 0.32, 0.25), "circlet": true, "cape": false},
-	{"name": "Rubí", "c1": Color("4f7a2a"), "c2": Color("6a4a26"), "hair3d": "long", "hair_col": Color("b8441a"), "skin3d": Color(1.0, 0.86, 0.76), "circlet": false, "cape": false},
-	{"name": "Nayra", "c1": Color("5e2e86"), "c2": Color("5a3a24"), "hair3d": "buns", "hair_col": Color("1a120e"), "skin3d": Color(0.9, 0.72, 0.58), "circlet": false, "cape": false},
-	{"name": "Tainá", "c1": Color("1f9a96"), "c2": Color("e0b040"), "hair3d": "parted", "hair_col": Color("120c0a"), "skin3d": Color(0.8, 0.6, 0.45), "circlet": true, "cape": false},
+	# stance = degrees per bone turned in MODEL space on top of the clip (aa_character.gd _overlay notes);
+	# scale = her build; pace = her breathing speed; drop = metres she sinks so bent knees still touch the ground.
+	{"name": "Yara", "c1": Color("b8262c"), "c2": Color("7a4a24"), "hair3d": "long", "hair_col": Color("140e0c"), "skin3d": Color(0.86, 0.66, 0.5), "circlet": false, "cape": false,
+		"scale": Vector3(1.0, 1.0, 1.0), "pace": 1.0, "drop": 0.0,   # the proud one: feet wide, chest out, chin turned
+		"stance": {"pelvis": Vector3(0, 0, 3), "thigh_l": Vector3(0, 0, 7), "thigh_r": Vector3(0, 0, -7), "spine_03": Vector3(-3, 0, -2), "Head": Vector3(-3, 8, 0), "upperarm_l": Vector3(0, 0, 7), "upperarm_r": Vector3(0, 0, -7)}},
+	{"name": "Ilka", "c1": Color("2a5d9a"), "c2": Color("7a5a3a"), "hair3d": "long", "hair_col": Color("e2c06a"), "skin3d": Color(1.05, 0.93, 0.84), "circlet": false, "cape": false,
+		"scale": Vector3(0.98, 1.0, 0.98), "pace": 0.9, "drop": 0.02,   # the model: a hip popped, one knee soft, head tilted
+		"stance": {"pelvis": Vector3(0, 0, 7), "spine_01": Vector3(0, 0, -5), "spine_03": Vector3(0, 0, -4), "Head": Vector3(0, -6, 7), "thigh_l": Vector3(-12, 0, 3), "calf_l": Vector3(22, 0, 0), "thigh_r": Vector3(0, 0, -3)}},
+	{"name": "Amani", "c1": Color("e0a020"), "c2": Color("6a4020"), "hair3d": "short", "hair_col": Color("100a08"), "skin3d": Color(0.45, 0.32, 0.25), "circlet": true, "cape": false,
+		"scale": Vector3(1.04, 1.06, 1.04), "pace": 0.85, "drop": 0.0,   # the tall one: straight back, chin high, arms easy
+		"stance": {"spine_01": Vector3(-2, 0, 0), "spine_03": Vector3(-4, 0, 0), "Head": Vector3(-5, 0, 0), "thigh_l": Vector3(0, 0, 4), "thigh_r": Vector3(0, 0, -4), "upperarm_l": Vector3(0, 0, 4), "upperarm_r": Vector3(0, 0, -4)}},
+	{"name": "Rubí", "c1": Color("4f7a2a"), "c2": Color("6a4a26"), "hair3d": "long", "hair_col": Color("b8441a"), "skin3d": Color(1.0, 0.86, 0.76), "circlet": false, "cape": false,
+		"scale": Vector3(0.97, 0.95, 0.97), "pace": 1.18, "drop": 0.015,   # the lively one: leaning in, head cocked, a foot forward
+		"stance": {"spine_01": Vector3(7, 0, 0), "Head": Vector3(-9, 0, -9), "pelvis": Vector3(0, -6, -4), "thigh_r": Vector3(-10, 0, 2), "calf_r": Vector3(14, 0, 0), "upperarm_l": Vector3(0, 0, 4), "upperarm_r": Vector3(0, 0, -3)}},
+	{"name": "Nayra", "c1": Color("5e2e86"), "c2": Color("5a3a24"), "hair3d": "buns", "hair_col": Color("1a120e"), "skin3d": Color(0.9, 0.72, 0.58), "circlet": false, "cape": false,
+		"scale": Vector3(0.98, 1.0, 0.98), "pace": 0.8, "drop": 0.0,   # the calm one: hips turned, a foot crossed in front, arms in
+		"stance": {"pelvis": Vector3(0, 8, 2), "spine_02": Vector3(0, -6, 0), "Head": Vector3(-2, -5, 3), "thigh_l": Vector3(0, 0, -4), "thigh_r": Vector3(-9, 0, 3), "upperarm_l": Vector3(0, 0, -3), "upperarm_r": Vector3(0, 0, 3)}},
+	{"name": "Tainá", "c1": Color("1f9a96"), "c2": Color("e0b040"), "hair3d": "parted", "hair_col": Color("120c0a"), "skin3d": Color(0.8, 0.6, 0.45), "circlet": true, "cape": false,
+		"scale": Vector3(1.0, 1.02, 1.0), "pace": 1.1, "drop": 0.05,   # the hunter: knees bent, weight forward, eyes up
+		"stance": {"thigh_l": Vector3(-14, 0, 9), "thigh_r": Vector3(-14, 0, -9), "calf_l": Vector3(25, 0, 0), "calf_r": Vector3(25, 0, 0), "spine_01": Vector3(12, 0, 0), "spine_03": Vector3(4, 0, 0), "Head": Vector3(-12, 0, 0)}},
 ]
 ## The 8 Contracts: place, computer level, distance (m), strongest crosswind (m/s²), map style, rival health.
 const CONTRACTS := [
@@ -75,7 +89,8 @@ const WIN_STARS := [3, 5, 7, 9]
 const ONLINE_WIN_STARS := 5
 const LOSS_STARS := 1
 const FLAWLESS_BONUS := 2
-## Outfits (owner 2026-11-25): colours 50 ⭐, bikinis 75 ⭐, costumes 100 ⭐, Angel and Devil 150 ⭐.
+## Outfits (owner 2026-11-25): colours 50 ⭐, bikinis 75 ⭐, costumes 100 ⭐ (Belly Dancer, 2026-11-27),
+## Angel, Devil and Dominatrix 150 ⭐. Hair styles, emotes and dances 25 ⭐, tattoos 15 ⭐ (2026-11-27).
 ## c1 = the cloth colour of her base outfit; "bikini" = a pattern on it (aa_character.gd:
 ## 0 solid, 1 three bands across, 2 stripes, 3 smileys, 4 polka dots, 5 stars & stripes) and
 ## no skirt; "costume" = pieces added by aa_character.gd _costume().
@@ -106,14 +121,55 @@ const OUTFITS := [
 	{"id": "nurse", "name": "Sexy Nurse", "tier": "Costumes", "c1": Color("f4f2ee"), "price": 100, "costume": "nurse"},
 	{"id": "cop", "name": "Sexy Cop", "tier": "Costumes", "c1": Color("121216"), "price": 100, "costume": "cop"},
 	{"id": "secretary", "name": "Sexy Secretary", "tier": "Costumes", "c1": Color("f4f2ee"), "price": 100, "costume": "secretary"},
+	{"id": "belly_dancer", "name": "Belly Dancer", "tier": "Costumes", "c1": Color("0aa6a8"), "price": 100, "costume": "belly"},
 	{"id": "angel", "name": "Sexy Angel", "tier": "Legendary", "c1": Color("fbfaf6"), "price": 150, "costume": "angel"},
 	{"id": "devil", "name": "Sexy Devil", "tier": "Legendary", "c1": Color("c01818"), "price": 150, "costume": "devil"},
+	{"id": "domina", "name": "Dominatrix", "tier": "Legendary", "c1": Color("0a0a0d"), "price": 150, "costume": "domina"},
 ]
 const HAIR_DYES := [
 	{"id": "silver", "name": "Silver", "col": Color("c8ccd4"), "price": 15},
 	{"id": "fire", "name": "Fire Red", "col": Color("c2361c"), "price": 15},
 	{"id": "honey", "name": "Honey", "col": Color("d8a04a"), "price": 15},
 	{"id": "violet", "name": "Violet", "col": Color("6a3aa8"), "price": 20},
+]
+## Hair styles (owner 2026-11-27, 25 ⭐): "base" = the hair model (long / buns / parted / short),
+## "extra" = pieces added by aa_character.gd _hair_extra(). The dye still colours them.
+const HAIR_STYLES := [
+	{"id": "ponytail", "name": "Ponytail", "base": "parted", "extra": "ponytail", "price": 25},
+	{"id": "pigtails", "name": "Pigtails", "base": "parted", "extra": "pigtails", "price": 25},
+	{"id": "braids", "name": "Side Braids", "base": "parted", "extra": "braids", "price": 25},
+	{"id": "topknot", "name": "Top Knot", "base": "parted", "extra": "topknot", "price": 25},
+	{"id": "afro", "name": "Afro Puff", "base": "short", "extra": "afro", "price": 25},
+	{"id": "mohawk", "name": "Mohawk", "base": "short", "extra": "mohawk", "price": 25},
+	{"id": "waves", "name": "Long Waves", "base": "long", "extra": "", "price": 25},
+	{"id": "buns", "name": "Twin Buns", "base": "buns", "extra": "", "price": 25},
+	{"id": "pixie", "name": "Pixie Cut", "base": "short", "extra": "", "price": 25},
+]
+## Emotes (25 ⭐): a gesture you trigger with the 😀 button during a fight (aa_character.gd EMOTES).
+const EMOTES := [
+	{"id": "wave", "name": "Wave", "price": 25},
+	{"id": "kiss", "name": "Blow a Kiss", "price": 25},
+	{"id": "hips", "name": "Hands on Hips", "price": 25},
+	{"id": "flex", "name": "Flex", "price": 25},
+	{"id": "flip", "name": "Hair Flip", "price": 25},
+	{"id": "salute", "name": "Salute", "price": 25},
+]
+## Victory dances (25 ⭐): what she does when she wins (aa_character.gd DANCES).
+const DANCES := [
+	{"id": "samba", "name": "Samba", "price": 25},
+	{"id": "belly", "name": "Belly Dance", "price": 25},
+	{"id": "twirl", "name": "Twirl", "price": 25},
+	{"id": "strut", "name": "Catwalk", "price": 25},
+	{"id": "pump", "name": "Fist Pump", "price": 25},
+]
+## Tattoos (15 ⭐): ink painted on her skin (aa_character.gd shader `tat`); one at a time.
+const TATTOOS := [
+	{"id": "tribal", "name": "Tribal Armbands", "tat": 1, "price": 15},
+	{"id": "rose", "name": "Rose", "tat": 2, "price": 15},
+	{"id": "butterfly", "name": "Butterfly", "tat": 3, "price": 15},
+	{"id": "sun", "name": "Sun", "tat": 4, "price": 15},
+	{"id": "vines", "name": "Ankle Vines", "tat": 5, "price": 15},
+	{"id": "sleeve", "name": "Tribal Sleeve", "tat": 6, "price": 15},
 ]
 ## Upgrades: per level +5 % (edge: damage dealt; hide: damage taken off) or +1 axe and chakram (quiver).
 const UPGRADES := [
@@ -143,7 +199,7 @@ var contract := 0
 var my_char := 0
 var my_seat := 0     # online: 0 = host, 1 = guest
 var progress := {"stars": [0, 0, 0, 0, 0, 0, 0, 0], "char": 0,
-	"wallet": 0, "earned": 0, "owned": [], "outfit": "", "hair": "", "up": {}}
+	"wallet": 0, "earned": 0, "owned": [], "outfit": "", "hair": "", "style": "", "emote": "", "dance": "", "tattoo": "", "up": {}}
 var shop_btn: Button
 var started := false
 var result_recorded := false
@@ -191,6 +247,7 @@ var end_stars := 0
 var touch: Control
 var hud: Control
 var pause_btn: Button
+var emote_btn: Button
 var weapon_row: HBoxContainer
 var weapon_btns: Array = []
 var end_panel: Control
@@ -273,6 +330,16 @@ func _build_ui() -> void:
 	pause_btn.position = Vector2(12, 32)
 	pause_btn.pressed.connect(_on_pause)
 	add_child(pause_btn)
+	# 😀 plays the emote you wear (Shop, 25 ⭐); only others on this phone see it, not online players.
+	emote_btn = Button.new()
+	emote_btn.text = "😀"
+	_style_button(emote_btn, false, 24, 26)
+	emote_btn.custom_minimum_size = Vector2(52, 52)
+	emote_btn.position = Vector2(12, 96)   # under the pause button, clear of the health bars
+	emote_btn.focus_mode = Control.FOCUS_NONE
+	emote_btn.visible = false
+	emote_btn.pressed.connect(_on_emote)
+	add_child(emote_btn)
 
 	var wm := MarginContainer.new()
 	wm.add_theme_constant_override("margin_bottom", 22)
@@ -337,6 +404,7 @@ func _build_ui() -> void:
 		"aa_shop": _open_shop,
 		"aa_wallet": _wallet,
 		"aa_quick": _quick_key,
+		"aa_avatar": _avatar_info,
 		"save_path": SAVE_PATH,
 		"resume": _load_saved_game,
 		"resume_text": _resume_text,
@@ -369,7 +437,9 @@ func _defs() -> Array:
 func _dressed(d: Dictionary, look: Dictionary = {}) -> Dictionary:
 	var o := _find(OUTFITS, str(look.get("outfit", progress.get("outfit", ""))))
 	var h := _find(HAIR_DYES, str(look.get("hair", progress.get("hair", ""))))
-	if o.is_empty() and h.is_empty():
+	var st := _find(HAIR_STYLES, str(look.get("style", progress.get("style", ""))))
+	var tt := _find(TATTOOS, str(look.get("tattoo", progress.get("tattoo", ""))))
+	if o.is_empty() and h.is_empty() and st.is_empty() and tt.is_empty():
 		return d
 	var c := d.duplicate()
 	if not o.is_empty():
@@ -379,6 +449,11 @@ func _dressed(d: Dictionary, look: Dictionary = {}) -> Dictionary:
 		c["costume"] = o.get("costume", "")
 	if not h.is_empty():
 		c["hair_col"] = h.col
+	if not st.is_empty():
+		c["hair3d"] = st.base
+		c["hair_extra"] = st.extra
+	if not tt.is_empty():
+		c["tattoo"] = int(tt.tat)
 	return c
 
 func _find(list: Array, id: String) -> Dictionary:
@@ -493,6 +568,10 @@ func _pick_level(i: int) -> void:
 	progress["level"] = i
 	_save_progress()
 
+## What the Landing shows on the right: your amazon as she is dressed now + your emote.
+func _avatar_info() -> Dictionary:
+	return {"ch": _dressed(CHARS[my_char]), "emote": str(progress.get("emote", ""))}
+
 func _wallet() -> int:
 	return int(progress.get("wallet", 0))
 
@@ -521,59 +600,130 @@ func _add_char_picker(box: VBoxContainer) -> void:
 		grid.add_child(b)
 
 ## A turning 3D preview of your amazon (Options and the Shop); sets picker_view.
-func _preview_box(parent: Control, h: float) -> Control:
-	var vc := SubViewportContainer.new()
-	vc.stretch = true
-	vc.custom_minimum_size = Vector2(0, h)
-	vc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(vc)
-	picker_view = SubViewport.new()
-	picker_view.own_world_3d = true
-	picker_view.transparent_bg = true
-	picker_view.msaa_3d = Viewport.MSAA_2X
-	vc.add_child(picker_view)
-	var we := WorldEnvironment.new()
-	var e := Environment.new()
-	e.background_mode = Environment.BG_CLEAR_COLOR
-	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	e.ambient_light_color = Color(0.8, 0.85, 0.95)
-	e.ambient_light_energy = 0.7
-	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	we.environment = e
-	picker_view.add_child(we)
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-30, 25, 0)
-	sun.light_energy = 1.2
-	picker_view.add_child(sun)
-	var rim := DirectionalLight3D.new()   # a warm rim from behind
-	rim.rotation_degrees = Vector3(-15, 200, 0)
-	rim.light_energy = 1.6
-	rim.light_color = Color("ffb877")
-	picker_view.add_child(rim)
-	var disc := MeshInstance3D.new()       # a gold plinth ring under her feet
-	var tm := TorusMesh.new()
-	tm.inner_radius = 0.42
-	tm.outer_radius = 0.5
-	tm.rings = 40
-	disc.mesh = tm
-	disc.scale = Vector3(1, 0.15, 1)
-	var dm := StandardMaterial3D.new()
-	dm.albedo_color = Color("e8b84a")
-	dm.metallic = 0.8
-	dm.roughness = 0.3
-	dm.emission_enabled = true
-	dm.emission = Color("ffb84a") * 0.4
-	disc.material_override = dm
-	picker_view.add_child(disc)
-	var cam := Camera3D.new()
-	cam.position = Vector3(0, 1.05, 3.1)
-	cam.fov = 40
-	picker_view.add_child(cam)
-	cam.look_at(Vector3(0, 0.95, 0))
-	_show_picker_char()
-	return vc
+## `interactive` (the Shop, owner 2026-11-27): drag the picture to turn her, two curved arrows
+## turn her, two straight arrows zoom in and out (the wheel zooms too).
+var preview_yaw := 0.0
+var preview_zoom := 1.12
+var preview_idle := 9.0       # seconds since the player last touched the preview
+var preview_hold := ""        # the arrow being held: "rot_l" "rot_r" "zoom_in" "zoom_out"
+var preview_ui := false
+var preview_drag := false
 
-## `look` = an outfit / hair dye to try on (the Shop's preview), else what she wears.
+func _preview_box(parent: Control, h: float, interactive: bool = false) -> Control:
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2(0, h)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(holder)
+	if interactive:   # a lighter backdrop, so dark outfits show up
+		var bg := Panel.new()
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.2, 0.23, 0.3, 1.0)
+		sb.border_color = Color(GOLD, 0.35)
+		sb.set_border_width_all(1)
+		sb.set_corner_radius_all(18)
+		bg.add_theme_stylebox_override("panel", sb)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		holder.add_child(bg)
+		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	picker_view = AaCharacter.make_stage(holder, h)
+	var vc := picker_view.get_parent() as Control
+	vc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	preview_ui = interactive
+	preview_yaw = 0.0
+	preview_zoom = 1.12
+	preview_hold = ""
+	preview_drag = false
+	# The menus pause the game tree: this node keeps the preview turning.
+	var tk := AaTick.new()
+	tk.process_mode = Node.PROCESS_MODE_ALWAYS
+	holder.add_child(tk)
+	tk.ticked.connect(_preview_step)
+	if interactive:
+		preview_idle = 9.0
+		vc.mouse_filter = Control.MOUSE_FILTER_STOP
+		vc.gui_input.connect(_on_preview_input)
+		# bottom corners: turn; right edge: zoom in (up) / out (down)
+		_arrow(holder, "rot_l", Control.PRESET_BOTTOM_LEFT, Vector2(8, -72))
+		_arrow(holder, "rot_r", Control.PRESET_BOTTOM_RIGHT, Vector2(-72, -72))
+		_arrow(holder, "zoom_in", Control.PRESET_CENTER_RIGHT, Vector2(-72, -76))
+		_arrow(holder, "zoom_out", Control.PRESET_CENTER_RIGHT, Vector2(-72, 8))
+	_show_picker_char()
+	return holder
+
+func _arrow(holder: Control, kind: String, preset: int, off: Vector2) -> void:
+	var a := AaArrow.new()
+	a.kind = kind
+	a.custom_minimum_size = Vector2(64, 64)
+	a.size = Vector2(64, 64)
+	holder.add_child(a)
+	a.set_anchors_preset(preset)
+	a.position = Vector2.ZERO
+	a.offset_left = off.x
+	a.offset_top = off.y
+	a.offset_right = off.x + 64.0
+	a.offset_bottom = off.y + 64.0
+	if preset == Control.PRESET_BOTTOM_LEFT:
+		a.anchor_top = 1.0
+		a.anchor_bottom = 1.0
+		a.anchor_left = 0.0
+		a.anchor_right = 0.0
+	elif preset == Control.PRESET_BOTTOM_RIGHT:
+		a.anchor_top = 1.0
+		a.anchor_bottom = 1.0
+		a.anchor_left = 1.0
+		a.anchor_right = 1.0
+	else:
+		a.anchor_top = 0.5
+		a.anchor_bottom = 0.5
+		a.anchor_left = 1.0
+		a.anchor_right = 1.0
+	a.down.connect(_preview_press)
+	a.up.connect(_preview_release)
+
+func _preview_press(kind: String) -> void:
+	preview_hold = kind
+	preview_idle = 0.0
+
+func _preview_release(_kind: String) -> void:
+	preview_hold = ""
+
+func _on_preview_input(ev: InputEvent) -> void:
+	if ev is InputEventMouseButton:
+		var mb := ev as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			preview_drag = mb.pressed
+			preview_idle = 0.0
+		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_UP:
+			preview_zoom = clampf(preview_zoom * 1.12, 0.55, 3.2)
+		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			preview_zoom = clampf(preview_zoom / 1.12, 0.55, 3.2)
+	elif ev is InputEventMouseMotion and preview_drag:
+		preview_yaw += (ev as InputEventMouseMotion).relative.x * 0.011
+		preview_idle = 0.0
+
+## Each frame: the auto-turn (paused for a few seconds after a touch), the held arrow, the camera.
+func _preview_step(real: float) -> void:
+	if picker_char == null or not is_instance_valid(picker_char) or picker_view == null or not is_instance_valid(picker_view):
+		return
+	if preview_ui:
+		preview_idle += real
+		match preview_hold:
+			"rot_l":
+				preview_yaw -= real * 2.2
+			"rot_r":
+				preview_yaw += real * 2.2
+			"zoom_in":
+				preview_zoom = clampf(preview_zoom * (1.0 + real * 1.2), 0.55, 3.2)
+			"zoom_out":
+				preview_zoom = clampf(preview_zoom / (1.0 + real * 1.2), 0.55, 3.2)
+		if preview_idle > 3.0 and not preview_drag:
+			preview_yaw += real * 0.5
+		AaCharacter.frame_cam(picker_view, preview_zoom)
+	else:
+		preview_yaw += real * 0.5
+	picker_char.rotation.y = preview_yaw
+
+## `look` = an outfit / hair dye / style / tattoo to try on (the Shop's preview), else what she wears.
 func _show_picker_char(look: Dictionary = {}) -> void:
 	if picker_view == null or not is_instance_valid(picker_view):
 		return
@@ -585,6 +735,66 @@ func _show_picker_char(look: Dictionary = {}) -> void:
 	picker_char.build(_dressed(CHARS[my_char], look), skin == "voodoo")
 	picker_char.set_weapon(0, world.weapon_mesh)
 	picker_char.play("ready", 0.0)
+	picker_char.rotation.y = preview_yaw
+
+## Calls back every frame, even while the game tree is paused (menus).
+class AaTick extends Node:
+	signal ticked(delta: float)
+
+	func _process(delta: float) -> void:
+		ticked.emit(minf(delta, 0.05))
+
+## A round button drawn in code (so no glyph can be missing on a phone): a curved arrow that
+## turns her, or a straight arrow that zooms. Reports press and release while held.
+class AaArrow extends Control:
+	signal down(kind: String)
+	signal up(kind: String)
+	var kind := "rot_l"
+	var _on := false
+
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_STOP
+
+	func _gui_input(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+			_on = (ev as InputEventMouseButton).pressed
+			queue_redraw()
+			if _on:
+				down.emit(kind)
+			else:
+				up.emit(kind)
+			accept_event()
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_MOUSE_EXIT and _on:
+			_on = false
+			queue_redraw()
+			up.emit(kind)
+
+	func _draw() -> void:
+		var c := size * 0.5
+		var gold := Color("ffc24a")
+		draw_circle(c, 30.0, Color(0.05, 0.04, 0.03, 0.78 if not _on else 0.95))
+		draw_arc(c, 30.0, 0.0, TAU, 40, Color(gold, 0.95 if _on else 0.7), 2.5, true)
+		var col := gold if _on else Color(1, 1, 1, 0.92)
+		if kind == "rot_l" or kind == "rot_r":
+			var dirn := -1.0 if kind == "rot_l" else 1.0
+			# a three-quarter circle with an arrowhead at its end
+			var a0 := -PI * 0.5 - dirn * 0.1
+			var a1 := a0 + dirn * PI * 1.45
+			var r := 15.0
+			draw_arc(c, r, minf(a0, a1), maxf(a0, a1), 28, col, 4.0, true)
+			var tip := c + Vector2(cos(a1), sin(a1)) * r
+			var tang := Vector2(-sin(a1), cos(a1)) * dirn
+			var nrm := Vector2(cos(a1), sin(a1))
+			draw_colored_polygon(PackedVector2Array([tip + tang * 9.0, tip + nrm * 8.0, tip - nrm * 8.0]), col)
+		else:
+			var upward := kind == "zoom_in"
+			var s := -1.0 if upward else 1.0
+			# a vertical arrow: shaft and head
+			var tip := c + Vector2(0, s * 14.0)
+			draw_line(c + Vector2(0, -s * 12.0), c + Vector2(0, s * 4.0), col, 4.0, true)
+			draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-10, -s * 11.0), tip + Vector2(10, -s * 11.0)]), col)
 
 func _pick_char(i: int) -> void:
 	my_char = i
@@ -806,8 +1016,10 @@ func _process(delta: float) -> void:
 	if engine.fighters.size() == 2:
 		aim_disp = lerpf(aim_disp, engine.angle_of(engine.turn), minf(1.0, real * 14.0))
 	weapon_row.visible = kill_zoom < 0.05 and world.intro_t < 0.0
-	if picker_char and is_instance_valid(picker_char):
-		picker_char.rotation.y += real * 0.5
+	if emote_btn:
+		var me := my_seat if _is_online() else 0
+		emote_btn.visible = started and str(progress.get("emote", "")) != "" and phase in ["aim", "cpu", "settle"] and not holding \
+			and throw_t[me] > 0.7 and hurt[me] <= 0.0 and world.intro_t < 0.0 and not engine.is_over()
 	if stars_t >= 0.0:
 		stars_t += real
 		var sb := end_panel.find_child("Stars", true, false)
@@ -862,11 +1074,19 @@ func _process(delta: float) -> void:
 		"winner": engine.winner if phase == "over" and kill_zoom <= 0.01 else -1})
 	hud.queue_redraw()
 
+func _on_emote() -> void:
+	var me := my_seat if _is_online() else 0
+	var id := str(progress.get("emote", ""))
+	if id != "" and me < world.chars.size():
+		world.chars[me].play_emote(id)
+
 ## Each assassin's animation from the state of play.
 func _animate() -> void:
+	var mine := my_seat if _is_online() else 0
 	for i in 2:
 		var c = world.chars[i]
 		var f: Dictionary = engine.fighters[i]
+		c.set_dance(str(progress.get("dance", "")) if i == mine else "")   # your Shop dance
 		if int(f.hp) <= 0:
 			c.play("death", 0.15)
 		elif phase == "over" and engine.winner == i:
@@ -1264,7 +1484,8 @@ func _load_progress() -> void:
 				up[str(k)] = maxi(0, int(du[k]))
 		progress = {"stars": st, "char": clampi(int(d.get("char", 0)), 0, CHARS.size() - 1),
 			"wallet": maxi(0, int(d.get("wallet", 0))), "earned": maxi(0, int(d.get("earned", 0))),
-			"owned": owned, "outfit": str(d.get("outfit", "")), "hair": str(d.get("hair", "")), "up": up,
+			"owned": owned, "outfit": str(d.get("outfit", "")), "hair": str(d.get("hair", "")),
+			"style": str(d.get("style", "")), "emote": str(d.get("emote", "")), "dance": str(d.get("dance", "")), "tattoo": str(d.get("tattoo", "")), "up": up,
 			"level": clampi(int(d.get("level", 1)), 0, LEVELS.size() - 1)}
 
 func _save_progress() -> void:
@@ -1334,7 +1555,7 @@ func _open_shop() -> void:
 	pv.add_theme_constant_override("separation", 2)
 	col.add_child(pv)
 	col.move_child(pv, 1)
-	_preview_box(pv, 320)
+	_preview_box(pv, 340, true)
 	shop_try_label = HomeKit.label("", 20, GOLD)
 	shop_try_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pv.add_child(shop_try_label)
@@ -1384,6 +1605,26 @@ func _fill_shop() -> void:
 	_shop_row(tr("Natural"), tr("Wearing") if str(progress.hair) == "" else tr("Wear"), CHARS[my_char].hair_col, str(progress.hair) == "", _wear.bind("hair", ""), {"hair": "-"})
 	for h in HAIR_DYES:
 		_look_row("hair", h, h.col)
+	var hc: Color = CHARS[my_char].hair_col
+	shop_body.add_child(home.section("Hair styles · 25 ⭐"))
+	_shop_row(tr("Her own style"), tr("Wearing") if str(progress.style) == "" else tr("Wear"), hc, str(progress.style) == "", _wear.bind("style", ""), {"style": "-"})
+	for h in HAIR_STYLES:
+		_look_row("style", h, hc)
+	shop_body.add_child(home.section("Tattoos · 15 ⭐"))
+	_shop_row(tr("No tattoo"), tr("Wearing") if str(progress.tattoo) == "" else tr("Wear"), Color("3a3a44"), str(progress.tattoo) == "", _wear.bind("tattoo", ""), {"tattoo": "-"})
+	for t in TATTOOS:
+		_look_row("tattoo", t, Color("1a1a24"))
+	shop_body.add_child(home.section("Emotes · 25 ⭐"))
+	var ne := HomeKit.label(tr("Wear one, then tap 😀 during a fight."), 20, Color(1, 1, 1, 0.7))
+	ne.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	shop_body.add_child(ne)
+	_shop_row(tr("No emote"), tr("Wearing") if str(progress.emote) == "" else tr("Wear"), Color("3a3a44"), str(progress.emote) == "", _wear.bind("emote", ""), {"emote": "-"})
+	for e in EMOTES:
+		_look_row("emote", e, Color("ff9ac0"))
+	shop_body.add_child(home.section("Victory dances · 25 ⭐"))
+	_shop_row(tr("Classic dance"), tr("Wearing") if str(progress.dance) == "" else tr("Wear"), Color("7fe08a"), str(progress.dance) == "", _wear.bind("dance", ""), {"dance": "-"})
+	for dn in DANCES:
+		_look_row("dance", dn, Color("7fe08a"))
 	shop_body.add_child(home.section("Upgrades"))
 	var note := HomeKit.label(tr("Upgrades work against the computer only (Contracts and vs Computer)."), 20, Color(1, 1, 1, 0.7))
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1470,12 +1711,31 @@ func _show_try(name: String = "") -> void:
 	for k in shop_try:
 		look[k] = "" if str(shop_try[k]) == "-" else shop_try[k]
 	_show_picker_char(look)
+	if picker_char and is_instance_valid(picker_char):
+		if shop_try.has("emote") and str(shop_try.emote) != "-":
+			_loop_emote(str(shop_try.emote))
+		elif shop_try.has("dance"):
+			picker_char.start_dance("" if str(shop_try.dance) == "-" else str(shop_try.dance))
 	if shop_try_label and is_instance_valid(shop_try_label):
 		shop_try_label.text = (tr("Trying on: %s") % name.get_slice("\n", 0)) if name != "" else tr("Wearing now")
 	if picker_char and is_instance_valid(picker_char):
 		picker_char.scale = Vector3(0.92, 0.92, 0.92)
 		var tw := picker_char.create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		tw.tween_property(picker_char, "scale", Vector3.ONE, 0.3)
+
+## The preview repeats an emote it is trying on, with a pause between.
+func _loop_emote(id: String) -> void:
+	if picker_char == null or not is_instance_valid(picker_char):
+		return
+	picker_char.play_emote(id)
+	if not picker_char.emote_done.is_connected(_emote_again.bind(id)):
+		picker_char.emote_done.connect(_emote_again.bind(id), CONNECT_ONE_SHOT)
+
+func _emote_again(id: String) -> void:
+	if picker_char and is_instance_valid(picker_char):
+		var tw := picker_char.create_tween()
+		tw.tween_interval(0.7)
+		tw.tween_callback(_loop_emote.bind(id))
 
 ## Every purchase asks first: "Buy <name> for N ⭐?" Buy / Cancel.
 func _ask_buy(name: String, price: int, buy: Callable) -> void:
@@ -1557,7 +1817,7 @@ func _buy_upgrade(id: String) -> void:
 	_fill_shop()
 
 func _buy_look(slot: String, id: String) -> void:
-	var it := _find(OUTFITS if slot == "outfit" else HAIR_DYES, id)
+	var it := _find(_items(slot), id)
 	if it.is_empty():
 		return
 	if not (progress.owned as Array).has(id):
@@ -1565,6 +1825,22 @@ func _buy_look(slot: String, id: String) -> void:
 			return
 		progress.owned.append(id)
 	_wear(slot, id)
+
+func _items(slot: String) -> Array:
+	match slot:
+		"outfit":
+			return OUTFITS
+		"hair":
+			return HAIR_DYES
+		"style":
+			return HAIR_STYLES
+		"emote":
+			return EMOTES
+		"dance":
+			return DANCES
+		"tattoo":
+			return TATTOOS
+	return []
 
 ## Bought or picked: she wears it from now on (the preview drops the try-on).
 func _wear(slot: String, id: String) -> void:
