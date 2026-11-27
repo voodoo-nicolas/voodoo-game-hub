@@ -7,7 +7,11 @@ const TITLE := "Red Mist"
 const GOAL := "From a hide above the valley, finish each contract: take down the officer with the red armband, clear everyone out, beat the clock or stop the trucks. 30 contracts in 6 places."
 const HOW := [
 	"Hold the phone sideways. Drag to look around the valley. Pinch out (or tap a spot, or use the zoom bar) to look through the scope; pinch in to take your eye off it.",
-	"Through the scope, tap anywhere to fire at the centre of the reticle. Drag to move the aim; a quick tap is a shot.",
+	"Through the scope, drag to aim: the gun follows your finger (drag right, it turns right; up is up). Press FIRE to shoot at the centre of the reticle.",
+	"Scan first: put the reticle on an enemy and press 🏷 TAG. A tagged enemy stays marked even behind cover or walls, his weapon, alert state and range show when you aim near him, and taking him down pays 25% more. Drums, gas bottles, generators and the far lookout can be tagged too.",
+	"The radar (bottom left) shows the valley ahead of you, what you are looking at, the objective, tagged enemies and the generator, with the alarm round its rim and whether they know you are there (Hidden, Suspicious, Alerted).",
+	"When the alarm is high, the guards still standing shoot back at your hide. Your health is in the bottom card with your pulse and rounds; it comes back while the alarm is low. At zero the contract is over.",
+	"A running generator (green light, exhaust) masks the crack of your shots: fire while it runs and the alarm barely moves. Shoot it and that cover is gone. Gas bottles explode like the red drums. Far out on every map a lookout lies with a spotting scope: a hard bonus shot worth 300 points and more.",
 	"Your aim moves with your breathing. The breath gauge fills as you breathe; its green part is the pause after breathing out, when the aim goes still and the ring round the dot turns green. Fire then.",
 	"Hold 🫁 Hold breath to freeze your breathing: steady for about 3 seconds, then the shakes grow, and after 6 seconds you gasp for air. Each shot makes your heart beat faster for a while, so the aim shakes more.",
 	"Bullets take time to arrive (about a second at 600 m), fall as they fly and drift in the wind. Lead a walking target. Smoke, flags and the wind arrow show the wind; later contracts have gusts.",
@@ -26,10 +30,12 @@ const HOW := [
 	"Bullet cam: headshots, shots of 500 m or more, the officer and the shot that finishes a contract follow the bullet in slow motion. Tap to skip; turn it off in ⚙ Options.",
 	"⏸ pauses; Resume on the Landing carries on the same contract.",
 	"🎓 Tutorial: a quick intro level that explains every gauge and button on the screen, then lets you take one practice shot. It starts by itself the first time; replay it from the Landing.",
-	"PC: arrow keys or WASD (or dragging) look around; mouse wheel, + and - zoom; left click or Enter fires; right click or Space holds your breath. Controller: sticks look, RT or A fires, LT, B or X holds breath, LB and RB zoom, D-pad up and down zoom. ⚙ Options can invert the look up / down direction.",
+	"PC: arrow keys or WASD (or dragging) aim; mouse wheel, + and - zoom; left click or Enter fires; T tags; right click or Space holds your breath. Controller: sticks aim, RT or A fires, Y tags, LT, B or X holds breath, LB and RB zoom, D-pad up and down zoom. ⚙ Options can invert the up / down direction.",
 ]
 const TIPS := [
-	"Breathe out, wait for the green ring, then tap.",
+	"Breathe out, wait for the green ring, then press FIRE.",
+	"Tag everyone before the first shot: they stay marked when they duck behind cover.",
+	"Wait for the generator to start before you fire: the alarm hardly moves.",
 	"Shoot the officer first if he is in the open: the others panic and run once he is down.",
 	"Patrols turn at the ends of their walk: aim where they will be when the bullet gets there.",
 	"Into the wind: aim on the side the wind is coming from.",

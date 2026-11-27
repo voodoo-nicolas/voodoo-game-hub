@@ -31,6 +31,7 @@ const V0 := 820.0           # muzzle speed, m/s
 const GRAV := 9.81
 const ZERO_M := 300.0       # the rifle is zeroed at 300 m
 const MAG := 5
+const HP_MAX := 100.0
 const BOLT_S := 1.1         # bolt cycle between shots
 const RELOAD_S := 2.6
 const BREATH := 4.2         # seconds per breath at rest
@@ -279,6 +280,8 @@ var won := false
 var reason := ""            # why it ended: "done", "escaped", "ammo", "escapes", "time", "civilian", "convoy"
 var events: Array = []      # for the game layer: {"e": "down"/"boom"/"flee"/"escape"/"cover"/"dish"/"civilian"/"truck"...}
 var _next_id := 1
+var health := 100.0         # yours: alerted guards shoot back (0 = the contract is over)
+var incoming_t := 6.0       # seconds to the next round fired back at the hide
 var _road: Array = []
 # The rifle (set_kit): the Armory's upgrades; reset() keeps them.
 var sway_mult := 1.0
@@ -372,6 +375,8 @@ func reset(p_mode: String, p_level: int, p_contract: int = 0, p_seed: int = 0, p
 	events.clear()
 	_next_id = 1
 	t = 0.0
+	health = HP_MAX
+	incoming_t = 6.0
 	heart = REST_HEART
 	breath_t = 0.0
 	holding = false
@@ -434,14 +439,80 @@ func reset(p_mode: String, p_level: int, p_contract: int = 0, p_seed: int = 0, p
 		props.append({"id": _new_id(), "kind": "drum", "x": float(dr[0]), "d": float(dr[1]), "h": float(dr[2]) if dr.size() > 2 else 0.0, "alive": true})
 	var dish: Array = lay.dish
 	props.append({"id": _new_id(), "kind": "dish", "x": float(dish[0]), "d": float(dish[1]), "h": float(dish[2]), "alive": true})
+	_add_extras(lay)
 	if mode == "survival":
 		ammo = -1
 		return
-	_place_targets(int(c.n), float(c.near), float(c.far), int(c.walk), int(c.civ), goal != "convoy")
+	_place_targets(int(c.n), float(c.near), float(c.far), int(c.walk) + 1, int(c.civ), goal != "convoy")  # one more patrol than the table says
 	for i in int(c.trucks):
 		_add_truck(i)
 	var spare: int = [6, 4, 3][level] + (1 if int(c.trucks) > 0 else 0)
 	ammo = count_targets() + int(c.trucks) + spare
+
+## The extras every valley gets (own random stream so the contract layouts stay
+## as they were): a noise generator by a post, two more explosive drums next to
+## posts, and a bonus target far out (a lookout with a spotting scope).
+func _add_extras(lay: Dictionary) -> void:
+	var r := RandomNumberGenerator.new()
+	r.seed = seed_used * 31 + 7
+	var posts: Array = lay.posts.filter(func(p): return float(p[2]) == 0.0)
+	if posts.is_empty():
+		posts = lay.posts
+	var gp: Array = posts[r.randi() % posts.size()]
+	var gd := float(gp[1])
+	props.append({"id": _new_id(), "kind": "gen", "x": float(gp[0]) + (5.0 if r.randf() < 0.5 else -5.0) * upm(gd), "d": gd + 2.0, "h": 0.0, "alive": true, "phase": r.randf() * 20.0})
+	for i in 2:
+		var p: Array = posts[r.randi() % posts.size()]
+		var d := float(p[1]) - 1.0
+		props.append({"id": _new_id(), "kind": "drum", "x": float(p[0]) + r.randf_range(2.5, 4.0) * (1.0 if r.randf() < 0.5 else -1.0) * upm(d), "d": d, "h": 0.0, "alive": true, "gas": true})
+	var bx := r.randf_range(1500.0, 2200.0) if loc == "alpine" else r.randf_range(300.0, 2100.0)
+	props.append({"id": _new_id(), "kind": "bonus", "x": bx, "d": r.randf_range(1050.0, 1250.0), "h": 0.0, "alive": true})
+
+## A generator runs 12 s, rests 6 s; while one runs, shots raise far less alarm.
+func gen_on(pr: Dictionary) -> bool:
+	return pr.alive and fposmod(t + float(pr.get("phase", 0.0)), 18.0) < 12.0
+
+func masked() -> bool:
+	for pr in props:
+		if pr.kind == "gen" and gen_on(pr):
+			return true
+	return false
+
+## Once the alarm is high, guards still standing shoot back at the hide.
+func _step_return_fire(dt: float) -> void:
+	if alarm < 60.0:
+		if alarm < 30.0:
+			health = minf(HP_MAX, health + 1.5 * dt)
+		return
+	var shooters := 0
+	for tg in targets:
+		if _live(tg) and not tg.civ and tg.state in ["idle", "walk"]:
+			shooters += 1
+	if shooters == 0:
+		return
+	incoming_t -= dt
+	if incoming_t > 0.0:
+		return
+	incoming_t = rng.randf_range(3.5, 6.5) * (1.6 if level == 0 else 1.0)
+	var hit := rng.randf() < 0.15 + (alarm - 60.0) / 40.0 * 0.35
+	if hit:
+		health = maxf(0.0, health - [8.0, 14.0, 20.0][level])
+	events.append({"e": "incoming", "hit": hit})
+	if health <= 0.0 and not over:
+		_end(false, "hit")
+
+## What a target is doing, for the tag card: passive, suspicious, alerted, in cover, fleeing, down.
+func alert_state(tg: Dictionary) -> String:
+	match str(tg.state):
+		"down", "gone":
+			return "down"
+		"flee":
+			return "fleeing"
+		"cover":
+			return "cover"
+	if tg.civ:
+		return "passive"
+	return "alerted" if alarm >= 70.0 else ("suspicious" if alarm >= 35.0 else "passive")
 
 func _new_id() -> int:
 	_next_id += 1
@@ -698,7 +769,8 @@ func fire(aim: Vector2, lased: float = 0.0) -> Dictionary:
 		reload_t = reload_s
 	var calm := steady()
 	heart += 9.0 + (1.0 - calm) * 4.0
-	_raise_alarm([5.0, 9.0, 12.0][level] * shot_alarm_k)
+	# A running generator masks the crack of the shot: far less alarm.
+	_raise_alarm([5.0, 9.0, 12.0][level] * shot_alarm_k * (0.25 if masked() else 1.0))
 	# The nearest thing on the bullet's line wins.
 	var best := {}
 	var best_d := INF
@@ -735,6 +807,14 @@ func fire(aim: Vector2, lased: float = 0.0) -> Dictionary:
 			var base := Vector2(pr.x, ground_y(d) - float(pr.h) * u)
 			if ip.distance_to(base + Vector2(0.0, -0.6 * u)) <= 0.75 * u:
 				hit = "dish"
+		elif pr.kind == "gen":
+			var base := Vector2(pr.x, ground_y(d))
+			if Rect2(base.x - 0.7 * u, base.y - 1.1 * u, 1.4 * u, 1.1 * u).has_point(ip):
+				hit = "gen"
+		elif pr.kind == "bonus":
+			var base := Vector2(pr.x, ground_y(d) - float(pr.h) * u)
+			if ip.distance_to(base + Vector2(0.0, -0.45 * u)) <= 0.5 * u:
+				hit = "bonus"
 		elif pr.kind == "truck" and pr.state == "drive" and not pr.get("doomed", false):
 			var foot := truck_pos(pr, tof(d))
 			var spots := truck_spots(pr, foot)
@@ -778,6 +858,12 @@ func fire(aim: Vector2, lased: float = 0.0) -> Dictionary:
 		"drum":
 			hits += 1
 			best.points = 40
+		"bonus":
+			hits += 1
+			best.points = 300 + int(float(best.d) / 3.0)
+		"gen":
+			hits += 1
+			best.points = 30
 		"tank", "cab":
 			hits += 1
 			best.points = 200 + int(float(best.d) / 4.0) + (60 if best.kind == "cab" else 0)
@@ -857,6 +943,7 @@ func step(dt: float) -> void:
 	_land_bullets(dt)
 	_step_targets(dt)
 	_step_trucks(dt)
+	_step_return_fire(dt)
 	if mode == "survival":
 		_step_survival(dt)
 	_check_end()
@@ -909,6 +996,19 @@ func _land_bullets(dt: float) -> void:
 				events.append({"e": "cab", "id": o.id, "x": o.x, "d": o.d, "points": p.points})
 				_scare(o.x, o.d, 10.0, 40.0)
 				_after_truck()
+			"bonus":
+				if not o.alive:
+					continue
+				o.alive = false
+				score += int(p.points)
+				events.append({"e": "bonus", "id": o.id, "x": o.x, "d": o.d, "points": p.points})
+			"gen":
+				if not o.alive:
+					continue
+				o.alive = false
+				score += int(p.points)
+				events.append({"e": "gen", "id": o.id, "x": o.x, "d": o.d})
+				_raise_alarm(10.0)
 			"dish":
 				if not o.alive:
 					continue
@@ -1203,7 +1303,7 @@ func to_dict() -> Dictionary:
 		"targets": targets.duplicate(true), "props": props.duplicate(true), "wind": wind_base, "wind_t": wind_t, "t": t,
 		"ammo": ammo, "mag": mag, "alarm": alarm, "shots": shots, "hits": hits, "heads": heads, "kills": kills,
 		"stopped": stopped, "score": score, "longest": longest, "escapes": escapes, "wave": wave, "spawn_t": spawn_t,
-		"dish_quiet_t": dish_quiet_t, "pending": pending.duplicate(true), "rng": rng.state, "next_id": _next_id}
+		"dish_quiet_t": dish_quiet_t, "health": health, "incoming_t": incoming_t, "pending": pending.duplicate(true), "rng": rng.state, "next_id": _next_id}
 
 func from_dict(d: Dictionary) -> void:
 	reset(str(d.get("mode", "contract")), int(d.get("level", 1)), int(d.get("contract", 0)), int(d.get("seed", 0)), str(d.get("loc", "")))
@@ -1248,6 +1348,8 @@ func from_dict(d: Dictionary) -> void:
 	wave = int(d.get("wave", 0))
 	spawn_t = float(d.get("spawn_t", 2.0))
 	dish_quiet_t = float(d.get("dish_quiet_t", 0.0))
+	health = float(d.get("health", HP_MAX))
+	incoming_t = float(d.get("incoming_t", 6.0))
 	_next_id = int(d.get("next_id", _next_id))
 	pending = []
 	for p in d.get("pending", []):  # bullets still in the air when the game was saved

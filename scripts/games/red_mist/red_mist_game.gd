@@ -119,6 +119,10 @@ var scope_mat: ShaderMaterial
 var reticle: Control
 var hud: Control
 var hold_btn: Button
+var fire_btn: Button
+var tag_btn: Button
+var tagged: Dictionary = {}         # target / prop id -> true: tagged (tracked through cover, intel card, bonus)
+var hurt_t := 0.0                   # red edge flash when a round fired back hits you
 var zoom_slider: VSlider
 var pause_btn: Button
 var hint: Label
@@ -264,6 +268,27 @@ func _build_ui() -> void:
 	hold_btn.button_up.connect(_on_hold.bind(false))
 	_glass(hold_btn, 70)
 	add_child(hold_btn)
+
+	fire_btn = Button.new()
+	fire_btn.text = tr("FIRE")
+	fire_btn.focus_mode = Control.FOCUS_NONE
+	fire_btn.add_theme_font_size_override("font_size", 30)
+	fire_btn.button_down.connect(_fire)
+	_glass(fire_btn, 70)
+	for st in ["normal", "hover", "pressed"]:
+		var sb: StyleBoxFlat = fire_btn.get_theme_stylebox(st).duplicate()
+		sb.bg_color = Color(0.55, 0.06, 0.04, 0.7) if st != "pressed" else Color(0.85, 0.12, 0.06, 0.9)
+		sb.border_color = Color(1, 0.55, 0.45, 0.9)
+		fire_btn.add_theme_stylebox_override(st, sb)
+	add_child(fire_btn)
+
+	tag_btn = Button.new()
+	tag_btn.text = tr("🏷 TAG")
+	tag_btn.focus_mode = Control.FOCUS_NONE
+	tag_btn.add_theme_font_size_override("font_size", 20)
+	tag_btn.pressed.connect(_tag)
+	_glass(tag_btn, 30)
+	add_child(tag_btn)
 
 	zoom_slider = VSlider.new()
 	zoom_slider.min_value = ZOOM_MIN
@@ -452,16 +477,29 @@ func _find_button(n: Node, text: String) -> Button:
 	return null
 
 ## Hold button and zoom slider sit on the right (left-handed: on the left), inside the safe area.
+const CARD_W := 330.0
+const CARD_H := 104.0
+
 func _layout_controls() -> void:
 	var s := size
 	var safe := 24.0
 	var left: bool = prefs.get("left", false)
 	var bw := 128.0
 	var bh := 112.0
-	hold_btn.size = Vector2(bw, bh)
-	hold_btn.position = Vector2((safe + 8.0) if left else (s.x - bw - safe - 8.0), s.y - bh - 24.0)
-	zoom_slider.size = Vector2(56, clampf(s.y * 0.42, 160.0, 320.0))
-	zoom_slider.position = Vector2((safe + 36.0) if left else (s.x - 56.0 - safe - 44.0), s.y * 0.22)
+	# Bottom corner: the status card (health, heart, rounds); FIRE above it, HOLD and TAG beside FIRE.
+	var card_top := s.y - CARD_H - 16.0
+	var fw := 150.0
+	var fh := 120.0
+	fire_btn.size = Vector2(fw, fh)
+	fire_btn.position = Vector2((safe + 8.0) if left else (s.x - fw - safe - 8.0), card_top - fh - 12.0)
+	hold_btn.size = Vector2(bw, bh * 0.85)
+	hold_btn.position = Vector2((fire_btn.position.x + fw + 12.0) if left else (fire_btn.position.x - bw - 12.0), card_top - bh * 0.85 - 12.0)
+	tag_btn.size = Vector2(bw, 58)
+	tag_btn.position = Vector2(hold_btn.position.x, hold_btn.position.y - 70.0)
+	var top := 130.0
+	var bottom := fire_btn.position.y - 40.0
+	zoom_slider.size = Vector2(56, clampf(bottom - top, 100.0, 320.0))
+	zoom_slider.position = Vector2((safe + 36.0) if left else (s.x - 56.0 - safe - 44.0), top)
 
 func _scope_shader() -> Shader:
 	var sh := Shader.new()
@@ -625,6 +663,13 @@ func _build_world() -> void:
 	_layer(-3900, func(ci): Scenery.draw_far(ci, pal), false)
 	_layer(-3895, func(ci): Scenery.draw_far_lights(ci, pal), false, false)
 	_layer(-3800, func(ci): Scenery.draw_ground(ci, pal, lay), false)
+	# Look pass 2: ground detail (rises, vegetation, rocks, props, grass) in depth
+	# bands, one batched mesh each, under the targets of its band.
+	var items := Scenery.detail_items(lay, engine.loc)
+	for b in Scenery.DETAIL_BANDS:
+		var d0: float = b[0]
+		var d1: float = b[1]
+		_layer(Scenery.z_for(d1) - 1, func(ci): Scenery.draw_detail(ci, pal, items, d0, d1), false)
 	if engine.loc == "city":
 		_layer(-3785, func(ci): Scenery.draw_street_lights(ci, pal, lay), false, false)
 	if lay.has("sea"):
@@ -657,6 +702,10 @@ func _add_prop_node(pr: Dictionary) -> void:
 		prop_nodes[id] = _layer(z, func(ci): Scenery.draw_drum(ci, _prop(id), pal), true)
 	elif pr.kind == "truck":
 		prop_nodes[id] = _layer(z, func(ci): _draw_truck(ci, id), true)
+	elif pr.kind == "gen":
+		prop_nodes[id] = _layer(z, func(ci): Scenery.draw_gen(ci, _prop(id), pal, anim_t, engine.gen_on(_prop(id))), true)
+	elif pr.kind == "bonus":
+		prop_nodes[id] = _layer(z, func(ci): Scenery.draw_bonus(ci, _prop(id), pal, anim_t), true)
 	else:
 		prop_nodes[id] = _layer(Scenery.z_for(float(pr.d)) + 3, func(ci): Scenery.draw_dish(ci, _prop(id), pal, anim_t), true)
 
@@ -769,6 +818,7 @@ func _process(delta: float) -> void:
 	shake = maxf(0.0, shake - delta * 4.0)
 	spotter_t = maxf(0.0, spotter_t - delta)
 	hint_t = maxf(0.0, hint_t - delta)
+	hurt_t = maxf(0.0, hurt_t - delta * 1.5)
 	banner_t = maxf(0.0, banner_t - delta)
 	hint.modulate.a = clampf(hint_t, 0.0, 1.0)
 	hint.visible = bcam.is_empty() and not briefing
@@ -856,7 +906,7 @@ func _draw_overlays() -> void:
 	grade_mat.set_shader_parameter("time", anim_t)
 	if not zoom_slider.has_focus() and absf(zoom_slider.value - zoom_target) > 0.01:
 		zoom_slider.set_value_no_signal(zoom_target)
-	for c in [hold_btn, zoom_slider, pause_btn]:
+	for c in [hold_btn, zoom_slider, pause_btn, fire_btn, tag_btn]:
 		c.visible = playing and not engine.over and not briefing and bcam.is_empty()
 	rifle_layer.queue_redraw()
 	reticle.queue_redraw()
@@ -922,7 +972,34 @@ func _handle_events() -> void:
 				SoundLib.play(self, "impact/soft_heavy", -12.0 if float(ev.d) < 400.0 else -18.0)
 				if ev.primary:
 					_banner(tr("Officer down!"))
+				if tagged.has(int(ev.id)) and not ev.get("civ", false):
+					var bonus := int(int(ev.points) * 0.25)
+					engine.score += bonus
+					_float_text(tr("TAGGED +%d") % bonus, p + Vector2(0, -2.0 * u))
+				tagged.erase(int(ev.id))
 				_vibrate(30)
+			"bonus":
+				var p := Vector2(float(ev.x), E.ground_y(float(ev.d)) - 0.6 * E.upm(float(ev.d)))
+				_add_effect("mist" if int(prefs.get("effect", 0)) == 0 else "dust", p, float(ev.d), 1.2)
+				_float_text("+%d  " % int(ev.points) + tr("BONUS"), p)
+				_banner(tr("Bonus: the far lookout!"))
+				tagged.erase(int(ev.id))
+			"gen":
+				var pr := _prop(int(ev.id))
+				_add_effect("spark", Vector2(float(pr.x), E.ground_y(float(pr.d)) - 0.6 * E.upm(float(pr.d))), float(pr.d), 0.8)
+				SoundLib.play(self, "impact/metal_heavy", -10.0)
+				_banner(tr("Generator down: no more cover for your shots"))
+				tagged.erase(int(ev.id))
+			"incoming":
+				if ev.hit:
+					hurt_t = 1.0
+					shake = 0.8
+					_hint(tr("You're hit! Take them down or let the alarm drop."), 2.0)
+					SoundLib.play(self, "impact/soft_heavy", -6.0)
+					_vibrate(80)
+				else:
+					shake = maxf(shake, 0.3)
+					_hint(tr("Rounds incoming!"), 1.5)
 			"civilian":
 				_banner(tr("You hit a civilian. Contract over."))
 			"truck":
@@ -936,6 +1013,7 @@ func _handle_events() -> void:
 				SoundLib.play(self, "impact/glass_light", -8.0)
 				_banner(tr("Truck stopped!"))
 			"boom":
+				tagged.erase(int(ev.id))
 				var p := Vector2(float(ev.x), E.ground_y(float(ev.d)) - (float(ev.get("h", 0.0)) + 0.6) * E.upm(float(ev.d)))
 				_add_effect("boom", p, float(ev.d), 2.2)
 				get_tree().create_timer(float(ev.d) / 343.0, false).timeout.connect(_boom_sound)
@@ -1385,23 +1463,17 @@ func _draw_hud() -> void:
 		_text_r(font, Vector2(xr, y0 + 70), tr("Drop %.1f mil") % E.drop_mils(lr), 16, dim)
 	elif level == 1 and zoom >= ZOOM_SCOPE and lr > 1.0:
 		_text_r(font, Vector2(xr, y0 + 70), tr("Scope set for %d m") % int(round(lr)), 16, dim)
-	# Rounds: the magazine as cartridges, the rest as a number.
-	var ry := s.y - 44.0
-	var rx := 150.0 if not prefs.get("left", false) else s.x - 330.0
-	_glass_card(Rect2(rx - 12, ry - 40, E.MAG * 18 + 64, 48))
-	for i in E.MAG:
-		var full: bool = i < engine.mag
-		var r := Rect2(rx + i * 18, ry - 30, 9, 30)
-		hud.draw_rect(Rect2(r.position + Vector2(0, 8), Vector2(9, 22)), Color(0.85, 0.65, 0.25, 0.95) if full else Color(1, 1, 1, 0.12))
-		hud.draw_rect(Rect2(r.position + Vector2(2, 0), Vector2(5, 9)), Color(0.75, 0.55, 0.3, 0.95) if full else Color(1, 1, 1, 0.08))
-		if full:
-			# Brass shine down the case, a rim at its base.
-			hud.draw_rect(Rect2(r.position + Vector2(1.5, 9), Vector2(2, 19)), Color(1, 0.95, 0.7, 0.55))
-			hud.draw_rect(Rect2(r.position + Vector2(0, 27), Vector2(9, 3)), Color(0.55, 0.4, 0.15, 1.0))
-	var spare := "∞" if engine.ammo < 0 else str(maxi(0, engine.ammo - engine.mag))
-	_text(font, Vector2(rx + E.MAG * 18 + 8, ry - 6), "+ " + spare, 18, dim)
-	# Bottom left: the breath and the heart.
-	_draw_breath(Vector2(s.x - 78.0 if prefs.get("left", false) else 78.0, s.y - 78))  # opposite the hold button
+	# Look pass 2: radar (bottom left), status card (bottom right), tags, scope readout.
+	_draw_tags()
+	_draw_radar()
+	_draw_status_card()
+	if zoom >= ZOOM_SCOPE:
+		_draw_scope_readout()
+	if hurt_t > 0.0:
+		var hc := Color(0.8, 0.02, 0.0, 0.45 * hurt_t)
+		var e := 70.0
+		hud.draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(s.x, 0), Vector2(s.x, e), Vector2(0, e)]), PackedColorArray([hc, hc, Color(hc, 0), Color(hc, 0)]))
+		hud.draw_polygon(PackedVector2Array([Vector2(0, s.y), Vector2(s.x, s.y), Vector2(s.x, s.y - e), Vector2(0, s.y - e)]), PackedColorArray([hc, hc, Color(hc, 0), Color(hc, 0)]))
 	# Zoom readout by the slider.
 	if zoom_slider.visible:
 		_text(font, zoom_slider.position + Vector2(-6, -12), "%.1f×" % zoom_target, 16, white)
@@ -1475,7 +1547,303 @@ func _job_title() -> String:
 
 ## The breath gauge: a ring that fills with the breath; its green arc is the pause
 ## (the steady moment). Holding: a countdown ring. The heart rate under it.
-func _draw_breath(c: Vector2) -> void:
+## ---------- tagging (look pass 2) ----------
+
+const ALERT_NAMES := {"passive": "Passive", "suspicious": "Suspicious", "alerted": "Alerted", "cover": "In cover", "fleeing": "Fleeing", "down": "Down"}
+
+## TAG: marks the enemy (or drum, generator, lookout) under the reticle or the
+## nearest one to it; tagging it again removes the tag. A new tag is worth 10.
+func _tag() -> void:
+	if not playing or engine.over or briefing or coaching or not bcam.is_empty():
+		return
+	var aim := _aim_world()
+	var c := _scope_center()
+	var best := -1
+	var under: Dictionary = engine.target_at(aim)
+	if not under.is_empty() and not under.state in ["down", "gone"]:
+		best = int(under.id)
+	else:
+		var bd := 70.0
+		for o in engine.targets + engine.props:
+			if not _taggable(o):
+				continue
+			var dd := _world_to_screen(_tag_world(o, false)).distance_to(c)
+			if dd < bd:
+				bd = dd
+				best = int(o.id)
+	if best < 0:
+		_hint(tr("Nothing to tag: put the reticle on it"), 1.5)
+		return
+	if tagged.has(best):
+		tagged.erase(best)
+		_hint(tr("Tag removed"), 1.0)
+		return
+	tagged[best] = true
+	engine.score += 10
+	var o: Dictionary = engine._find(best)
+	_float_text(tr("TAGGED +10"), _tag_world(o, true))
+	_vibrate(15)
+
+func _taggable(o: Dictionary) -> bool:
+	if o.has("kind") and o.kind in ["drum", "gen", "bonus"]:
+		return bool(o.alive)
+	if o.has("state") and o.has("civ"):
+		return not o.state in ["down", "gone"]
+	return false
+
+## Where a thing's marker sits: over the head (or the prop).
+func _tag_world(o: Dictionary, top: bool) -> Vector2:
+	var d := float(o.d)
+	var u := E.upm(d)
+	if o.has("civ"):
+		var duck := 0.62 if o.state == "cover" else 1.0
+		return engine.target_pos(o) + Vector2(0, -(2.3 * duck if top else 1.2 * duck) * u)
+	return Vector2(float(o.x), E.ground_y(d) - (float(o.get("h", 0.0)) + (1.6 if top else 0.5)) * u)
+
+func _tag_kind(o: Dictionary) -> String:
+	if o.has("civ"):
+		return "Civilian" if o.civ else ("Officer" if o.kind == "officer" else "Guard")
+	return {"drum": "Explosive", "gen": "Generator", "bonus": "Lookout"}.get(str(o.kind), "Object")
+
+func _tag_color(o: Dictionary) -> Color:
+	match _tag_kind(o):
+		"Officer", "Lookout":
+			return Color(1.0, 0.8, 0.25)
+		"Civilian":
+			return Color(0.4, 0.75, 1.0)
+		"Explosive":
+			return Color(1.0, 0.85, 0.1)
+		"Generator":
+			return Color(0.45, 1.0, 0.5)
+	return Color(1.0, 0.35, 0.25)
+
+## Tagged things stay marked wherever they go, through cover and walls; off the
+## screen (or out of the scope) an arrow at the edge points to them.
+func _draw_tags() -> void:
+	var font := ThemeDB.fallback_font
+	var s := size
+	var scoped := zoom >= ZOOM_SCOPE
+	var c := _scope_center()
+	var r := _scope_radius()
+	for id in tagged.keys():
+		var o: Dictionary = engine._find(int(id))
+		if o.is_empty() or not _taggable(o):
+			tagged.erase(id)
+			continue
+		var col := _tag_color(o)
+		var sp := _world_to_screen(_tag_world(o, true))
+		var inside := Rect2(Vector2(20, 20), s - Vector2(40, 40)).has_point(sp) and (not scoped or sp.distance_to(c) < r - 10.0)
+		if inside:
+			var bob := sin(anim_t * 4.0 + float(id)) * 2.0
+			var k := 7.0
+			var m := sp + Vector2(0, bob)
+			hud.draw_colored_polygon(PackedVector2Array([m + Vector2(-k - 2, -k - 3), m + Vector2(k + 2, -k - 3), m + Vector2(0, 3)]), Color(0, 0, 0, 0.6))
+			hud.draw_colored_polygon(PackedVector2Array([m + Vector2(-k, -k - 2), m + Vector2(k, -k - 2), m + Vector2(0, 1)]), col)
+			if _tag_kind(o) in ["Officer", "Lookout"]:
+				_text_c(font, m + Vector2(0, -k - 8), "★", 16, col)
+			_text_c(font, m + Vector2(0, -k - (24 if _tag_kind(o) in ["Officer", "Lookout"] else 8)), "%dm" % int(o.d), 13, Color(1, 1, 1, 0.85))
+		else:
+			var dir := (sp - c).normalized()
+			var edge: Vector2 = c + dir * (r - 18.0) if scoped else Vector2(clampf(sp.x, 30, s.x - 30), clampf(sp.y, 30, s.y - 30))
+			var n := dir.orthogonal()
+			hud.draw_colored_polygon(PackedVector2Array([edge + dir * 10.0, edge - dir * 6.0 + n * 7.0, edge - dir * 6.0 - n * 7.0]), Color(col, 0.85))
+	# The intel card: the tagged thing nearest the reticle.
+	var best := {}
+	var bd := 80.0
+	for id in tagged.keys():
+		var o: Dictionary = engine._find(int(id))
+		var dd := _world_to_screen(_tag_world(o, false)).distance_to(c)
+		if dd < bd:
+			bd = dd
+			best = o
+	if not best.is_empty():
+		_draw_intel(best, c + Vector2(minf(r * 0.3, 150.0) if scoped else 40.0, -60.0))
+	elif scoped:
+		var under: Dictionary = engine.target_at(_aim_world())
+		if not under.is_empty() and not under.state in ["down", "gone"]:
+			_text(font, c + Vector2(24, -18), tr("Untagged · TAG for intel"), 14, Color(1, 1, 1, 0.75))
+
+func _draw_intel(o: Dictionary, p: Vector2) -> void:
+	var font := ThemeDB.fallback_font
+	var rows := [[tr("Type"), tr(_tag_kind(o))]]
+	if o.has("civ"):
+		rows.append([tr("Weapon"), tr("Unarmed") if o.civ else (tr("Pistol") if o.kind == "officer" else tr("Rifle"))])
+		rows.append([tr("Alert state"), tr(ALERT_NAMES[engine.alert_state(o)])])
+	elif o.kind == "gen":
+		rows.append([tr("State"), tr("Running: masks shots") if engine.gen_on(o) else tr("Off")])
+	elif o.kind == "drum":
+		rows.append([tr("Hazard"), tr("Blast radius 6 m")])
+	rows.append([tr("Distance"), "%d m" % int(o.d)])
+	var w := 250.0
+	var h := 14.0 + rows.size() * 22.0
+	_glass_card(Rect2(p, Vector2(w, h)))
+	for i in rows.size():
+		var y := p.y + 24.0 + i * 22.0
+		_text(font, Vector2(p.x + 14, y), str(rows[i][0]), 14, Color(1, 1, 1, 0.6))
+		_text_r(font, Vector2(p.x + w - 12, y), str(rows[i][1]), 15, _tag_color(o) if i == 0 else Color(1, 1, 1, 0.95))
+
+## ---------- radar, status card, scope readout (look pass 2) ----------
+
+const RADAR_R := 68.0
+const RADAR_RANGE := 1250.0
+
+func _radar_center() -> Vector2:
+	var left: bool = prefs.get("left", false)
+	return Vector2(size.x - 28.0 - RADAR_R if left else 28.0 + RADAR_R, size.y - RADAR_R - 46.0)
+
+func _radar_rect() -> Rect2:
+	var c := _radar_center()
+	return Rect2(c - Vector2(RADAR_R + 10, RADAR_R + 10), Vector2(RADAR_R * 2 + 20, RADAR_R * 2 + 44))
+
+func _status_rect() -> Rect2:
+	var left: bool = prefs.get("left", false)
+	return Rect2(Vector2(28.0 if left else size.x - CARD_W - 28.0, size.y - CARD_H - 16.0), Vector2(CARD_W, CARD_H))
+
+## A world point on the radar: you in the middle, the valley ahead (north).
+func _radar_pt(x: float, d: float) -> Vector2:
+	var b := atan((x - E.W * 0.5) / E.F)
+	return _radar_center() + Vector2(sin(b), -cos(b)) * clampf(d / RADAR_RANGE, 0.0, 1.0) * RADAR_R
+
+func _draw_radar() -> void:
+	var font := ThemeDB.fallback_font
+	var c := _radar_center()
+	var R := RADAR_R
+	_soft_dot(hud, c, R + 22.0, Color(0, 0, 0, 0.5))
+	hud.draw_circle(c, R, Color(0.03, 0.05, 0.04, 0.6))
+	hud.draw_arc(c, R * 0.4, 0, TAU, 32, Color(1, 1, 1, 0.12), 1.0)
+	hud.draw_arc(c, R * 0.8, 0, TAU, 32, Color(1, 1, 1, 0.12), 1.0)
+	# The field of view: what the screen shows now.
+	var half := size.x / (2.0 * _scale())
+	var aim := _aim_world()
+	var b0 := atan((aim.x - half - E.W * 0.5) / E.F)
+	var b1 := atan((aim.x + half - E.W * 0.5) / E.F)
+	var cone := PackedVector2Array([c])
+	for i in 9:
+		var b := lerpf(b0, b1, float(i) / 8.0)
+		cone.append(c + Vector2(sin(b), -cos(b)) * R)
+	hud.draw_colored_polygon(cone, Color(1.0, 0.95, 0.7, 0.12))
+	# The alarm runs round the rim: you are heard.
+	var al: float = engine.alarm / 100.0
+	var acol := Color(0.35, 1.0, 0.45).lerp(Color(1.0, 0.8, 0.2), clampf(al * 2.0, 0.0, 1.0)).lerp(RED, clampf(al * 2.0 - 1.0, 0.0, 1.0))
+	hud.draw_arc(c, R, -PI * 0.5, -PI * 0.5 + TAU * maxf(al, 0.001), 40, acol, 4.0)
+	hud.draw_arc(c, R + 3.0, 0, TAU, 40, Color(1, 1, 1, 0.2), 1.0)
+	# Compass: the valley lies north.
+	for pair in [["N", Vector2(0, -1)], ["E", Vector2(1, 0)], ["S", Vector2(0, 1)], ["W", Vector2(-1, 0)]]:
+		_text_c(font, c + (pair[1] as Vector2) * (R - 10.0) + Vector2(0, 5), tr(str(pair[0])), 12, Color(1, 0.4, 0.3, 0.95) if pair[0] == "N" else Color(1, 1, 1, 0.55))
+	# Blips: tagged things, the objective, trucks, generators.
+	for tg in engine.targets:
+		if tg.state in ["down", "gone"]:
+			continue
+		var p := _radar_pt(float(tg.x), float(tg.d))
+		if tg.primary and (level < 2 or tagged.has(int(tg.id))):
+			_text_c(font, p + Vector2(0, 6), "★", 16, Color(1.0, 0.8, 0.25))
+		elif tagged.has(int(tg.id)):
+			hud.draw_rect(Rect2(p - Vector2(3, 3), Vector2(6, 6)), _tag_color(tg))
+	for pr in engine.props:
+		if pr.kind == "truck" and pr.state == "drive":
+			var tp: Vector2 = engine.truck_pos(pr)
+			var p := _radar_pt(tp.x, float(pr.d))
+			hud.draw_rect(Rect2(p - Vector2(4, 3), Vector2(8, 6)), Color(1.0, 0.6, 0.2))
+		elif pr.alive and (pr.kind == "gen" or tagged.has(int(pr.id))):
+			var p := _radar_pt(float(pr.x), float(pr.d))
+			hud.draw_rect(Rect2(p - Vector2(3, 3), Vector2(6, 6)), _tag_color(pr) if not (pr.kind == "gen" and not engine.gen_on(pr)) else Color(0.5, 0.5, 0.5))
+	hud.draw_colored_polygon(PackedVector2Array([c + Vector2(0, -6), c + Vector2(4, 4), c + Vector2(-4, 4)]), Color(1, 1, 1))
+	# Stealth status.
+	var st := tr("HIDDEN") if engine.alarm < 35.0 else (tr("SUSPICIOUS") if engine.alarm < 70.0 else tr("ALERTED"))
+	if engine.masked():
+		st += "  ·  " + tr("MASKED")
+	_text_c(font, c + Vector2(0, R + 24.0), "👁 " + st, 14, acol)
+
+func _draw_status_card() -> void:
+	var font := ThemeDB.fallback_font
+	var r := _status_rect()
+	_glass_card(r)
+	_draw_breath(r.position + Vector2(46, r.size.y * 0.5), false)
+	var x := r.position.x + 98.0
+	var w := r.end.x - x - 14.0
+	var y := r.position.y + 12.0
+	# Health: five segments.
+	_text(font, Vector2(x, y + 11), tr("HEALTH"), 11, Color(1, 1, 1, 0.55))
+	var seg_w := (w - 60.0 - 4.0 * 4.0) / 5.0
+	var hp: float = engine.health / E.HP_MAX
+	for i in 5:
+		var sr := Rect2(x + 60.0 + i * (seg_w + 4.0), y + 2, seg_w, 10)
+		hud.draw_rect(sr, Color(1, 1, 1, 0.1))
+		var f := clampf(hp * 5.0 - i, 0.0, 1.0)
+		if f > 0.0:
+			var hc := Color(0.4, 1.0, 0.5) if hp > 0.6 else (Color(1.0, 0.8, 0.25) if hp > 0.3 else RED)
+			hud.draw_rect(Rect2(sr.position, Vector2(seg_w * f, 10)), hc)
+	# Heart rate with a running trace.
+	y += 30.0
+	var beat_col := Color(1.0, 0.45, 0.45, 0.95)
+	_text(font, Vector2(x, y + 6), "♥ %d" % int(engine.heart), 16, beat_col)
+	_text(font, Vector2(x + 50, y + 6), tr("bpm"), 11, Color(1, 1, 1, 0.5))
+	var tx := x + 86.0
+	var tw := w - 86.0
+	var pts := PackedVector2Array()
+	var prev := Vector2.ZERO
+	for i in 41:
+		var f := float(i) / 40.0
+		var ph := fposmod((engine.t - (1.0 - f) * 2.5) * engine.heart / 60.0, 1.0)
+		var v := 0.0
+		if ph < 0.06:
+			v = -sin(ph / 0.06 * PI) * 9.0
+		elif ph < 0.1:
+			v = sin((ph - 0.06) / 0.04 * PI) * 4.0
+		var p := Vector2(tx + f * tw, y + v)
+		if i > 0:
+			pts.append(prev)
+			pts.append(p)
+		prev = p
+	hud.draw_multiline(pts, Color(beat_col, 0.8), 1.5)
+	# Rounds: the magazine as cartridges, the rest, the ammo type and the kit.
+	y += 26.0
+	for i in E.MAG:
+		var full: bool = i < engine.mag
+		var cr := Rect2(x + i * 14, y - 4, 8, 26)
+		hud.draw_rect(Rect2(cr.position + Vector2(0, 7), Vector2(8, 19)), Color(0.85, 0.65, 0.25, 0.95) if full else Color(1, 1, 1, 0.12))
+		hud.draw_rect(Rect2(cr.position + Vector2(2, 0), Vector2(4, 8)), Color(0.75, 0.55, 0.3, 0.95) if full else Color(1, 1, 1, 0.08))
+		if full:
+			hud.draw_rect(Rect2(cr.position + Vector2(1.5, 8), Vector2(2, 16)), Color(1, 0.95, 0.7, 0.55))
+	var spare := "∞" if engine.ammo < 0 else str(maxi(0, engine.ammo - engine.mag))
+	_text(font, Vector2(x + E.MAG * 14 + 6, y + 18), "+ " + spare, 17, Color(1, 1, 1, 0.75))
+	var kit: Array = [tr("7.62 FMJ")]
+	if int(progress.kit.get("supp", 0)) > 0:
+		kit.append(tr("SUP"))
+	if int(progress.kit.get("bipod", 0)) > 0:
+		kit.append(tr("BIPOD"))
+	_text_r(font, Vector2(r.end.x - 14, y + 18), " · ".join(kit), 12, Color(1, 1, 1, 0.55))
+
+## Inside the scope, along the bottom: zoom, range, tags, and the ballistic
+## help the difficulty allows (Easy none needed, Normal the wind hold, Hard drop and wind).
+func _draw_scope_readout() -> void:
+	var font := ThemeDB.fallback_font
+	var c := _scope_center()
+	var r := _scope_radius()
+	var lr := _lased_range()
+	var live := 0
+	for tg in engine.targets:
+		if not tg.civ and not tg.state in ["down", "gone"]:
+			live += 1
+	var line1 := tr("ZOOM %.1f×") % zoom + "    " + (tr("RANGE %d m") % int(round(lr)) if lr > 1.0 else tr("RANGE —")) + "    " + tr("TAGS %d / %d") % [tagged.size(), live]
+	_text_c(font, c + Vector2(0, r * 0.86), line1, 15, Color(1, 1, 1, 0.85))
+	var line2 := ""
+	if level == 0:
+		line2 = tr("Easy: no drop, no wind")
+	elif lr > 1.0:
+		var imp: Vector2 = engine.impact_mils(lr, lr)
+		var wind_mil := -imp.x
+		var arrow := "◀" if wind_mil < 0.0 else "▶"
+		if level == 1:
+			line2 = tr("Hold %s %.1f mil for the wind") % [arrow, absf(wind_mil)]
+		else:
+			line2 = tr("Drop %.1f mil · wind %s %.1f mil") % [-imp.y, arrow, absf(wind_mil)]
+	if engine.masked():
+		line2 += ("    " if line2 != "" else "") + tr("🔊 Generator masks your shot")
+	if line2 != "":
+		_text_c(font, c + Vector2(0, r * 0.86 - 22.0), line2, 14, Color(1.0, 0.88, 0.6, 0.9))
+
+func _draw_breath(c: Vector2, heart_txt: bool = true) -> void:
 	var font := ThemeDB.fallback_font
 	var r := 34.0
 	_soft_dot(hud, c, r + 26.0, Color(0, 0, 0, 0.55))  # look pass: a soft shadow pool, no hard disc edge
@@ -1500,7 +1868,8 @@ func _draw_breath(c: Vector2) -> void:
 	var beat := fposmod(engine.t * engine.heart / 60.0, 1.0)
 	var hk := 1.0 + exp(-beat * 10.0) * 0.25
 	var hx := r + 18.0 if c.x < size.x * 0.5 else -(r + 80.0)
-	_text(font, c + Vector2(hx, -24), "♥ %d" % int(engine.heart), int(18 * hk), Color(1.0, 0.45, 0.45, 0.9))
+	if heart_txt:
+		_text(font, c + Vector2(hx, -24), "♥ %d" % int(engine.heart), int(18 * hk), Color(1.0, 0.45, 0.45, 0.9))
 
 func _text(font: Font, p: Vector2, t: String, fs: int, col: Color) -> void:
 	hud.draw_string_outline(font, p, t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 5, Color(0, 0, 0, 0.7 * col.a))
@@ -1571,7 +1940,7 @@ func _pick_pref(i: int, key: String) -> void:
 	prefs[key] = i
 	SaveUtil.write(PREFS_PATH, prefs)
 
-## Look-Y option: Normal (drag the world, push the stick to look that way) or Inverted.
+## Look-Y option: Normal (drag or push the stick the way you want to aim) or Inverted.
 func _ysign() -> float:
 	return -1.0 if int(prefs.get("invy", 0)) == 1 else 1.0
 
@@ -1824,6 +2193,8 @@ func _next_contract() -> void:
 	_start_contract(mini(engine.contract + 1, E.CONTRACTS.size() - 1))
 
 func _begin() -> void:
+	tagged.clear()
+	hurt_t = 0.0
 	if not tutorial:
 		level = int(prefs.get("level", 1))
 	end_dialog.visible = false
@@ -1960,6 +2331,8 @@ func _fail_text() -> String:
 	match engine.reason:
 		"civilian":
 			return tr("You hit a civilian.")
+		"hit":
+			return tr("They found your hide: you were hit too often.")
 		"time":
 			return tr("Time ran out.")
 		"convoy":
@@ -2288,6 +2661,8 @@ func _input(event: InputEvent) -> void:
 			engine.hold_breath(key_hold or mouse_hold or pad_hold or hold_btn.button_pressed)
 		elif event.pressed and event.keycode in [KEY_ENTER, KEY_F]:
 			_fire()
+		elif event.pressed and not event.echo and event.keycode == KEY_T:
+			_tag()
 		elif event.pressed and event.keycode in [KEY_EQUAL, KEY_KP_ADD]:
 			_set_zoom(zoom_target * 1.25)
 		elif event.pressed and event.keycode in [KEY_MINUS, KEY_KP_SUBTRACT]:
@@ -2318,7 +2693,13 @@ func _pad_button(e: InputEventJoypadButton) -> void:
 	match e.button_index:
 		JOY_BUTTON_A:
 			if e.pressed:
-				_on_tap(size * 0.5)
+				if zoom_target >= ZOOM_SCOPE and bcam.is_empty():
+					_fire()
+				else:
+					_on_tap(size * 0.5)
+		JOY_BUTTON_Y:
+			if e.pressed:
+				_tag()
 		JOY_BUTTON_B, JOY_BUTTON_X:
 			pad_hold = e.pressed
 			engine.hold_breath(key_hold or mouse_hold or pad_hold or hold_btn.button_pressed)
@@ -2333,7 +2714,10 @@ func _pad_axis(e: InputEventJoypadMotion) -> void:
 	if e.axis == JOY_AXIS_TRIGGER_RIGHT:
 		var down := e.axis_value > 0.5
 		if down and not pad_fire_down:
-			_on_tap(size * 0.5)
+			if zoom_target >= ZOOM_SCOPE and bcam.is_empty():
+				_fire()
+			else:
+				_on_tap(size * 0.5)
 		pad_fire_down = down
 	elif e.axis == JOY_AXIS_TRIGGER_LEFT:
 		pad_hold = e.axis_value > 0.3
@@ -2378,7 +2762,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if not dragged and event.position.distance_to(press_pos) > TAP_PX:
 			dragged = true
 		if dragged:
-			cam -= Vector2(delta.x, delta.y * _ysign()) / _scale()
+			# The aim follows the finger: drag right, the gun turns right; up is up.
+			cam += Vector2(delta.x, delta.y * _ysign()) / _scale()
 
 func _on_tap(p: Vector2) -> void:
 	if not bcam.is_empty():
@@ -2396,7 +2781,9 @@ func _on_tap(p: Vector2) -> void:
 		cam = _aim_world() + (p - size * 0.5) / _scale()
 		_set_zoom(4.0)
 		return
-	_fire()
+	# Through the scope a tap no longer fires on a touch screen (FIRE does); a mouse click still does.
+	if not DisplayServer.is_touchscreen_available():
+		_fire()
 
 # ---------- helps (STANDARDS §17) ----------
 
@@ -2508,18 +2895,21 @@ func _tut_end() -> void:
 func _tut_steps() -> Array:
 	var s := size
 	var left: bool = prefs.get("left", false)
-	var gx := s.x - 78.0 if left else 78.0
-	var rx := 150.0 if not left else s.x - 330.0
+	var gx := _status_rect().position.x + 46.0
 	return [
 		{"t": "Welcome to Red Mist. This is a quick tour of the screen. Tap Next (or press Enter / the A button) to go on.", "r": Rect2()},
 		{"t": "Top left: the job, what is left to do, and your score. The bar under it is the ALARM: shots and near misses fill it, and when it is full the officer runs.", "r": Rect2(16, 24, 460, 82)},
 		{"t": "Top right: the WIND arrow and speed (it points where the wind blows to), and the RANGE to whatever is under the reticle once you look through the scope.", "r": Rect2(s.x - 400, 24, 384, 84)},
-		{"t": "The green ring (bottom corner) is your BREATH. The white dot goes round with each breath; the green part is the pause after breathing out. Fire there: the aim goes still and the ring on the reticle turns green. The heart number is your pulse: it climbs with every shot and makes the aim shake more.", "r": Rect2(gx - 60, s.y - 138, 120, 120)},
+		{"t": "The green ring (in the bottom card) is your BREATH. The white dot goes round with each breath; the green part is the pause after breathing out. Fire there: the aim goes still and the ring on the reticle turns green. The heart number is your pulse: it climbs with every shot and makes the aim shake more.", "r": Rect2(gx - 46, s.y - CARD_H - 16.0, 96, CARD_H)},
 		{"t": "HOLD BREATH freezes the breathing for about 3 seconds of steady aim, then the shakes start, and at 6 seconds you gasp. On PC: hold Space or the right mouse button. On a controller: hold the left trigger, B or X.", "r": Rect2(hold_btn.position, hold_btn.size)},
-		{"t": "ROUNDS: the cartridges are the rounds in the magazine; the number after the + is what is left in your pack. After the last round in the magazine you reload.", "r": Rect2(rx - 10, s.y - 84, E.MAG * 18 + 96, 64)},
-		{"t": "The ZOOM bar looks through the scope. Slide it up, pinch, or use the mouse wheel, + / -, the bumpers or D-pad up / down. Zoomed out you look around the valley; zoomed in, a tap fires.", "r": Rect2(zoom_slider.position - Vector2(10, 34), zoom_slider.size + Vector2(20, 44))},
+		{"t": "ROUNDS: the cartridges are the rounds in the magazine; the number after the + is what is left in your pack. After the last round in the magazine you reload.", "r": _status_rect()},
+		{"t": "HEALTH: once the alarm is high, the guards still standing shoot back at your hide. Take them down or wait for the alarm to drop: your health comes back while it is low.", "r": _status_rect()},
+		{"t": "RADAR: you sit in the middle, the valley is ahead. The cone is what you are looking at; tagged enemies, the objective and the noise generator show on it. The word under it says if they know you are there.", "r": _radar_rect()},
+		{"t": "FIRE shoots at the centre of the reticle. TAG marks whatever is under the reticle: a tagged enemy stays marked even behind cover, shows his weapon, alert state and range, and is worth 25% more. Scan the valley and tag them first.", "r": Rect2(tag_btn.position - Vector2(8, 8), fire_btn.position + fire_btn.size - tag_btn.position + Vector2(16, 16)) if not left else Rect2(fire_btn.position - Vector2(8, 78), tag_btn.position + tag_btn.size - fire_btn.position + Vector2(16, 86))},
+		{"t": "A running generator (green light, smoke) masks the sound of your shots: fire while it runs and the alarm barely moves. Gas bottles and red drums explode. A lookout lies far out on every map: a hard bonus shot.", "r": Rect2()},
+		{"t": "The ZOOM bar looks through the scope. Slide it up, pinch, or use the mouse wheel, + / -, the bumpers or D-pad up / down. Zoomed out you look around the valley; zoomed in, press FIRE.", "r": Rect2(zoom_slider.position - Vector2(10, 34), zoom_slider.size + Vector2(20, 44))},
 		{"t": "PAUSE stops the game; Resume on the Landing carries on the same contract.", "r": Rect2(pause_btn.position - Vector2(8, 8), pause_btn.size + Vector2(16, 16))},
-		{"t": "CONTROLS\nTouch: drag to look, pinch to zoom, tap to fire.\nMouse: drag or the arrow keys / WASD to look, wheel to zoom, left click or Enter to fire, right click or Space to hold breath.\nController: sticks look, RT or A fires, LT / B / X holds breath, LB / RB zoom out / in, D-pad up / down zoom.\nOptions can flip the look up / down direction.", "r": Rect2()},
+		{"t": "CONTROLS\nTouch: drag to aim (the gun follows your finger), pinch to zoom, FIRE to shoot, TAG to mark.\nMouse: drag or the arrow keys / WASD to aim, wheel to zoom, left click or Enter to fire, T to tag, right click or Space to hold breath.\nController: sticks aim, RT or A fires, Y tags, LT / B / X holds breath, LB / RB zoom out / in, D-pad up / down zoom.\nOptions can flip the up / down direction.", "r": Rect2()},
 		{"t": "Your turn. Zoom in on the guard in the valley, breathe out, and when the ring goes green take ONE shot. Then we are done.", "r": Rect2()},
 		{"t": "Good shooting. Easy mode has no drop or wind; Normal and Hard add them. Tap Finish to go back, then start your first contract.", "r": Rect2()},
 	]

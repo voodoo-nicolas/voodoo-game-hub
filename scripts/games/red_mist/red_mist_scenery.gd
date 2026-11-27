@@ -1148,6 +1148,15 @@ static func draw_drum(ci: CanvasItem, pr: Dictionary, pal: Dictionary) -> void:
 		_ellipse(ci, foot, 1.4 * u, 0.25 * u, Color(0.05, 0.04, 0.03, 0.8), 12)
 		ci.draw_rect(Rect2(foot.x - 0.3 * u, foot.y - 0.3 * u, 0.6 * u, 0.3 * u), Color(0.12, 0.08, 0.06))
 		return
+	if pr.get("gas", false):
+		# A gas bottle: tall, a valve and a red warning band.
+		var gc: Color = _haze(Color("d9a21e"), pal, d) if not pal.neon_on else pal.edge3
+		ci.draw_rect(Rect2(foot.x - 0.24 * u, foot.y - 1.0 * u, 0.48 * u, 1.0 * u), gc)
+		ci.draw_rect(Rect2(foot.x - 0.16 * u, foot.y - 1.12 * u, 0.32 * u, 0.12 * u), gc.darkened(0.1))
+		ci.draw_rect(Rect2(foot.x - 0.05 * u, foot.y - 1.24 * u, 0.1 * u, 0.12 * u), Color(0.2, 0.2, 0.22))
+		ci.draw_rect(Rect2(foot.x - 0.24 * u, foot.y - 0.62 * u, 0.48 * u, 0.12 * u), Color("c22a1a"))
+		ci.draw_rect(Rect2(foot.x - 0.16 * u, foot.y - 0.95 * u, 0.08 * u, 0.85 * u), Color(1, 1, 1, 0.22))
+		return
 	var col: Color = Color("b8321e") if not pal.neon_on else pal.edge3
 	ci.draw_rect(Rect2(foot.x - 0.3 * u, foot.y - 0.88 * u, 0.6 * u, 0.88 * u), _haze(col, pal, d))
 	for k in 2:
@@ -1212,20 +1221,41 @@ static func draw_guard(ci: CanvasItem, tg: Dictionary, foot: Vector2, pal: Dicti
 	var rifleman := not civ and not officer
 	if rifleman and act == 1:  # slung on the back while he smokes
 		ci.draw_line(Vector2(-face * 0.2 * u, -0.95 * u), Vector2(face * 0.1 * u, -1.65 * u), Color(0.08, 0.07, 0.06, alpha), 0.07 * u)
+	if rifleman:  # a pack on the back
+		ci.draw_rect(Rect2((-0.36 if face > 0 else 0.16) * u, -1.46 * u, 0.2 * u, 0.42 * u), jacket.darkened(0.42))
+	# Look pass 2: one shaded torso (lit side, shadow side), not flat.
 	var torso := PackedVector2Array([Vector2(-0.17 * u, -0.9 * u), Vector2(0.17 * u, -0.9 * u), Vector2(0.22 * u, -1.48 * u), Vector2(-0.22 * u, -1.48 * u)])
-	ci.draw_colored_polygon(torso, jacket)
-	ci.draw_colored_polygon(PackedVector2Array([Vector2(0, -0.9 * u), Vector2(lit * 0.17 * u, -0.9 * u), Vector2(lit * 0.22 * u, -1.48 * u), Vector2(0, -1.48 * u)]), Color(1, 1, 1, 0.1 * alpha))
+	var lit_c := jacket.lightened(0.16)
+	var dark_c := jacket.darkened(0.3)
+	var cols := PackedColorArray([dark_c, jacket.darkened(0.12), lit_c, jacket]) if lit > 0.0 else PackedColorArray([jacket.darkened(0.12), dark_c, jacket, lit_c])
+	ci.draw_polygon(torso, cols)
+	ci.draw_rect(Rect2(-0.07 * u, -1.5 * u, 0.14 * u, 0.05 * u), jacket.darkened(0.25))  # collar
 	if civ:
 		for yy in [-1.08, -1.28]:
 			ci.draw_line(Vector2(-0.2 * u, yy * u), Vector2(0.2 * u, yy * u), Color(0.85, 0.88, 0.92, alpha), 0.045 * u)
 	else:
-		ci.draw_line(Vector2(-0.18 * u, -0.97 * u), Vector2(0.18 * u, -0.97 * u), Color(0.1, 0.09, 0.07, alpha), 0.05 * u)
-		for px in [-0.12, 0.04]:
-			ci.draw_rect(Rect2(px * u, -1.2 * u, 0.08 * u, 0.11 * u), jacket.darkened(0.3))
+		var strap := Color(0.12, 0.11, 0.08, alpha)
+		ci.draw_line(Vector2(-0.18 * u, -0.97 * u), Vector2(0.18 * u, -0.97 * u), strap, 0.06 * u)  # belt
+		ci.draw_rect(Rect2(-0.03 * u, -1.0 * u, 0.06 * u, 0.05 * u), Color(0.55, 0.5, 0.35, alpha))  # buckle
+		if not officer:
+			ci.draw_line(Vector2(-0.16 * u, -1.46 * u), Vector2(0.12 * u, -0.98 * u), strap, 0.04 * u)  # chest rig
+			ci.draw_line(Vector2(0.16 * u, -1.46 * u), Vector2(-0.12 * u, -0.98 * u), strap, 0.04 * u)
+			for px in [-0.17, -0.06, 0.05]:  # magazine pouches
+				ci.draw_rect(Rect2(px * u, -1.1 * u, 0.1 * u, 0.12 * u), jacket.darkened(0.35))
+				ci.draw_rect(Rect2(px * u, -1.1 * u, 0.1 * u, 0.025 * u), jacket.darkened(0.5))
+		else:
+			for px in [-0.12, 0.04]:
+				ci.draw_rect(Rect2(px * u, -1.2 * u, 0.08 * u, 0.11 * u), jacket.darkened(0.3))
+			for sx in [-0.2, 0.12]:  # shoulder boards
+				ci.draw_rect(Rect2(sx * u, -1.49 * u, 0.08 * u, 0.03 * u), Color(0.75, 0.62, 0.3, alpha))
 	var head := Vector2(face * 0.02 * u, -1.66 * u)
 	ci.draw_rect(Rect2(-0.05 * u, -1.56 * u, 0.1 * u, 0.08 * u), skin.darkened(0.15))
 	ci.draw_circle(head, 0.115 * u, skin)
 	ci.draw_circle(head + Vector2(face * 0.1 * u, 0.015 * u), 0.03 * u, skin)
+	# Face: jaw shade, an eye, an ear (cheap rects).
+	ci.draw_rect(Rect2(head.x - 0.1 * u, head.y + 0.04 * u, 0.2 * u, 0.06 * u), Color(0, 0, 0, 0.16 * alpha))
+	ci.draw_rect(Rect2(head.x + face * 0.06 * u - 0.012 * u, head.y - 0.025 * u, 0.025 * u, 0.02 * u), Color(0.08, 0.06, 0.05, alpha))
+	ci.draw_rect(Rect2(head.x - face * 0.02 * u - 0.02 * u, head.y - 0.03 * u, 0.04 * u, 0.06 * u), skin.darkened(0.2))
 	_hat(ci, head, u, face, pal, jacket, civ, officer, alpha)
 	var sh_f := Vector2(face * 0.13 * u, -1.42 * u)
 	var sh_b := Vector2(-face * 0.13 * u, -1.42 * u)
@@ -1286,7 +1316,10 @@ static func _leg(ci: CanvasItem, u: float, a: float, col: Color, boots: Color, f
 	ci.draw_line(hip, knee, col, 0.16 * u)
 	ci.draw_line(knee, ankle, col, 0.13 * u)
 	ci.draw_circle(knee, 0.075 * u, col)
-	ci.draw_rect(Rect2(ankle.x - 0.06 * u * face - (0.0 if face > 0 else 0.18 * u), ankle.y - 0.06 * u, 0.24 * u, 0.09 * u), boots)
+	var bx := ankle.x - 0.06 * u * face - (0.0 if face > 0 else 0.18 * u)
+	ci.draw_rect(Rect2(bx, ankle.y - 0.1 * u, 0.24 * u, 0.13 * u), boots)
+	ci.draw_rect(Rect2(bx, ankle.y + 0.015 * u, 0.25 * u, 0.025 * u), Color(0.02, 0.02, 0.02, boots.a))  # sole
+	ci.draw_rect(Rect2(knee.x - 0.06 * u, knee.y - 0.03 * u, 0.12 * u, 0.08 * u), col.darkened(0.25))  # knee crease
 
 ## An arm from shoulder to hand, bent at the elbow, with the hand.
 static func _arm(ci: CanvasItem, sh: Vector2, hand: Vector2, col: Color, skin: Color, u: float) -> void:
@@ -1598,3 +1631,265 @@ static func draw_water(ci: CanvasItem, pal: Dictionary, lay: Dictionary, time: f
 		var len_ := r.randf_range(6.0, 26.0) * (y - E.HORIZON) / 40.0
 		var c: Color = Color(1.0, 0.75, 0.45, 0.25 + 0.45 * tw * (0.4 + near_sun)) if not pal.neon_on else Color(pal.edge2, 0.4 * tw)
 		ci.draw_line(Vector2(x - len_, y), Vector2(x + len_, y), c, 1.2)
+
+# ---------- generator, bonus lookout (look pass 2) ----------
+
+## A diesel generator on skids: while it runs it shakes, puffs exhaust and masks shots.
+static func draw_gen(ci: CanvasItem, pr: Dictionary, pal: Dictionary, time: float, on: bool) -> void:
+	var d := float(pr.d)
+	var u := E.upm(d)
+	var foot := Vector2(float(pr.x), E.ground_y(d))
+	if not pr.alive:
+		ci.draw_rect(Rect2(foot.x - 0.7 * u, foot.y - 0.6 * u, 1.4 * u, 0.6 * u), Color(0.1, 0.09, 0.08))
+		return
+	var j := (sin(time * 60.0) * 0.015 * u) if on else 0.0
+	var body: Color = _haze(Color("4f6a3a"), pal, d) if not pal.neon_on else pal.edge
+	ci.draw_rect(Rect2(foot.x - 0.75 * u, foot.y - 0.12 * u, 1.5 * u, 0.12 * u), Color(0.15, 0.14, 0.12))
+	ci.draw_rect(Rect2(foot.x - 0.7 * u, foot.y - 1.0 * u + j, 1.4 * u, 0.88 * u), body)
+	ci.draw_rect(Rect2(foot.x - 0.7 * u, foot.y - 1.0 * u + j, 1.4 * u, 0.12 * u), body.lightened(0.2))
+	for k in 4:  # vents
+		ci.draw_rect(Rect2(foot.x - 0.5 * u + k * 0.2 * u, foot.y - 0.75 * u + j, 0.1 * u, 0.4 * u), body.darkened(0.35))
+	ci.draw_rect(Rect2(foot.x + 0.45 * u, foot.y - 1.3 * u + j, 0.08 * u, 0.3 * u), Color(0.2, 0.2, 0.2))
+	ci.draw_rect(Rect2(foot.x - 0.62 * u, foot.y - 0.9 * u, 0.1 * u, 0.08 * u), Color(0.3, 1.0, 0.3) if on else Color(0.5, 0.1, 0.1))
+	if on:
+		for k in 3:
+			var a := fposmod(time * 0.9 + k * 0.33, 1.0)
+			var sz := (0.1 + a * 0.3) * u
+			ci.draw_rect(Rect2(foot.x + 0.49 * u + a * 0.4 * u - sz * 0.5, foot.y - (1.35 + a * 0.9) * u, sz, sz), Color(0.35, 0.35, 0.38, 0.4 * (1.0 - a)))
+
+## The bonus target: a lookout lying far out with a spotting scope that glints.
+static func draw_bonus(ci: CanvasItem, pr: Dictionary, pal: Dictionary, time: float) -> void:
+	if not pr.alive:
+		return
+	var d := float(pr.d)
+	var u := E.upm(d)
+	var foot := Vector2(float(pr.x), E.ground_y(d))
+	var c: Color = _haze(pal.uni, pal, d * 0.6)
+	ci.draw_rect(Rect2(foot.x - 1.3 * u, foot.y - 0.3 * u, 2.6 * u, 0.3 * u), _haze(pal.near, pal, d))  # a low rock
+	ci.draw_rect(Rect2(foot.x - 0.8 * u, foot.y - 0.55 * u, 1.3 * u, 0.28 * u), c)  # lying down
+	ci.draw_rect(Rect2(foot.x + 0.45 * u, foot.y - 0.72 * u, 0.26 * u, 0.24 * u), _haze(pal.skin_tone, pal, d * 0.6))
+	ci.draw_rect(Rect2(foot.x + 0.4 * u, foot.y - 0.8 * u, 0.36 * u, 0.1 * u), c.darkened(0.3))
+	ci.draw_line(foot + Vector2(0.7 * u, -0.6 * u), foot + Vector2(1.25 * u, -0.66 * u), Color(0.1, 0.1, 0.1), maxf(0.6, 0.08 * u))
+	if fposmod(time + float(pr.id), 3.0) < 0.25:
+		_glow(ci, foot + Vector2(1.25 * u, -0.66 * u), maxf(2.0, 0.25 * u), Color(1, 1, 0.9, 0.9), 3)
+
+# ---------- ground detail (look pass 2) ----------
+
+const DETAIL_BANDS := [[95.0, 170.0], [170.0, 250.0], [250.0, 350.0], [350.0, 480.0], [480.0, 650.0], [650.0, 880.0], [880.0, 1300.0]]
+
+## The valley floor's detail: rises, bushes, rocks, props and grass, placed once
+## per place. Anything taller than a tuft stays out of the line of sight to every
+## post, path, structure and drum behind it, so it never hides a target.
+static func detail_items(lay: Dictionary, loc: String) -> Array:
+	var r := _rng(4100 + loc.length() * 13 + loc.unicode_at(0))
+	var keep: Array = []  # [x0, x1, d]
+	for p in lay.posts:
+		var u := E.upm(float(p[1]))
+		keep.append([float(p[0]) - 4.0 * u, float(p[0]) + 4.0 * u, float(p[1])])
+	for p in lay.paths:
+		var u := E.upm(float(p[2]))
+		keep.append([float(p[0]) - 3.0 * u, float(p[1]) + 3.0 * u, float(p[2])])
+	for st in lay.structures:
+		var u := E.upm(float(st.d))
+		var w := float(st.get("w", 4.0)) * u * 0.6 + 3.0 * u
+		keep.append([float(st.x) - w, float(st.x) + w, float(st.d)])
+	for dr in lay.drums:
+		var u := E.upm(float(dr[1]))
+		keep.append([float(dr[0]) - 5.0 * u, float(dr[0]) + 5.0 * u, float(dr[1])])
+	var road_pts: Array = lay.road
+	var out: Array = []
+	var kinds: Array = {"alpine": ["pine", "rock", "bush", "rock"], "desert": ["rock", "crate", "scrub", "rock"],
+		"harbour": ["crate", "bollard", "barrel", "pallet"], "canyon": ["rock", "rock", "scrub", "bush"],
+		"jungle": ["fern", "bush", "fern", "rock"], "city": ["rubble", "barrier", "crate", "bin"]}[loc]
+	var tries := 0
+	while out.size() < 150 and tries < 1400:
+		tries += 1
+		var big := out.size() < 14 and not loc in ["harbour", "city"]
+		var d := r.randf_range(200.0, 1100.0) if big else r.randf_range(120.0, 1000.0)
+		var u := E.upm(d)
+		var x := r.randf_range(X0 + 100.0, X1 - 100.0)
+		var kind: String = "rise" if big else str(kinds[r.randi() % kinds.size()])
+		var hw: float = (r.randf_range(18.0, 45.0) if big else r.randf_range(0.5, 1.6)) * u
+		var h: float = r.randf_range(2.5, 6.0) if big else r.randf_range(0.6, 1.6)
+		if kind == "pine":
+			h = r.randf_range(3.0, 6.0)
+			hw = h * 0.3 * u
+		if lay.has("sea") and d > float(lay.sea) - 10.0:
+			continue
+		var top := E.ground_y(d) - h * u
+		var blocked := false
+		for k in keep:
+			if float(k[2]) > d - 2.0 and x + hw > float(k[0]) and x - hw < float(k[1]) and top < E.ground_y(float(k[2])) + 2.0:
+				blocked = true
+				break
+		if blocked:
+			continue
+		var on_road := false
+		for i in road_pts.size() - 1:
+			var a: Array = road_pts[i]
+			var b: Array = road_pts[i + 1]
+			if d >= minf(float(a[1]), float(b[1])) and d <= maxf(float(a[1]), float(b[1])):
+				var f := (d - float(a[1])) / maxf(1.0, float(b[1]) - float(a[1]))
+				if absf(x - lerpf(float(a[0]), float(b[0]), f)) < 6.0 * u + hw:
+					on_road = true
+		if on_road:
+			continue
+		out.append({"k": kind, "x": x, "d": d, "hw": hw, "h": h, "s": r.randi()})
+	# Grass and pebbles: low, anywhere.
+	var n_tuft := 0 if loc in ["harbour", "city"] else 420
+	for i in n_tuft:
+		var d := r.randf_range(100.0, 900.0)
+		out.append({"k": "tuft", "x": r.randf_range(X0, X1), "d": d, "hw": r.randf_range(0.2, 0.45) * E.upm(d), "h": r.randf_range(0.2, 0.45), "s": r.randi()})
+	for i in 60:
+		var d := r.randf_range(100.0, 700.0)
+		out.append({"k": "pebble", "x": r.randf_range(X0, X1), "d": d, "hw": r.randf_range(0.15, 0.35) * E.upm(d), "h": 0.15, "s": r.randi()})
+	# Gentle dips and swells across the floor: soft shade strips.
+	for i in 10:
+		out.append({"k": "swell", "x": 0.0, "d": 140.0 + i * 85.0 + r.randf_range(-20.0, 20.0), "hw": 0.0, "h": 0.0, "s": r.randi()})
+	return out
+
+## Batches triangles into one mesh: a single draw call for a whole band of detail.
+class Tris:
+	var v := PackedVector2Array()
+	var c := PackedColorArray()
+	func tri(a: Vector2, b: Vector2, d: Vector2, col: Color) -> void:
+		v.append_array([a, b, d])
+		c.append_array([col, col, col])
+	func tri3(a: Vector2, b: Vector2, d: Vector2, ca: Color, cb: Color, cd: Color) -> void:
+		v.append_array([a, b, d])
+		c.append_array([ca, cb, cd])
+	func quad(r: Rect2, top: Color, bottom: Color) -> void:
+		tri3(r.position, Vector2(r.end.x, r.position.y), r.end, top, top, bottom)
+		tri3(r.position, r.end, Vector2(r.position.x, r.end.y), top, bottom, bottom)
+	func blob(ctr: Vector2, rx: float, ry: float, col: Color, edge: Color, n: int = 9) -> void:
+		var prev := Vector2.ZERO
+		for i in n + 1:
+			var a := PI + PI * float(i) / n
+			var p := ctr + Vector2(cos(a) * rx, sin(a) * ry)
+			if i > 0:
+				tri3(ctr, prev, p, col, edge, edge)
+			prev = p
+	func emit(ci: CanvasItem) -> void:
+		if v.is_empty():
+			return
+		var arr := []
+		arr.resize(Mesh.ARRAY_MAX)
+		arr[Mesh.ARRAY_VERTEX] = v
+		arr[Mesh.ARRAY_COLOR] = c
+		var m := ArrayMesh.new()
+		m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+		ci.set_meta("detail_mesh", m)  # the canvas only keeps the RID: hold the mesh or it is freed
+		ci.draw_mesh(m, null)
+
+static func draw_detail(ci: CanvasItem, pal: Dictionary, items: Array, d0: float, d1: float) -> void:
+	var t := Tris.new()
+	var lit := float(pal.get("sun_side", 1.0))
+	var neon: bool = pal.neon_on
+	var mine: Array = items.filter(func(o): return float(o.d) >= d0 and float(o.d) < d1)
+	mine.sort_custom(func(a, b): return float(a.d) > float(b.d))  # far ones first
+	for o in mine:
+		var d := float(o.d)
+		var u := E.upm(d)
+		var foot := Vector2(float(o.x), E.ground_y(d))
+		var hw := float(o.hw)
+		var hh := float(o.h) * u
+		var sd := int(o.s)
+		var jit := float(sd % 100) / 100.0
+		match str(o.k):
+			"swell":
+				var y0 := E.ground_y(d + 40.0)
+				var y1 := E.ground_y(d)
+				# A soft dip: shade fades in and out again (no hard edge to read as a stripe).
+				var ym := (y0 + y1) * 0.5
+				var sh := Color(0, 0, 0, 0.0 if neon else 0.06)
+				t.quad(Rect2(X0, y0, X1 - X0, ym - y0), Color(0, 0, 0, 0), sh)
+				t.quad(Rect2(X0, ym, X1 - X0, y1 - ym), sh, Color(0, 0, 0, 0))
+			"rise":
+				# A rise in the ground: lit crest, shaded flank, grass along the top.
+				var base: Color = _haze((pal.ground_near as Color).lerp(pal.ground_far, 0.35), pal, d)
+				var crest := base.lightened(0.12)
+				var flank := base.darkened(0.14)
+				var n := 14
+				var prev := Vector2.ZERO
+				for i in n + 1:
+					var f := float(i) / n
+					var bump := pow(sin(f * PI), 0.8) * (1.0 - 0.25 * sin(f * PI * 2.0 + jit * 3.0))
+					var p := Vector2(foot.x - hw + f * hw * 2.0, foot.y - bump * hh)
+					if i > 0:
+						var side := crest if (f - 0.5) * lit > 0.0 else flank
+						t.tri3(prev, p, Vector2(p.x, foot.y + 0.5 * u), crest, side, flank)
+						t.tri3(prev, Vector2(p.x, foot.y + 0.5 * u), Vector2(prev.x, foot.y + 0.5 * u), crest, flank, flank)
+					prev = p
+				var gc: Color = _haze(pal.grass, pal, d)
+				for i in 10:
+					var f := 0.1 + 0.8 * float(i) / 9.0
+					var bx := foot.x - hw + f * hw * 2.0
+					var by := foot.y - pow(sin(f * PI), 0.8) * hh * 0.9
+					t.tri(Vector2(bx - 0.5 * u, by + 0.2 * u), Vector2(bx + 0.5 * u, by + 0.2 * u), Vector2(bx, by - 0.7 * u), gc)
+			"pine":
+				var g: Color = _haze(pal.forest, pal, d)
+				var wd: Color = _haze(pal.wood, pal, d)
+				t.quad(Rect2(foot.x - 0.08 * u, foot.y - hh * 0.25, 0.16 * u, hh * 0.25), wd, wd)
+				for k in 3:
+					var y := foot.y - hh * (0.2 + k * 0.26)
+					var w := hw * (1.0 - k * 0.25)
+					t.tri3(Vector2(foot.x - w, y), Vector2(foot.x + w, y), Vector2(foot.x, y - hh * 0.42), g.darkened(0.15), g.lightened(0.08), g.lightened(0.15))
+					if pal.loc == "alpine":
+						t.tri(Vector2(foot.x - w * 0.4, y - hh * 0.25), Vector2(foot.x + w * 0.4, y - hh * 0.25), Vector2(foot.x, y - hh * 0.42), _haze(pal.snow, pal, d))
+			"bush", "scrub", "fern":
+				var g: Color = _haze(pal.forest if o.k != "scrub" else (pal.grass as Color).darkened(0.25), pal, d)
+				if o.k == "fern":
+					for k in 7:
+						var a := PI + PI * (k + 0.5) / 7.0
+						var tip := foot + Vector2(cos(a) * hw * 1.4, sin(a) * hh)
+						var nrm := (tip - foot).orthogonal().normalized() * 0.12 * u
+						t.tri3(foot + nrm, foot - nrm, tip, g.darkened(0.2), g, g.lightened(0.15))
+				else:
+					t.blob(foot, hw, hh, g.darkened(0.1), g.darkened(0.3))
+					t.blob(foot + Vector2(lit * hw * 0.25, -hh * 0.3), hw * 0.6, hh * 0.6, g.lightened(0.12), g, 7)
+			"rock":
+				var rc: Color = _haze((pal.near as Color).lightened(0.18), pal, d)
+				var pts := [Vector2(-1.0, 0), Vector2(-0.8, -0.6), Vector2(-0.2, -1.0), Vector2(0.5, -0.8), Vector2(1.0, -0.2), Vector2(1.0, 0)]
+				t.tri(foot + Vector2(-hw * 1.1, 0.05 * u), foot + Vector2(hw * 1.3, 0.05 * u), foot + Vector2(-lit * hw * 0.4, 0.2 * u), Color(0, 0, 0, 0.18))
+				for i in pts.size() - 1:
+					var a: Vector2 = foot + Vector2(pts[i].x * hw, pts[i].y * hh * 0.7)
+					var b: Vector2 = foot + Vector2(pts[i + 1].x * hw, pts[i + 1].y * hh * 0.7)
+					var lit_face: bool = (pts[i].x + pts[i + 1].x) * lit > 0.0
+					t.tri(foot + Vector2(0, -hh * 0.25), a, b, rc.lightened(0.12) if lit_face else rc.darkened(0.18))
+				if pal.loc == "alpine":
+					t.tri(foot + Vector2(-hw * 0.6, -hh * 0.55), foot + Vector2(hw * 0.4, -hh * 0.6), foot + Vector2(-hw * 0.15, -hh * 0.72), _haze(pal.snow, pal, d))
+			"crate":
+				var wc: Color = _haze(pal.wood, pal, d)
+				var sz := minf(hh, 1.1 * u)
+				for k in (1 + sd % 2):
+					var r2 := Rect2(foot.x - sz * 0.5 + k * sz * 0.3, foot.y - sz * (k + 1), sz, sz)
+					t.quad(r2, wc.lightened(0.1), wc.darkened(0.15))
+					t.quad(Rect2(r2.position.x, r2.position.y + sz * 0.45, sz, sz * 0.1), wc.darkened(0.35), wc.darkened(0.35))
+			"pallet":
+				var wc: Color = _haze(pal.wood, pal, d)
+				t.quad(Rect2(foot.x - hw, foot.y - 0.2 * u, hw * 2.0, 0.2 * u), wc, wc.darkened(0.2))
+			"bin", "barrel":
+				var c2: Color = _haze(Color("3d5a6a") if o.k == "barrel" else Color("3a4a3a"), pal, d)
+				t.quad(Rect2(foot.x - 0.3 * u, foot.y - 0.9 * u, 0.6 * u, 0.9 * u), c2.lightened(0.1), c2.darkened(0.2))
+				t.quad(Rect2(foot.x - 0.3 * u, foot.y - 0.6 * u, 0.6 * u, 0.05 * u), c2.darkened(0.4), c2.darkened(0.4))
+			"bollard":
+				t.quad(Rect2(foot.x - 0.18 * u, foot.y - 0.6 * u, 0.36 * u, 0.6 * u), Color(0.25, 0.25, 0.27), Color(0.12, 0.12, 0.13))
+			"barrier":
+				var bc: Color = _haze(Color("b8b4aa"), pal, d)
+				t.tri3(foot + Vector2(-hw, 0), foot + Vector2(hw, 0), foot + Vector2(hw * 0.8, -0.8 * u), bc.darkened(0.15), bc.darkened(0.15), bc)
+				t.tri3(foot + Vector2(-hw, 0), foot + Vector2(hw * 0.8, -0.8 * u), foot + Vector2(-hw * 0.8, -0.8 * u), bc.darkened(0.15), bc, bc)
+				t.quad(Rect2(foot.x - hw * 0.8, foot.y - 0.55 * u, hw * 1.6, 0.1 * u), Color("c23a2a"), Color("c23a2a"))
+			"rubble":
+				var rc2: Color = _haze((pal.metal as Color).darkened(0.2), pal, d)
+				for k in 5:
+					var ox := (float((sd >> k) % 9) / 4.0 - 1.0) * hw
+					t.tri(foot + Vector2(ox - 0.4 * u, 0), foot + Vector2(ox + 0.4 * u, 0), foot + Vector2(ox + 0.1 * u, -(0.3 + (k % 3) * 0.2) * u), rc2.lightened(0.05 * k))
+			"tuft":
+				var gc: Color = _haze(pal.grass, pal, d).lightened(jit * 0.15)
+				for k in 3:
+					var ox := (k - 1) * hw * 0.6
+					t.tri3(foot + Vector2(ox - hw * 0.25, 0), foot + Vector2(ox + hw * 0.25, 0), foot + Vector2(ox + (k - 1) * hw * 0.5, -hh * (0.7 + 0.3 * float(k % 2))), gc.darkened(0.25), gc.darkened(0.25), gc.lightened(0.1))
+			"pebble":
+				var pc: Color = _haze((pal.near as Color).lightened(0.25), pal, d)
+				t.blob(foot, hw, hw * 0.45, pc, pc.darkened(0.2), 5)
+	t.emit(ci)
